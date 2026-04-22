@@ -1,0 +1,19 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "useGulp": false,
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.22.1",
+    "sdksVersions": {},
+    "version": "1.22.2",
+    "libraryName": "imp-9177-spfx",
+    "libraryId": "9ae27d79-9290-47cd-ad41-cd55506bc995",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "imp-9177-spfx",
+    "solutionShortDescription": "imp-9177-spfx description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

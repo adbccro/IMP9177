@@ -1,0 +1,19 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/core-build/entries/1.0.0/package.schema.json",
+  "id": "c7f3a2e1-8b4d-4f9a-b6c0-d1e2f3a4b5c6",
+  "alias": "QmsPortalWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart"],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [{
+    "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+    "group": { "default": "Other" },
+    "title": { "default": "IMP9177 QMS Portal" },
+    "description": { "default": "QMS Document Control, DCO Routing, Records and Training Portal" },
+    "officeFabricIconFontName": "Shield",
+    "properties": { "screen": "dashboard" }
+  }]
+}

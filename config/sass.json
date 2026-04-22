@@ -1,0 +1,4 @@
+{
+  "sassMatch": ["src/**/*.scss"],
+  "useCSSModules": true
+}

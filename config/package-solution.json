@@ -1,0 +1,43 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "imp-9177-spfx-client-side-solution",
+    "id": "9ae27d79-9290-47cd-ad41-cd55506bc995",
+    "version": "1.0.0.1",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.22.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "imp-9177-spfx description"
+      },
+      "longDescription": {
+        "default": "imp-9177-spfx description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "imp-9177-spfx Feature",
+        "description": "The feature that activates elements of the imp-9177-spfx solution.",
+        "id": "de4d5dde-6750-4730-995f-88de66a3fc5b",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/imp-9177-spfx.sppkg"
+  }
+}
+
+
+

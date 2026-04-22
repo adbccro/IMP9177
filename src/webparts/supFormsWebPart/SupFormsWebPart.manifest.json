@@ -1,0 +1,20 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/core-build/entry.schema.json",
+  "id": "a1b2c3d4-0001-4000-8000-000000000002",
+  "alias": "SupFormsWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart"],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [{
+    "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+    "group": { "default": "IMP9177" },
+    "title": { "default": "IMP9177 — Supplier Registry" },
+    "description": { "default": "Live supplier registry and CAPA log for IMP9177" },
+    "officeFabricIconFontName": "ContactList",
+    "properties": {}
+  }]
+}
+
