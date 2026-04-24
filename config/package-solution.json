@@ -32,12 +32,19 @@
         "id": "de4d5dde-6750-4730-995f-88de66a3fc5b",
         "version": "1.0.0.0"
       }
+    ],
+    "webApiPermissionRequests": [
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Files.ReadWrite.All"
+      },
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Sites.ReadWrite.All"
+      }
     ]
   },
   "paths": {
     "zippedPackage": "solution/imp-9177-spfx.sppkg"
   }
 }
-
-
-

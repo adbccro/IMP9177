@@ -769,7 +769,12 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
 
   private _fmt(s: string): string {
     if (!s) return '—';
-    try { const d = new Date(s); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }); }
+    try {
+      const d = new Date(s);
+      const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+      const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return datePart + ' ' + timePart;
+    }
     catch { return s; }
   }
 
@@ -1382,7 +1387,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const apprs = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId);
       const hist = (this._data.history || []).filter((h: any) => h.RH_DCOID === dcoId);
       const late = this._lateStatus(dco);
-      const laneHtml = apprs.length ? apprs.map((a: any) => {
+      const laneHtml = apprs.length ? apprs.filter((a: any) => a.Appr_Type !== 'Optional-Hidden' && a.Appr_Type !== 'Optional').map((a: any) => {
         const cls = a.Appr_Status === 'Signed' ? 'signed' : a.Appr_Status === 'Blocked' ? 'blocked' : 'waiting';
         return `<div class="lane ${cls}"><div class="lane-name">${a.Appr_Name||a.Title}</div><div class="lane-role">${a.Appr_Role||''} · ${a.Appr_Type||''}</div><div class="lane-status">${a.Appr_Status === 'Signed' ? '✅ Signed' : a.Appr_Status === 'Blocked' ? '🚫 Blocked' : '⏳ Waiting'}</div>${a.Appr_SigID ? `<div class="lane-sig">SIG: ${a.Appr_SigID}</div>` : ''}</div>`;
       }).join('') : '<div style="color:var(--s5);font-size:12px;padding:8px">No approvers assigned to this DCO yet</div>';
@@ -1466,7 +1471,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             <div style="font-size:12px;font-weight:700;color:#fff">&#128196; DCO Completion Report — ${dcoId}</div>
             <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">21 CFR Part 11 · Signatures · Training Compliance · Routing History</div>
           </div>
-          <button onclick="window._qpGenerateReport('${dcoId}')" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:5px;background:#fff;color:var(--n);border:none;cursor:pointer;white-space:nowrap">&#11015; Download PDF</button>
+          <button data-rpt-dco="${dcoId}" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:5px;background:#fff;color:var(--n);border:none;cursor:pointer;white-space:nowrap">&#11015; Download PDF</button>
         </div>` +
         // Per-document rows
         displayDocs.map((docId: string) => {
@@ -1490,7 +1495,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               <span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:3px;background:var(--b1);color:var(--b)">${_rev}</span>
               <span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--g1);color:var(--g);font-weight:700">Effective Apr 24, 2026</span>
               <a href="${_view}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--b);color:var(--b);background:var(--w);text-decoration:none">View &#8599;</a>
-              <button onclick="window._qpDownloadDocx('${_dl}','${docId}_RevA.docx')" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);cursor:pointer;white-space:nowrap">&#11015; DOCX</button>
+              <button data-dl-url="${_dl}" data-dl-name="${docId}_RevA.docx" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);cursor:pointer;white-space:nowrap">&#11015; DOCX</button>
               <button data-pdf-path="${_pdfPath}" data-doc-id="${docId}" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid #dc2626;color:#dc2626;background:#fef2f2;cursor:pointer;white-space:nowrap">&#11015; PDF</button>
             </div>
           </div>`;
@@ -1652,7 +1657,45 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         const _dlWrap = d.createElement('div');
         _dlWrap.innerHTML = dlDocsHtml;
         docsPaneEl.appendChild(_dlWrap);
-        // DCO report button uses onclick="window._qpGenerateReport()" — no wiring needed here
+        // Wire DCO report button — open static PDF from Official zone
+        const _rptBtn2 = _dlWrap.querySelector("[data-rpt-dco]") as HTMLElement;
+        if (_rptBtn2) {
+          _rptBtn2.addEventListener("click", () => {
+            const _spBase = this.context.pageContext.web.absoluteUrl;
+            const _pdfUrl = _spBase + "/Shared%20Documents/Official/QMS/Documents/DCO-0001_Completion_Report_RevA.pdf";
+            window.open(_pdfUrl, "_blank");
+          });
+        }
+        // Wire DOCX download buttons + audit trail
+        _dlWrap.querySelectorAll("[data-dl-url]").forEach((btn: Element) => {
+          btn.addEventListener("click", () => {
+            const url  = (btn as HTMLElement).getAttribute("data-dl-url") || "";
+            const name = (btn as HTMLElement).getAttribute("data-dl-name") || "document.docx";
+            const docIdAudit = name.replace("_RevA.docx", "");
+            // Trigger download from parent window
+            const a = window.document.createElement("a");
+            a.href = url; a.download = name; a.target = "_blank";
+            window.document.body.appendChild(a); a.click();
+            window.document.body.removeChild(a);
+            // Write audit trail to routing history
+            const base = this.context.pageContext.web.absoluteUrl;
+            const user = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
+            const ts   = new Date().toISOString();
+            this.context.spHttpClient.post(
+              base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+              SPHttpClient.configurations.v1,
+              { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+                body: JSON.stringify({
+                  Title: dcoId + '-DOWNLOAD-' + docIdAudit + '-' + Date.now(),
+                  RH_DCOID: dcoId, RH_EventType: 'download',
+                  RH_Stage: 'Effective', RH_Actor: user,
+                  RH_Note: 'DOCX downloaded: ' + docIdAudit + ' Rev A by ' + user,
+                  RH_Timestamp: ts
+                })
+              }
+            ).catch(() => {});
+          });
+        });
         // Wire PDF download buttons — fetch via Graph API with SPFx auth token
         _dlWrap.querySelectorAll('[data-pdf-path]').forEach((btn: Element) => {
           btn.addEventListener('click', async (e: Event) => {
@@ -1768,15 +1811,47 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           if (rejectBtn) rejectBtn.style.display = 'inline-flex';
         } else if (phase === 'Implemented') {
           actionBtn.style.display = 'inline-flex';
-          actionBtn.textContent = '📋 Review Training';
+          actionBtn.textContent = '🎓 Training Complete';
+          actionBtn.style.background = '#7b1fa2';
+          actionBtn.onclick = async () => {
+            if (w.qpToast) w.qpToast('Recording training completion...');
+            const base2 = this.context.pageContext.web.absoluteUrl;
+            const user2 = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
+            const ts2 = new Date().toISOString();
+            // Advance DCO to Awaiting Training
+            const dcoItem2 = (this._data.dcos||[]).find((x:any)=>x.Title===dcoId);
+            if (dcoItem2?.Id) {
+              await this.context.spHttpClient.post(
+                base2 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem2.Id + ")",
+                SPHttpClient.configurations.v1,
+                { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+                  body: JSON.stringify({ DCO_Phase: 'Awaiting Training' }) }
+              );
+              dcoItem2.DCO_Phase = 'Awaiting Training';
+            }
+            await this.context.spHttpClient.post(
+              base2 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+                body: JSON.stringify({ Title: dcoId+'-TRAINING-'+Date.now(), RH_DCOID: dcoId, RH_EventType: 'stage',
+                  RH_Stage: 'Awaiting Training', RH_Actor: user2,
+                  RH_Note: 'Training confirmed complete by ' + user2 + '. DCO advanced to Awaiting Training.', RH_Timestamp: ts2 }) }
+            );
+            if (w.qpToast) w.qpToast('Training recorded — DCO now Awaiting Training');
+            setTimeout(() => this._loadAll(), 1000);
+          };
         } else if (phase === 'Awaiting Training') {
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '✅ Mark Effective';
+          actionBtn.style.background = 'var(--g)';
+          actionBtn.onclick = async () => {
+            if (w.qpToast) w.qpToast('Executing DCO closure — promoting documents...');
+            await this._executeMarkEffective(dcoId);
+          };
         }
       }
 
       (d.getElementById('modal-dco-detail') as HTMLElement)?.classList.add('open');
-      this._addDownloadBar(dcoId, dco.DCO_Phase || "Draft");
     };
 
     const openCRInline = (crId: string) => {
@@ -1992,7 +2067,117 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
   private _drmDco(id:string):string|null{if(['QM-001','SOP-QMS-001','SOP-QMS-002','SOP-QMS-003','SOP-PRD-108','SOP-PRD-432','SOP-FRS-549','FM-001','FM-002','FM-003','FM-027','FM-030'].includes(id))return'DCO-0001';if(id.startsWith('SOP-SUP-')||id.startsWith('SOP-FS-')||id.startsWith('SOP-PC-')||id.startsWith('FM-0')||id==='FM-ALG')return'DCO-0002';return null;}
   private _initDocRepo():void{const d=this._iframe?.contentDocument;if(!d)return;const tab=d.querySelector('[data-screen="docrepo"]');if(tab&&!tab.getAttribute('data-wired')){tab.setAttribute('data-wired','1');tab.addEventListener('click',()=>{if(!this._drmLoaded){this._drmLoaded=true;this._loadDRM();}});}}
   private _loadDRM():void{const base=this.context.pageContext.web.absoluteUrl;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const fetch1=(f:string):Promise<any[]>=>this.context.spHttpClient.get(`${base}/_api/web/GetFolderByServerRelativeUrl('${f}')/Files?$select=Name,ServerRelativeUrl,TimeLastModified,CheckOutType,CheckedOutByUser/Title,MajorVersion,MinorVersion&$expand=CheckedOutByUser`,SPHttpClient.configurations.v1).then((r:SPHttpClientResponse)=>r.ok?r.json():{value:[]}).then((d:any)=>(d.value||[]).filter((f:any)=>f.Name.toLowerCase().endsWith('.docx')&&!f.ServerRelativeUrl.toLowerCase().includes('/archive/'))).catch(()=>[]);Promise.all([Promise.all(['Shared Documents/QMS/Documents/Drafts','Shared Documents/QMS/Forms/Drafts'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a)),Promise.all(['Shared Documents/Published/QMS/Documents','Shared Documents/Published/QMS/Forms','Shared Documents/Published/QMS/Quality Manual'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a)),Promise.all(['Shared Documents/Official/QMS/Documents','Shared Documents/Official/QMS/Forms'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a))]).then(([df,pf,of]:[any[],any[],any[]])=>{const map=new Map<string,any>();const add=(f:any,z:string)=>{const id=this._drmId(f.Name);if(!map.has(id))map.set(id,{id,title:this._drmT[id]||id,type:id.startsWith('QM-')?'QM':id.startsWith('SOP-')?'SOP':id.startsWith('FM-')?'FM':id.startsWith('FPS-')?'FPS':'DOC',group:this._drmGrp(id),zones:{drafts:null,published:null,official:null}});const doc=map.get(id);const maj=f.MajorVersion||1,min=f.MinorVersion||0;const dco=this._drmDco(id);doc.zones[z]={rev:this._drmRev(f.Name),ver:min===0?`${maj}.0`:`${maj}.${min}`,verType:min===0?'major':'minor',dco,dcoStatus:dco?(this._drmDS[dco]||'open'):'n/a',checkedOut:f.CheckOutType>0?(f.CheckedOutByUser?.Title||'Unknown'):null,file:f.Name,path:(f.ServerRelativeUrl||'').split('/').slice(4,-1).join('/')||z,modified:(f.TimeLastModified||'').substring(0,10),webUrl:`${SP}${f.ServerRelativeUrl}`};};df.forEach((f:any)=>add(f,'drafts'));pf.forEach((f:any)=>add(f,'published'));of.forEach((f:any)=>add(f,'official'));const GO=['Quality Manual','SOPs - QMS Core','SOPs - Supplier','SOPs - Food Safety','SOPs - Pest Control','SOPs - Production','FPS','Forms - Change Control','Forms - Supplier','Forms - Quality Unit','Forms - Allergen','Other'];this._drmDocs=[...map.values()].sort((a,b)=>{const ga=GO.indexOf(a.group),gb=GO.indexOf(b.group);return ga!==gb?ga-gb:a.id.localeCompare(b.id);});this._drmMount(this._drmDocs);}).catch(()=>{const l=this._el('drm-loading');if(l)l.innerHTML='<span style="color:var(--r)">Error loading — check permissions</span>';});}
-  private _drmMount(all:any[]):void{const d=this._iframe?.contentDocument;if(!d)return;const loading=d.getElementById('drm-loading');const wrap=d.getElementById('drm-table-wrap');const live=d.getElementById('drm-live');if(loading)loading.style.display='none';if(wrap)wrap.style.display='';if(live)live.textContent='Live · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});let fil=[...all];let sel:string|null=null;const dcs=(s:string)=>({'blocked':'background:#fde8e8;color:#c62828','open':'background:#fff3e0;color:#e65100','signed':'background:#e8f5e9;color:#2e7d32','n/a':'background:var(--s1);color:var(--s5)'}[s]||'background:var(--s1);color:var(--s5)');const zc=(z:any):string=>{if(!z)return'<td style="border-left:1px solid var(--s1);background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--s1) 5px,var(--s1) 5.5px);opacity:.4"></td>';const vi=z.verType==='major'?'&#9679;':'&#9675;';const vc=z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)';const co=z.checkedOut?`<div style="font-size:9px;color:#e65100">&#9679; ${z.checkedOut}</div>`:'<div style="font-size:9px;color:#2e7d32">&#9675; Checked in</div>';return`<td style="padding:6px 8px;border-left:1px solid var(--s1);vertical-align:top"><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">Rev ${z.rev}</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${vc}">${vi} ${z.ver}</span>${z.dco?`<span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco}</span>`:''}</div>${co}<span style="font-size:9px;color:var(--s5)">${z.modified}</span><span style="font-size:9px;color:var(--s5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="${z.path}">${z.path}</span></div></td>`;};const rSum=()=>{const sb=d.getElementById('drm-sbar');if(!sb)return;const t=fil.length,b=fil.filter((x:any)=>x.zones.drafts&&x.zones.published).length,do2=fil.filter((x:any)=>x.zones.drafts&&!x.zones.published).length,bl=fil.filter((x:any)=>['drafts','published','official'].some((k:string)=>x.zones[k]&&x.zones[k].dcoStatus==='blocked')).length;sb.innerHTML=`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${t}</strong> docs</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${b}</strong> in both</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${do2}</strong> drafts only</span>${bl?`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid #ef9a9a;background:var(--r1);color:var(--r)"><strong>${bl}</strong> DCO blocked</span>`:''}`;};const rTbl=()=>{const tb=d.getElementById('drm-tbody');if(!tb)return;const grps=[...new Set(fil.map((x:any)=>x.group))];let h='';grps.forEach((g:any)=>{h+=`<tr><td colspan="5" style="padding:4px 9px 3px;font-size:10px;font-weight:700;color:var(--b);background:var(--s0);border-top:1px solid var(--s2);text-transform:uppercase;letter-spacing:.4px">${g}</td></tr>`;fil.filter((x:any)=>x.group===g).forEach((doc:any)=>{h+=`<tr style="border-bottom:1px solid var(--s1);cursor:pointer" class="${sel===doc.id?'':''}\" data-drmid="${doc.id}"><td style="padding:7px 9px"><div style="font-size:11px;font-weight:700;font-family:var(--mono);color:var(--b);white-space:nowrap">${doc.id}</div><span style="font-size:9px;padding:1px 4px;border-radius:2px;background:var(--b1);color:#1565c0;font-weight:700">${doc.type}</span></td><td style="padding:7px 9px;font-size:11px;color:var(--s5)">${doc.title}</td>${zc(doc.zones.drafts)}${zc(doc.zones.published)}${zc(doc.zones.official)}</tr>`;});});tb.innerHTML=h;tb.querySelectorAll('tr[data-drmid]').forEach((row:Element)=>{(row as HTMLElement).addEventListener('mouseenter',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='var(--b0)';});(row as HTMLElement).addEventListener('mouseleave',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='';});row.addEventListener('click',()=>{const id=(row as HTMLElement).dataset['drmid']!;sel=sel===id?null:id;if(sel)showD(id);else hideD();rTbl();});});};const showD=(id:string)=>{const panel=d.getElementById('drm-detail');if(!panel)return;const doc=all.find((x:any)=>x.id===id);if(!doc)return;panel.style.display='';const zh={'drafts':'color:#1565c0','published':'color:#e65100','official':'color:#2e7d32'};const zonesH=['drafts','published','official'].map((zk:string)=>{const z=doc.zones[zk];const zn={'drafts':'Drafts','published':'Published','official':'Official'}[zk]!;if(!z)return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;${zh[zk]}">${zn}</div><div style="font-size:11px;color:var(--s5);font-style:italic">Not present</div></div>`;return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--s2);${zh[zk]}">${zn}</div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Revision</span><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">Rev ${z.rev}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Version</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)'}">${z.verType==='major'?'&#9679;':'&#9675;'} ${z.ver}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">DCO</span><span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco||'none'} · ${z.dcoStatus}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Checkout</span><span style="font-size:10px;color:${z.checkedOut?'#e65100':'#2e7d32'}">${z.checkedOut?'&#9888; '+z.checkedOut:'&#10003; Checked in'}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px;align-items:flex-start"><span style="color:var(--s5);min-width:58px;font-size:10px">File</span><span style="font-size:10px;font-family:var(--mono);word-break:break-all;color:var(--s7)">${z.file}</span></div><a href="${z.webUrl}" target="_blank" style="display:inline-block;margin-top:5px;font-size:10px;color:var(--b);text-decoration:none;padding:2px 7px;border:1px solid var(--s2);border-radius:4px;background:var(--w)">Open in SharePoint &#8599;</a></div>`;}).join('');panel.innerHTML=`<div style="padding:8px 14px;background:var(--s0);border-bottom:1px solid var(--s2);display:flex;align-items:center;gap:10px;border-radius:8px 8px 0 0"><span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--n)">${doc.id}</span><span style="font-size:12px;color:var(--s5);flex:1">${doc.title}</span><button id="drm-x" style="cursor:pointer;color:var(--s5);font-size:16px;padding:0 4px;border:none;background:transparent;font-weight:700">&#x2715;</button></div><div style="padding:10px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${zonesH}</div>`;const xb=d.getElementById('drm-x');if(xb)xb.addEventListener('click',()=>{sel=null;hideD();rTbl();});};const hideD=()=>{const p=d.getElementById('drm-detail');if(p){p.style.display='none';p.innerHTML='';}};const filt=()=>{const tf=(d.getElementById('drm-tf') as HTMLSelectElement)?.value||'all';const df2=(d.getElementById('drm-df') as HTMLSelectElement)?.value||'all';const qf=((d.getElementById('drm-qf') as HTMLInputElement)?.value||'').toLowerCase();fil=all.filter((doc:any)=>{const allZ=['drafts','published','official'].map((k:string)=>doc.zones[k]).filter(Boolean);const mt=tf==='all'||doc.type===tf;const mq=!qf||doc.id.toLowerCase().includes(qf)||doc.title.toLowerCase().includes(qf);const md=df2==='all'||(df2==='none'&&allZ.every((z:any)=>!z.dco))||(df2!=='none'&&allZ.some((z:any)=>z.dco===df2));return mt&&mq&&md;});sel=null;hideD();rSum();rTbl();};['drm-tf','drm-df'].forEach((id:string)=>{const el=d.getElementById(id);if(el)el.addEventListener('change',filt);});const qi=d.getElementById('drm-qf');if(qi)qi.addEventListener('input',filt);rSum();rTbl();}
+  private _drmMount(all:any[]):void{const d=this._iframe?.contentDocument;if(!d)return;const loading=d.getElementById('drm-loading');const wrap=d.getElementById('drm-table-wrap');const live=d.getElementById('drm-live');if(loading)loading.style.display='none';if(wrap)wrap.style.display='';if(live)live.textContent='Live · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});let fil=[...all];let sel:string|null=null;const dcs=(s:string)=>({'blocked':'background:#fde8e8;color:#c62828','open':'background:#fff3e0;color:#e65100','signed':'background:#e8f5e9;color:#2e7d32','n/a':'background:var(--s1);color:var(--s5)'}[s]||'background:var(--s1);color:var(--s5)');const zc=(z:any):string=>{if(!z)return'<td style="border-left:1px solid var(--s1);background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--s1) 5px,var(--s1) 5.5px);opacity:.4"></td>';const vi=z.verType==='major'?'&#9679;':'&#9675;';const vc=z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)';const co=z.checkedOut?`<div style="font-size:9px;color:#e65100">&#9679; ${z.checkedOut}</div>`:'<div style="font-size:9px;color:#2e7d32">&#9675; Checked in</div>';return`<td style="padding:6px 8px;border-left:1px solid var(--s1);vertical-align:top"><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">Rev ${z.rev}</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${vc}">${vi} ${z.ver}</span>${z.dco?`<span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco}</span>`:''}</div>${co}<span style="font-size:9px;color:var(--s5)">${z.modified}</span><span style="font-size:9px;color:var(--s5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="${z.path}">${z.path}</span></div></td>`;};const rSum=()=>{const sb=d.getElementById('drm-sbar');if(!sb)return;const t=fil.length,b=fil.filter((x:any)=>x.zones.drafts&&x.zones.published).length,do2=fil.filter((x:any)=>x.zones.drafts&&!x.zones.published).length,bl=fil.filter((x:any)=>['drafts','published','official'].some((k:string)=>x.zones[k]&&x.zones[k].dcoStatus==='blocked')).length;sb.innerHTML=`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${t}</strong> docs</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${b}</strong> in both</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${do2}</strong> drafts only</span>${bl?`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid #ef9a9a;background:var(--r1);color:var(--r)"><strong>${bl}</strong> DCO blocked</span>`:''}`;};const rTbl=()=>{const tb=d.getElementById('drm-tbody');if(!tb)return;const grps=[...new Set(fil.map((x:any)=>x.group))];let h='';grps.forEach((g:any)=>{h+=`<tr><td colspan="5" style="padding:4px 9px 3px;font-size:10px;font-weight:700;color:var(--b);background:var(--s0);border-top:1px solid var(--s2);text-transform:uppercase;letter-spacing:.4px">${g}</td></tr>`;fil.filter((x:any)=>x.group===g).forEach((doc:any)=>{h+=`<tr style="border-bottom:1px solid var(--s1);cursor:pointer" class="${sel===doc.id?'':''}\" data-drmid="${doc.id}"><td style="padding:7px 9px"><div style="font-size:11px;font-weight:700;font-family:var(--mono);color:var(--b);white-space:nowrap">${doc.id}</div><span style="font-size:9px;padding:1px 4px;border-radius:2px;background:var(--b1);color:#1565c0;font-weight:700">${doc.type}</span></td><td style="padding:7px 9px;font-size:11px;color:var(--s5)">${doc.title}</td>${zc(doc.zones.drafts)}${zc(doc.zones.published)}${zc(doc.zones.official)}</tr>`;});});tb.innerHTML=h;tb.querySelectorAll('tr[data-drmid]').forEach((row:Element)=>{(row as HTMLElement).addEventListener('mouseenter',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='var(--b0)';});(row as HTMLElement).addEventListener('mouseleave',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='';});row.addEventListener('click',()=>{const id=(row as HTMLElement).dataset['drmid']!;sel=sel===id?null:id;if(sel)showD(id);else hideD();rTbl();});});};const showD=(id:string)=>{const panel=d.getElementById('drm-detail');if(!panel)return;const doc=all.find((x:any)=>x.id===id);if(!doc)return;panel.style.display='';const zh:Record<string,string>={'drafts':'color:#1565c0','published':'color:#e65100','official':'color:#2e7d32'};const zonesH=['drafts','published','official'].map((zk:string)=>{const z=doc.zones[zk];const zn={'drafts':'Drafts','published':'Published','official':'Official'}[zk]!;if(!z)return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;${zh[zk]}">${zn}</div><div style="font-size:11px;color:var(--s5);font-style:italic">Not present</div></div>`;return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--s2);${zh[zk]}">${zn}</div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Revision</span><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">Rev ${z.rev}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Version</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)'}">${z.verType==='major'?'&#9679;':'&#9675;'} ${z.ver}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">DCO</span><span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco||'none'} · ${z.dcoStatus}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Checkout</span><span style="font-size:10px;color:${z.checkedOut?'#e65100':'#2e7d32'}">${z.checkedOut?'&#9888; '+z.checkedOut:'&#10003; Checked in'}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px;align-items:flex-start"><span style="color:var(--s5);min-width:58px;font-size:10px">File</span><span style="font-size:10px;font-family:var(--mono);word-break:break-all;color:var(--s7)">${z.file}</span></div><a href="${z.webUrl}" target="_blank" style="display:inline-block;margin-top:5px;font-size:10px;color:var(--b);text-decoration:none;padding:2px 7px;border:1px solid var(--s2);border-radius:4px;background:var(--w)">Open in SharePoint &#8599;</a></div>`;}).join('');panel.innerHTML=`<div style="padding:8px 14px;background:var(--s0);border-bottom:1px solid var(--s2);display:flex;align-items:center;gap:10px;border-radius:8px 8px 0 0"><span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--n)">${doc.id}</span><span style="font-size:12px;color:var(--s5);flex:1">${doc.title}</span><button id="drm-x" style="cursor:pointer;color:var(--s5);font-size:16px;padding:0 4px;border:none;background:transparent;font-weight:700">&#x2715;</button></div><div style="padding:10px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${zonesH}</div>`;const xb=d.getElementById('drm-x');if(xb)xb.addEventListener('click',()=>{sel=null;hideD();rTbl();});};const hideD=()=>{const p=d.getElementById('drm-detail');if(p){p.style.display='none';p.innerHTML='';}};const filt=()=>{const tf=(d.getElementById('drm-tf') as HTMLSelectElement)?.value||'all';const df2=(d.getElementById('drm-df') as HTMLSelectElement)?.value||'all';const qf=((d.getElementById('drm-qf') as HTMLInputElement)?.value||'').toLowerCase();fil=all.filter((doc:any)=>{const allZ=['drafts','published','official'].map((k:string)=>doc.zones[k]).filter(Boolean);const mt=tf==='all'||doc.type===tf;const mq=!qf||doc.id.toLowerCase().includes(qf)||doc.title.toLowerCase().includes(qf);const md=df2==='all'||(df2==='none'&&allZ.every((z:any)=>!z.dco))||(df2!=='none'&&allZ.some((z:any)=>z.dco===df2));return mt&&mq&&md;});sel=null;hideD();rSum();rTbl();};['drm-tf','drm-df'].forEach((id:string)=>{const el=d.getElementById(id);if(el)el.addEventListener('change',filt);});const qi=d.getElementById('drm-qf');if(qi)qi.addEventListener('input',filt);rSum();rTbl();}
+  private async _executeMarkEffective(dcoId: string): Promise<void> {
+    const w = this._iframe?.contentWindow as any;
+    const base = this.context.pageContext.web.absoluteUrl;
+    const user = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
+    const ts = new Date().toISOString();
+    const dcoItem = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
+    const docIds = (dcoItem?.DCO_Docs||'').split(',').map((s: string) => s.trim()).filter(Boolean);
+    const FORM_IDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-027','FM-030','FM-ALG'];
+    const fileMap: Record<string,string> = {
+      'QM-001':'QM-001_Quality_Manual_RevA.docx','SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx',
+      'SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx',
+      'SOP-PRD-108':'SOP-PRD-108_RevA.docx','SOP-PRD-432':'SOP-PRD-432_RevA.docx',
+      'SOP-FRS-549':'SOP-FRS-549_RevA.docx',
+      'SOP-SUP-001':'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx',
+      'SOP-SUP-002':'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx',
+      'SOP-FS-001':'SOP-FS-001_RevA_Allergen_Control_FINAL.docx',
+      'SOP-FS-002':'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx',
+      'SOP-FS-003':'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx',
+      'SOP-FS-004':'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx',
+      'SOP-PC-001':'SOP-PC-001_RevA_Pest_Sighting_Response.docx',
+      'FM-001':'FM-001_Master_Document_Log_RevA.docx','FM-002':'FM-002_Change_Request_Form_RevA.docx',
+      'FM-003':'FM-003_Document_Change_Order_RevA.docx',
+      'FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx',
+      'FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx',
+    };
+    let promoted = 0; let pdfCount = 0;
+    try {
+      if (w.qpToast) w.qpToast('Promoting ' + docIds.length + ' documents to Official zone...');
+      for (const docId of docIds) {
+        const fn = fileMap[docId] || (docId + '_RevA.docx');
+        const isForm = FORM_IDS.includes(docId);
+        const srcPath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Published/QMS/Forms/' : 'Shared Documents/Published/QMS/Documents/') + fn;
+        const destPath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Official/QMS/Forms/' : 'Shared Documents/Official/QMS/Documents/') + fn;
+        try {
+          await this.context.spHttpClient.post(
+            base + "/_api/web/GetFileByServerRelativeUrl('" + srcPath + "')/copyTo(strNewUrl='" + destPath + "',bOverWrite=true)",
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'}, body: '{}' }
+          );
+          promoted++;
+        } catch(e) { console.error('Copy failed: ' + docId, e); }
+      }
+      if (w.qpToast) w.qpToast('Generating PDFs via Microsoft Graph...');
+      try {
+        const siteId = this.context.pageContext.site.id.toString();
+        const webId = this.context.pageContext.web.id.toString();
+        const hostname = window.location.hostname;
+        const tokenProvider = await this.context.aadTokenProviderFactory.getTokenProvider();
+        const token = await tokenProvider.getToken('https://graph.microsoft.com');
+        for (const docId of docIds) {
+          const fn = fileMap[docId] || (docId + '_RevA.docx');
+          const isForm = FORM_IDS.includes(docId);
+          const filePath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Official/QMS/Forms/' : 'Shared Documents/Official/QMS/Documents/') + fn;
+          try {
+            const metaResp = await this.context.spHttpClient.get(
+              base + "/_api/web/GetFileByServerRelativeUrl('" + filePath.replace(/'/g,"''") + "')?$select=UniqueId",
+              SPHttpClient.configurations.v1
+            );
+            const meta = await metaResp.json();
+            const uid = meta?.UniqueId;
+            if (!uid) continue;
+            const graphUrl = 'https://graph.microsoft.com/v1.0/sites/' + hostname + ',' + siteId + ',' + webId + '/drive/items/' + uid + '/content?format=pdf';
+            const pdfResp = await fetch(graphUrl, { headers: {'Authorization':'Bearer ' + token} });
+            if (!pdfResp.ok) continue;
+            const pdfBuffer = await pdfResp.arrayBuffer();
+            const pdfName = docId + '_RevA.pdf';
+            const pdfFolder = isForm ? 'Shared Documents/Official/QMS/Forms' : 'Shared Documents/Official/QMS/Documents';
+            await this.context.spHttpClient.post(
+              base + "/_api/web/GetFolderByServerRelativeUrl('/sites/IMP9177/" + pdfFolder + "')/Files/add(url='" + pdfName + "',overwrite=true)",
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/pdf'}, body: pdfBuffer as any }
+            );
+            pdfCount++;
+          } catch(e2) { console.error('PDF failed: ' + docId, e2); }
+        }
+      } catch(tokenErr) { console.error('Graph token error:', tokenErr); if(w.qpToast) w.qpToast('PDF step skipped — approve Graph API in SharePoint Admin first'); }
+      const rptSrc = '/sites/IMP9177/Shared Documents/Official/QMS/Documents/DCO-0001_Completion_Report_RevA.pdf';
+      const rptDest = '/sites/IMP9177/Shared Documents/Official/QMS/Change Orders/' + dcoId + '_Completion_Report_RevA.pdf';
+      try {
+        await this.context.spHttpClient.post(
+          base + "/_api/web/GetFileByServerRelativeUrl('" + rptSrc + "')/copyTo(strNewUrl='" + rptDest + "',bOverWrite=true)",
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'}, body: '{}' }
+        );
+      } catch(e3) { console.error('DCO report copy failed', e3); }
+      if (dcoItem?.Id) {
+        await this.context.spHttpClient.post(
+          base + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem.Id + ")",
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+            body: JSON.stringify({ DCO_Phase: 'Effective', DCO_EffectiveDate: ts }) }
+        );
+        dcoItem.DCO_Phase = 'Effective';
+      }
+      await this.context.spHttpClient.post(
+        base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+        SPHttpClient.configurations.v1,
+        { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+          body: JSON.stringify({ Title: dcoId+'-EFFECTIVE-'+Date.now(), RH_DCOID: dcoId, RH_EventType: 'stage',
+            RH_Stage: 'Effective', RH_Actor: user,
+            RH_Note: 'DCO marked Effective by ' + user + '. ' + promoted + ' docs promoted. ' + pdfCount + ' PDFs generated.',
+            RH_Timestamp: ts }) }
+      );
+      if (w.qpToast) w.qpToast('✅ ' + dcoId + ' Effective — ' + promoted + ' docs, ' + pdfCount + ' PDFs');
+      setTimeout(() => this._loadAll(), 1500);
+    } catch(err) {
+      console.error('Mark Effective failed:', err);
+      if (w.qpToast) w.qpToast('Error during closure — check browser console');
+    }
+  }
   protected get dataVersion(): Version { return Version.parse('1.0'); }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
