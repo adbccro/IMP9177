@@ -771,7 +771,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     if (!s) return '—';
     try {
       const d = new Date(s);
-      const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+      const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       return datePart + ' ' + timePart;
     }
@@ -1787,7 +1787,34 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         if (phase === 'Draft') {
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '📤 Submit for Approval';
-          actionBtn.onclick = () => { if (w.qpToast) w.qpToast('Submit action — update DCO_Phase to Submitted in the list'); };
+          actionBtn.onclick = async () => {
+            if (w.qpToast) w.qpToast('Submitting DCO for approval...');
+            const base2 = this.context.pageContext.web.absoluteUrl;
+            const user2 = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
+            const ts2 = new Date().toISOString();
+            const dcoItem2 = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
+            if (dcoItem2?.Id) {
+              await this.context.spHttpClient.post(
+                base2 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem2.Id + ")",
+                SPHttpClient.configurations.v1,
+                { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+                  body: JSON.stringify({ DCO_Phase: 'Submitted', DCO_SubmittedDate: ts2 }) }
+              );
+              dcoItem2.DCO_Phase = 'Submitted';
+              dcoItem2.DCO_SubmittedDate = ts2;
+            }
+            await this.context.spHttpClient.post(
+              base2 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+                body: JSON.stringify({ Title: dcoId+'-SUBMIT-'+Date.now(), RH_DCOID: dcoId,
+                  RH_EventType: 'stage', RH_Stage: 'Submitted', RH_Actor: user2,
+                  RH_Note: 'DCO submitted for approval by ' + user2 + '. Routing to reviewers.',
+                  RH_Timestamp: ts2 }) }
+            );
+            if (w.qpToast) w.qpToast(dcoId + ' submitted — routed for approval');
+            setTimeout(() => this._loadAll(), 1000);
+          };
         } else if (phase === 'Submitted' || phase === 'In Review') {
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '✍️ Sign DCO';
@@ -2107,6 +2134,21 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
             SPHttpClient.configurations.v1,
             { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'}, body: '{}' }
           );
+          // Stamp metadata on the Official file
+          try {
+            const stampUrl = base + "/_api/web/GetFileByServerRelativeUrl('" + destPath + "')/ListItemAllFields";
+            await this.context.spHttpClient.post(
+              stampUrl.replace('/ListItemAllFields', '') + "/ListItemAllFields",
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+                body: JSON.stringify({
+                  QMS_Revision: 'A',
+                  QMS_DocID: docId,
+                  QMS_Status: 'Effective',
+                  QMS_EffectiveDate: ts
+                }) }
+            );
+          } catch(stampErr) { console.error('Stamp failed: ' + docId, stampErr); }
           promoted++;
         } catch(e) { console.error('Copy failed: ' + docId, e); }
       }
