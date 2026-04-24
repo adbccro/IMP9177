@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -1475,8 +1475,11 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           const _fn   = _FM[docId] || (docId + '_RevA.docx');
           const _isF  = _FIDS.includes(docId);
           const _base = _isF ? 'Shared Documents/Official/QMS/Forms' : 'Shared Documents/Official/QMS/Documents';
-          const _view = _SP + '/_layouts/15/WopiFrame.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/' + _base + '/' + _fn) + '&action=view';
-          const _dl   = (_isF ? _OFF : _OFD) + '/' + encodeURIComponent(_fn);
+          const _view   = _SP + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/' + _base + '/' + _fn) + '&action=view';
+          // Authenticated DOCX download via download.aspx
+          const _dl    = _SP + '/_layouts/15/download.aspx?SourceUrl=' + encodeURIComponent('/sites/IMP9177/' + _base + '/' + _fn);
+          // PDF: use Graph API endpoint — fetched via SPFx REST in click handler
+          const _pdfPath = '/sites/IMP9177/' + _base + '/' + _fn;
           return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--s1)">
             <div style="width:26px;height:26px;border-radius:5px;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">&#10003;</div>
             <div style="flex:1;min-width:0">
@@ -1488,6 +1491,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               <span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--g1);color:var(--g);font-weight:700">Effective Apr 24, 2026</span>
               <a href="${_view}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--b);color:var(--b);background:var(--w);text-decoration:none">View &#8599;</a>
               <a href="${_dl}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);text-decoration:none">&#11015; DOCX</a>
+              <button data-pdf-path="${_pdfPath}" data-doc-id="${docId}" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid #dc2626;color:#dc2626;background:#fef2f2;cursor:pointer;white-space:nowrap">&#11015; PDF</button>
             </div>
           </div>`;
         }).join('')
@@ -1576,7 +1580,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           if (main2) main2.style.background = 'var(--g1)';
           // Open the document in SharePoint
           const siteUrl = this.context.pageContext.web.absoluteUrl;
-          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_RevA_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_RevA_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx' }; const docFileName = docFileMap[docId] || (docId + '_RevA.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/WopiFrame.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
+          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_RevA_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_RevA_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx' }; const docFileName = docFileMap[docId] || (docId + '_RevA.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
           // document open deferred to end of handler
           const state = w._qpDocReviewState[dcoId];
           const opened = state.filter((v: boolean) => v).length;
@@ -1648,9 +1652,56 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         const _dlWrap = d.createElement('div');
         _dlWrap.innerHTML = dlDocsHtml;
         docsPaneEl.appendChild(_dlWrap);
-        // Wire DCO report download button
-        const _rptBtn = d.getElementById('dl-rpt-btn-' + dcoId);
-        if (_rptBtn) _rptBtn.addEventListener('click', () => (this as any)._generateDCOReport(dcoId));
+        // Wire DCO report button — query inside _dlWrap directly (tab may be hidden)
+        const _rptBtn = _dlWrap.querySelector('#dl-rpt-btn-' + dcoId) as HTMLElement;
+        if (_rptBtn) _rptBtn.addEventListener('click', () => { (this as any)._generateDCOReport(dcoId); });
+        // Wire PDF download buttons — fetch via Graph API with SPFx auth token
+        _dlWrap.querySelectorAll('[data-pdf-path]').forEach((btn: Element) => {
+          btn.addEventListener('click', async (e: Event) => {
+            e.preventDefault();
+            const pdfPath = (btn as HTMLElement).getAttribute('data-pdf-path') || '';
+            const docId   = (btn as HTMLElement).getAttribute('data-doc-id') || '';
+            if (!pdfPath) return;
+            if (w.qpToast) w.qpToast('Preparing PDF for ' + docId + '...');
+            (btn as HTMLElement).textContent = '⏳ PDF';
+            try {
+              // Step 1: get file item ID via SharePoint REST
+              const base = this.context.pageContext.web.absoluteUrl;
+              const metaUrl = base + "/_api/web/GetFileByServerRelativeUrl('" + pdfPath.replace(/'/g, "''") + "')?$select=UniqueId,ListItemAllFields/Id&$expand=ListItemAllFields";
+              const metaResp = await this.context.spHttpClient.get(metaUrl, SPHttpClient.configurations.v1);
+              const meta = await metaResp.json();
+              const uniqueId = meta?.UniqueId;
+              if (!uniqueId) throw new Error('File not found: ' + pdfPath);
+              // Step 2: build Graph PDF URL using site-relative approach
+              // Graph: /sites/{hostname},{siteId},{webId}/drive/items/{uniqueId}/content?format=pdf
+              const siteId = this.context.pageContext.site.id.toString();
+              const webId  = this.context.pageContext.web.id.toString();
+              const hostname = window.location.hostname;
+              const graphUrl = 'https://graph.microsoft.com/v1.0/sites/' + hostname + ',' + siteId + ',' + webId + '/drive/items/' + uniqueId + '/content?format=pdf';
+              // Step 3: fetch with auth token via aadHttpClientFactory
+              const tokenProvider = await this.context.aadTokenProviderFactory.getTokenProvider();
+              const token = await tokenProvider.getToken('https://graph.microsoft.com');
+              const pdfResp = await fetch(graphUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+              if (!pdfResp.ok) throw new Error('Graph PDF failed: ' + pdfResp.status);
+              const blob = await pdfResp.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = docId + '_RevA.pdf';
+              a.click();
+              URL.revokeObjectURL(url);
+              if (w.qpToast) w.qpToast('PDF downloaded: ' + docId);
+              (btn as HTMLElement).innerHTML = '&#11015; PDF';
+            } catch (err) {
+              console.error('PDF download failed:', err);
+              // Fallback: open Word Online print view (user can print to PDF)
+              const viewUrl = 'https://adbccro.sharepoint.com/sites/IMP9177/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent(pdfPath) + '&action=view';
+              w.open(viewUrl, '_blank');
+              if (w.qpToast) w.qpToast('Opening in Word Online — use File > Print > Save as PDF');
+              (btn as HTMLElement).innerHTML = '&#11015; PDF';
+            }
+          });
+        });
       }
       const docReviewEl = d.querySelector('.doc-review-section');
       const gateEl = d.getElementById('sgate-' + dcoId);
@@ -1871,7 +1922,25 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
 
   private _addDownloadBar(dcoId:string,phase:string):void{const d=this._iframe?.contentDocument;const w=this._iframe?.contentWindow as any;if(!d||!w)return;const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);if(!dco)return;if(!['Implemented','Awaiting Training','Effective'].includes(phase))return;if(d.getElementById('dco-dl-bar-'+dcoId))return;const bar=d.createElement('div');bar.className='dco-dl-bar';bar.id='dco-dl-bar-'+dcoId;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const OD=SP+'/Shared%20Documents/Official/QMS/Documents';const OF=SP+'/Shared%20Documents/Official/QMS/Forms';const FM:Record<string,string>={'QM-001':'QM-001_Quality_Manual_RevA.docx','SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx','SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx','SOP-PRD-108':'SOP-PRD-108_RevA.docx','SOP-PRD-432':'SOP-PRD-432_RevA.docx','SOP-FRS-549':'SOP-FRS-549_RevA.docx','FM-001':'FM-001_Master_Document_Log_RevA.docx','FM-002':'FM-002_Change_Request_Form_RevA.docx','FM-003':'FM-003_Document_Change_Order_RevA.docx','FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx','FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx'};const FIDS=['FM-001','FM-002','FM-003','FM-027','FM-030'];const rptBtn=d.createElement('button');rptBtn.className='btn-dl btn-dl-report';rptBtn.innerHTML='&#128196; Download DCO Report (PDF)';rptBtn.addEventListener('click',()=>this._generateDCOReport(dcoId));bar.appendChild(rptBtn);const docList=(dco.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);docList.forEach((id:string)=>{const fn=FM[id];if(!fn)return;const url=(FIDS.includes(id)?OF:OD)+'/'+encodeURIComponent(fn);const a=d.createElement('a');a.className='btn-dl btn-dl-doc';a.innerHTML='&#128194; '+id;a.href=url;a.target='_blank';bar.appendChild(a);});const modalFt=d.querySelector('#modal-dco-detail .modal-ft');if(modalFt)modalFt.parentElement?.insertBefore(bar,modalFt);}
 
-  private _generateDCOReport(dcoId:string):void{const w=this._iframe?.contentWindow as any;if(!w||!w.jspdf){if(w?.qpToast)w.qpToast('PDF library loading — try again in a moment');return;}const{jsPDF}=w.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);const apprs=(this._data.approvals||[]).filter((a:any)=>a.Appr_DCOID===dcoId);const hist=(this._data.history||[]).filter((h:any)=>h.RH_DCOID===dcoId);const comps=(this._data.completions||[]);const docIds=(dco?.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);const DT:Record<string,string>={'QM-001':'Quality Manual','SOP-QMS-001':'Management Responsibility','SOP-QMS-002':'Document Control','SOP-QMS-003':'Change Control','SOP-PRD-108':'Finished Product Release','SOP-PRD-432':'FP Spec & Testing','SOP-FRS-549':'Product Spec Sheet','FM-001':'Master Document Log','FM-002':'Change Request Form','FM-003':'DCO Form','FM-027':'QU/QS Designation Record','FM-030':'FP Spec Sheet'};const W=215.9,ML=12,MR=12,CW=W-ML-MR;let y=12;const sf=(s:string,sz:number)=>{pdf.setFont('helvetica',s);pdf.setFontSize(sz);};const tc=(r:number,g:number,b:number)=>pdf.setTextColor(r,g,b);const fc=(r:number,g:number,b:number)=>pdf.setFillColor(r,g,b);const dc=(r:number,g:number,b:number)=>pdf.setDrawColor(r,g,b);const fr=(x:number,yy:number,w:number,h:number)=>pdf.rect(x,yy,w,h,'F');const ln=(x1:number,y1:number,x2:number,y2:number)=>{pdf.setLineWidth(0.3);pdf.line(x1,y1,x2,y2);};const addPg=()=>{pdf.addPage();y=15;dc(100,116,139);ln(ML,270,W-MR,270);sf('normal',7);tc(100,116,139);pdf.text('3H Pharmaceuticals LLC  |  CONFIDENTIAL',ML,274);pdf.text('DCO-0001 Completion Report',W/2,274,{align:'center'});pdf.text('Page '+pdf.getNumberOfPages(),W-MR,274,{align:'right'});};const secHdr=(t:string)=>{sf('bold',11);tc(12,45,94);pdf.text(t,ML,y);dc(12,45,94);ln(ML,y+2,W-MR,y+2);y+=8;};
+  private _generateDCOReport(dcoId:string):void{const w=this._iframe?.contentWindow as any;if(!w)return;
+    // If jsPDF not loaded yet, inject it dynamically and retry
+    if(!w.jspdf){
+      const d=this._iframe?.contentDocument;
+      if(!d){return;}
+      if(w.qpToast)w.qpToast('Loading PDF engine...');
+      // Check if script tag already exists (may still be loading)
+      const existing = d.querySelector('script[src*="jspdf"]');
+      if(!existing){
+        const s=d.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload=()=>{setTimeout(()=>this._generateDCOReport(dcoId),200);};
+        d.head.appendChild(s);
+      } else {
+        // Script exists, wait for it to finish loading
+        setTimeout(()=>this._generateDCOReport(dcoId),500);
+      }
+      return;
+    }const{jsPDF}=w.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);const apprs=(this._data.approvals||[]).filter((a:any)=>a.Appr_DCOID===dcoId);const hist=(this._data.history||[]).filter((h:any)=>h.RH_DCOID===dcoId);const comps=(this._data.completions||[]);const docIds=(dco?.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);const DT:Record<string,string>={'QM-001':'Quality Manual','SOP-QMS-001':'Management Responsibility','SOP-QMS-002':'Document Control','SOP-QMS-003':'Change Control','SOP-PRD-108':'Finished Product Release','SOP-PRD-432':'FP Spec & Testing','SOP-FRS-549':'Product Spec Sheet','FM-001':'Master Document Log','FM-002':'Change Request Form','FM-003':'DCO Form','FM-027':'QU/QS Designation Record','FM-030':'FP Spec Sheet'};const W=215.9,ML=12,MR=12,CW=W-ML-MR;let y=12;const sf=(s:string,sz:number)=>{pdf.setFont('helvetica',s);pdf.setFontSize(sz);};const tc=(r:number,g:number,b:number)=>pdf.setTextColor(r,g,b);const fc=(r:number,g:number,b:number)=>pdf.setFillColor(r,g,b);const dc=(r:number,g:number,b:number)=>pdf.setDrawColor(r,g,b);const fr=(x:number,yy:number,w:number,h:number)=>pdf.rect(x,yy,w,h,'F');const ln=(x1:number,y1:number,x2:number,y2:number)=>{pdf.setLineWidth(0.3);pdf.line(x1,y1,x2,y2);};const addPg=()=>{pdf.addPage();y=15;dc(100,116,139);ln(ML,270,W-MR,270);sf('normal',7);tc(100,116,139);pdf.text('3H Pharmaceuticals LLC  |  CONFIDENTIAL',ML,274);pdf.text('DCO-0001 Completion Report',W/2,274,{align:'center'});pdf.text('Page '+pdf.getNumberOfPages(),W-MR,274,{align:'right'});};const secHdr=(t:string)=>{sf('bold',11);tc(12,45,94);pdf.text(t,ML,y);dc(12,45,94);ln(ML,y+2,W-MR,y+2);y+=8;};
 fc(12,45,94);fr(0,0,W,28);sf('bold',8);tc(255,255,255);pdf.text('IMP9177',ML,7);pdf.text('3H Pharmaceuticals LLC',W/2,7,{align:'center'});pdf.text('21 CFR Part 111 / FSMA',W-MR,7,{align:'right'});sf('bold',15);pdf.text('DOCUMENT CHANGE ORDER COMPLETION REPORT',W/2,17,{align:'center'});sf('bold',19);pdf.text(dcoId,W/2,25,{align:'center'});y=35;
 fc(30,86,160);fr(W/2-22,y,44,11);sf('bold',11);tc(255,255,255);pdf.text(dco?.DCO_Title||dcoId,W/2,y+7.5,{align:'center',maxWidth:CW});y+=18;
 fc(209,250,229);fr(W/2-20,y,40,9);dc(6,95,70);pdf.rect(W/2-20,y,40,9,'S');sf('bold',9);tc(6,95,70);pdf.text('EFFECTIVE',W/2,y+6,{align:'center'});y+=16;
@@ -1925,6 +1994,7 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
     };
   }
 }
+
 
 
 
