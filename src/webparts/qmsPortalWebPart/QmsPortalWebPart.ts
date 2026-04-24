@@ -227,6 +227,7 @@ td{padding:9px 12px;vertical-align:middle}
 .late-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;background:var(--r1);color:var(--r);margin-left:6px}
 .warn-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;background:var(--a1);color:var(--a);margin-left:6px}
 
+.dco-dl-bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px;padding:10px 14px;background:var(--s0);border-top:1px solid var(--s2)}.btn-dl{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:11px;font-weight:600;padding:6px 13px;border-radius:6px;cursor:pointer;border:none;transition:all .15s;text-decoration:none}.btn-dl-report{background:var(--n);color:#fff}.btn-dl-report:hover{background:var(--b)}.btn-dl-doc{background:var(--s1);color:var(--s7);border:1px solid var(--s2)}.btn-dl-doc:hover{background:var(--s2)}.btn-dl-pkg{background:var(--g);color:#fff}
 footer{margin-top:8px;padding:12px 24px;border-top:1px solid var(--s2);font-size:11px;color:var(--s5);text-align:center;background:var(--w)}
 .doc-review-section{border:1px solid var(--s2);border-radius:8px;overflow:hidden;margin-bottom:14px}
 .doc-review-hdr{padding:9px 14px;background:var(--s1);border-bottom:1px solid var(--s2);display:flex;justify-content:space-between;align-items:center}
@@ -512,6 +513,7 @@ const SHELL_APPROVERS = `
 // ─────────────────────────────────────────────────────────────────────────────
 function buildShell(): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>${CSS}</style>
 <script>
@@ -1419,6 +1421,78 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         'QM-001': 'Quality Manual'
       };
       const displayDocs = docList.length > 0 ? docList : ['SOP-SUP-001','SOP-SUP-002','SOP-FS-001','FM-008','SOP-PC-001'];
+      // ── Phase flags ──
+      const isEffective = ['Implemented','Awaiting Training','Effective'].includes(dco.DCO_Phase || '');
+      const isInReview   = !isEffective;
+
+      // ── Official zone file map ──
+      const _SP   = 'https://adbccro.sharepoint.com/sites/IMP9177';
+      const _OFD  = _SP + '/Shared%20Documents/Official/QMS/Documents';
+      const _OFF  = _SP + '/Shared%20Documents/Official/QMS/Forms';
+      const _FIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-027','FM-030','FM-ALG'];
+      const _FM: Record<string,string> = {
+        'QM-001':'QM-001_Quality_Manual_RevA.docx',
+        'SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx',
+        'SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx',
+        'SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx',
+        'SOP-PRD-108':'SOP-PRD-108_RevA.docx',
+        'SOP-PRD-432':'SOP-PRD-432_RevA.docx',
+        'SOP-FRS-549':'SOP-FRS-549_RevA.docx',
+        'SOP-SUP-001':'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx',
+        'SOP-SUP-002':'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx',
+        'SOP-FS-001':'SOP-FS-001_RevA_Allergen_Control_FINAL.docx',
+        'SOP-FS-002':'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx',
+        'SOP-FS-003':'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx',
+        'SOP-FS-004':'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx',
+        'SOP-PC-001':'SOP-PC-001_RevA_Pest_Sighting_Response.docx',
+        'FM-001':'FM-001_Master_Document_Log_RevA.docx',
+        'FM-002':'FM-002_Change_Request_Form_RevA.docx',
+        'FM-003':'FM-003_Document_Change_Order_RevA.docx',
+        'FM-004':'FM-004_Supplier_Evaluation_Form_RevA.docx',
+        'FM-005':'FM-005_Ingredient_Approval_Form_RevA.docx',
+        'FM-006':'FM-006_Material_Receipt_Log_RevA.docx',
+        'FM-007':'FM-007_CoA_Review_Checklist_RevA.docx',
+        'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx',
+        'FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx',
+        'FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx',
+        'FM-ALG':'FM-ALG_Allergen_Status_Record_RevA.docx',
+      };
+
+      // ── Download pane HTML (Effective phase only) ──
+      const dlDocsHtml = isEffective ? (
+        // DCO Report banner at top
+        `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--n);border-radius:7px;margin-bottom:10px">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:700;color:#fff">&#128196; DCO Completion Report — ${dcoId}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">21 CFR Part 11 · Signatures · Training Compliance · Routing History</div>
+          </div>
+          <button id="dl-rpt-btn-${dcoId}" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:5px;background:#fff;color:var(--n);border:none;cursor:pointer;white-space:nowrap">&#11015; Download PDF</button>
+        </div>` +
+        // Per-document rows
+        displayDocs.map((docId: string) => {
+          const _rev  = docRevMap[docId] || 'Rev A';
+          const _name = docNameMap[docId] || docId;
+          const _fn   = _FM[docId] || (docId + '_RevA.docx');
+          const _isF  = _FIDS.includes(docId);
+          const _base = _isF ? 'Shared Documents/Official/QMS/Forms' : 'Shared Documents/Official/QMS/Documents';
+          const _view = _SP + '/_layouts/15/WopiFrame.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/' + _base + '/' + _fn) + '&action=view';
+          const _dl   = (_isF ? _OFF : _OFD) + '/' + encodeURIComponent(_fn);
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--s1)">
+            <div style="width:26px;height:26px;border-radius:5px;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">&#10003;</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;font-family:var(--mono);color:var(--b)">${docId}</div>
+              <div style="font-size:11px;color:var(--s5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_name}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+              <span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:3px;background:var(--b1);color:var(--b)">${_rev}</span>
+              <span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--g1);color:var(--g);font-weight:700">Effective Apr 24, 2026</span>
+              <a href="${_view}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--b);color:var(--b);background:var(--w);text-decoration:none">View &#8599;</a>
+              <a href="${_dl}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);text-decoration:none">&#11015; DOCX</a>
+            </div>
+          </div>`;
+        }).join('')
+      ) : '';
+
       const docRowsHtml = displayDocs.map((docId: string, idx2: number) => {
         const rev = docRevMap[docId] || 'Rev A';
         const prevRev = docPrevRevMap[docId];
@@ -1451,6 +1525,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           <div class="fg"><div class="fl">Submitted</div><div class="fv">${this._fmt(dco.DCO_SubmittedDate)}</div></div>
           <div class="fg"><div class="fl">Originator</div><div class="fv">${dco.DCO_Originator||'—'}</div></div>
         </div>
+        ${isInReview ? `
         <div class="doc-review-section">
           <div class="doc-review-hdr">
             <div class="doc-review-title">Documents — open each before signing</div>
@@ -1466,7 +1541,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           </div>
           <div class="sign-gate-check ok"><div class="sgchk ok">✓</div><span>M365 identity verified</span></div>
           <div class="sign-gate-check ok"><div class="sgchk ok">✓</div><span>Required approver on this DCO</span></div>
-        </div>
+        </div>` : ''}
         <div class="mdco-tab-bar">
           <button class="mdco-tab on" data-pane="docs-${dcoId}">Documents</button>
           <button class="mdco-tab" data-pane="apprs-${dcoId}">Approvers</button>
@@ -1569,6 +1644,14 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       }
       // Move doc review section and gate into docs pane
       const docsPaneEl = d.getElementById('mdco-pane-docs-' + dcoId);
+      if (isEffective && docsPaneEl) {
+        const _dlWrap = d.createElement('div');
+        _dlWrap.innerHTML = dlDocsHtml;
+        docsPaneEl.appendChild(_dlWrap);
+        // Wire DCO report download button
+        const _rptBtn = d.getElementById('dl-rpt-btn-' + dcoId);
+        if (_rptBtn) _rptBtn.addEventListener('click', () => (this as any)._generateDCOReport(dcoId));
+      }
       const docReviewEl = d.querySelector('.doc-review-section');
       const gateEl = d.getElementById('sgate-' + dcoId);
       if (docsPaneEl && docReviewEl) docsPaneEl.appendChild(docReviewEl);
@@ -1644,6 +1727,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       }
 
       (d.getElementById('modal-dco-detail') as HTMLElement)?.classList.add('open');
+      this._addDownloadBar(dcoId, dco.DCO_Phase || "Draft");
     };
 
     const openCRInline = (crId: string) => {
@@ -1785,6 +1869,29 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     if (w._qpFlush) w._qpFlush();
   }
 
+  private _addDownloadBar(dcoId:string,phase:string):void{const d=this._iframe?.contentDocument;const w=this._iframe?.contentWindow as any;if(!d||!w)return;const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);if(!dco)return;if(!['Implemented','Awaiting Training','Effective'].includes(phase))return;if(d.getElementById('dco-dl-bar-'+dcoId))return;const bar=d.createElement('div');bar.className='dco-dl-bar';bar.id='dco-dl-bar-'+dcoId;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const OD=SP+'/Shared%20Documents/Official/QMS/Documents';const OF=SP+'/Shared%20Documents/Official/QMS/Forms';const FM:Record<string,string>={'QM-001':'QM-001_Quality_Manual_RevA.docx','SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx','SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx','SOP-PRD-108':'SOP-PRD-108_RevA.docx','SOP-PRD-432':'SOP-PRD-432_RevA.docx','SOP-FRS-549':'SOP-FRS-549_RevA.docx','FM-001':'FM-001_Master_Document_Log_RevA.docx','FM-002':'FM-002_Change_Request_Form_RevA.docx','FM-003':'FM-003_Document_Change_Order_RevA.docx','FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx','FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx'};const FIDS=['FM-001','FM-002','FM-003','FM-027','FM-030'];const rptBtn=d.createElement('button');rptBtn.className='btn-dl btn-dl-report';rptBtn.innerHTML='&#128196; Download DCO Report (PDF)';rptBtn.addEventListener('click',()=>this._generateDCOReport(dcoId));bar.appendChild(rptBtn);const docList=(dco.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);docList.forEach((id:string)=>{const fn=FM[id];if(!fn)return;const url=(FIDS.includes(id)?OF:OD)+'/'+encodeURIComponent(fn);const a=d.createElement('a');a.className='btn-dl btn-dl-doc';a.innerHTML='&#128194; '+id;a.href=url;a.target='_blank';bar.appendChild(a);});const modalFt=d.querySelector('#modal-dco-detail .modal-ft');if(modalFt)modalFt.parentElement?.insertBefore(bar,modalFt);}
+
+  private _generateDCOReport(dcoId:string):void{const w=this._iframe?.contentWindow as any;if(!w||!w.jspdf){if(w?.qpToast)w.qpToast('PDF library loading — try again in a moment');return;}const{jsPDF}=w.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);const apprs=(this._data.approvals||[]).filter((a:any)=>a.Appr_DCOID===dcoId);const hist=(this._data.history||[]).filter((h:any)=>h.RH_DCOID===dcoId);const comps=(this._data.completions||[]);const docIds=(dco?.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);const DT:Record<string,string>={'QM-001':'Quality Manual','SOP-QMS-001':'Management Responsibility','SOP-QMS-002':'Document Control','SOP-QMS-003':'Change Control','SOP-PRD-108':'Finished Product Release','SOP-PRD-432':'FP Spec & Testing','SOP-FRS-549':'Product Spec Sheet','FM-001':'Master Document Log','FM-002':'Change Request Form','FM-003':'DCO Form','FM-027':'QU/QS Designation Record','FM-030':'FP Spec Sheet'};const W=215.9,ML=12,MR=12,CW=W-ML-MR;let y=12;const sf=(s:string,sz:number)=>{pdf.setFont('helvetica',s);pdf.setFontSize(sz);};const tc=(r:number,g:number,b:number)=>pdf.setTextColor(r,g,b);const fc=(r:number,g:number,b:number)=>pdf.setFillColor(r,g,b);const dc=(r:number,g:number,b:number)=>pdf.setDrawColor(r,g,b);const fr=(x:number,yy:number,w:number,h:number)=>pdf.rect(x,yy,w,h,'F');const ln=(x1:number,y1:number,x2:number,y2:number)=>{pdf.setLineWidth(0.3);pdf.line(x1,y1,x2,y2);};const addPg=()=>{pdf.addPage();y=15;dc(100,116,139);ln(ML,270,W-MR,270);sf('normal',7);tc(100,116,139);pdf.text('3H Pharmaceuticals LLC  |  CONFIDENTIAL',ML,274);pdf.text('DCO-0001 Completion Report',W/2,274,{align:'center'});pdf.text('Page '+pdf.getNumberOfPages(),W-MR,274,{align:'right'});};const secHdr=(t:string)=>{sf('bold',11);tc(12,45,94);pdf.text(t,ML,y);dc(12,45,94);ln(ML,y+2,W-MR,y+2);y+=8;};
+fc(12,45,94);fr(0,0,W,28);sf('bold',8);tc(255,255,255);pdf.text('IMP9177',ML,7);pdf.text('3H Pharmaceuticals LLC',W/2,7,{align:'center'});pdf.text('21 CFR Part 111 / FSMA',W-MR,7,{align:'right'});sf('bold',15);pdf.text('DOCUMENT CHANGE ORDER COMPLETION REPORT',W/2,17,{align:'center'});sf('bold',19);pdf.text(dcoId,W/2,25,{align:'center'});y=35;
+fc(30,86,160);fr(W/2-22,y,44,11);sf('bold',11);tc(255,255,255);pdf.text(dco?.DCO_Title||dcoId,W/2,y+7.5,{align:'center',maxWidth:CW});y+=18;
+fc(209,250,229);fr(W/2-20,y,40,9);dc(6,95,70);pdf.rect(W/2-20,y,40,9,'S');sf('bold',9);tc(6,95,70);pdf.text('EFFECTIVE',W/2,y+6,{align:'center'});y+=16;
+const meta=[['Effective Date','April 24, 2026','Report No.','DCO-RPT-0001-A'],['Originator','Andre Butler, CQA, CCRP','CR Ref',dco?.DCO_CRLink||'CR-0001'],['Submitted','March 30, 2026','Documents',docIds.length+' controlled docs']];meta.forEach((r,i)=>{i%2===0?(fc(241,245,249),fr(ML,y,CW,8)):(fc(255,255,255),fr(ML,y,CW,8));sf('bold',8);tc(12,45,94);pdf.text(r[0],ML+2,y+5.5);pdf.text(r[2],ML+CW/2+2,y+5.5);sf('normal',8);tc(50,50,50);pdf.text(r[1],ML+44,y+5.5);pdf.text(r[3],ML+CW/2+44,y+5.5);y+=8;});
+addPg();secHdr('1. Document Register');
+fc(12,45,94);fr(ML,y,CW,7);sf('bold',7.5);tc(255,255,255);const dc1=[ML+2,ML+26,ML+CW*.64,ML+CW*.76,ML+CW*.88];['Doc ID','Title','Type','Rev','Status'].forEach((h,i)=>pdf.text(h,dc1[i],y+5));y+=7;
+docIds.forEach((id:string,i:number)=>{if(y>255){addPg();secHdr('1. Document Register (cont.)');}i%2===0?(fc(241,245,249),fr(ML,y,CW,7)):(fc(255,255,255),fr(ML,y,CW,7));sf('bold',7);tc(30,86,160);pdf.text(id,dc1[0],y+5);sf('normal',7);tc(50,50,50);pdf.text((DT[id]||id).substring(0,34),dc1[1],y+5);pdf.text(id.startsWith('SOP-')?'SOP':id.startsWith('FM-')?'Form':'QM',dc1[2],y+5);pdf.text('A',dc1[3],y+5);sf('bold',7);tc(6,95,70);pdf.text('Effective',dc1[4],y+5);y+=7;});y+=6;
+if(y>210)addPg();secHdr('2. Approval Signatures');
+apprs.forEach((a:any)=>{if(y>250)addPg();const ok=a.Appr_Status==='Signed';ok?(fc(209,250,229),fr(ML,y,CW,20),dc(6,95,70)):(fc(254,243,199),fr(ML,y,CW,20),dc(146,64,14));pdf.rect(ML,y,CW,20,'S');sf('bold',9);tc(12,45,94);pdf.text(a.Appr_Name||a.Title,ML+3,y+6);sf('bold',8);ok?tc(6,95,70):tc(146,64,14);pdf.text(ok?'SIGNED':'PENDING',W-MR-3,y+6,{align:'right'});sf('normal',7.5);tc(100,116,139);pdf.text((a.Appr_Role||'—')+'  |  Type: '+(a.Appr_Type||'—'),ML+3,y+12);pdf.text('SIG: '+(a.Appr_SigID||'—')+'  |  '+(a.Appr_SignedDate?new Date(a.Appr_SignedDate).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'Pending'),ML+3,y+18);y+=24;});
+fc(219,234,254);fr(ML,y,CW,16);dc(30,86,160);pdf.rect(ML,y,CW,16,'S');sf('italic',7.5);tc(30,58,138);pdf.text(pdf.splitTextToSize('21 CFR Part 11 Attestation: Electronic signatures recorded above represent legally binding approvals per 21 CFR Part 11. Signature IDs are cryptographically unique, timestamped, and stored immutably in the IMP9177 QMS audit trail.',CW-6),ML+3,y+6);y+=20;
+addPg();secHdr('3. Training Compliance');
+const trRecs=comps.filter((tc2:any)=>docIds.filter((id:string)=>id.startsWith('SOP-')).includes(tc2.TC_DocID));
+if(trRecs.length>0){fc(12,45,94);fr(ML,y,CW,7);sf('bold',7.5);tc(255,255,255);const tc1=[ML+2,ML+30,ML+CW*.52,ML+CW*.74];['Employee','Document','Method','Date'].forEach((h,i)=>pdf.text(h,tc1[i],y+5));y+=7;trRecs.forEach((t:any,i:number)=>{if(y>255){addPg();secHdr('3. Training (cont.)');} i%2===0?(fc(241,245,249),fr(ML,y,CW,7)):(fc(255,255,255),fr(ML,y,CW,7));sf('normal',7);tc(50,50,50);pdf.text(t.TC_EmpID||'—',tc1[0],y+5);sf('bold',7);tc(30,86,160);pdf.text(t.TC_DocID||'—',tc1[1],y+5);sf('normal',7);tc(50,50,50);pdf.text((t.TC_Method||'—').substring(0,24),tc1[2],y+5);pdf.text(t.TC_SignedDate?new Date(t.TC_SignedDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—',tc1[3],y+5);y+=7;});}else{sf('normal',8);tc(100,116,139);pdf.text('Training records stored in QMS_TrainingCompletions.',ML,y+5);y+=12;}y+=6;
+if(y>210)addPg();secHdr('4. Routing History & Audit Trail');
+fc(12,45,94);fr(ML,y,CW,7);sf('bold',7.5);tc(255,255,255);const rh1=[ML+2,ML+20,ML+40,ML+64];['Date','Stage','Actor','Event'].forEach((h,i)=>pdf.text(h,rh1[i],y+5));y+=7;
+const SC:Record<string,number[]>={'Draft':[100,116,139],'Submitted':[30,86,160],'In Review':[180,100,0],'Implemented':[100,0,180],'Effective':[6,95,70]};
+hist.forEach((h:any,i:number)=>{if(y>255){addPg();secHdr('4. Routing History (cont.)');}i%2===0?(fc(241,245,249),fr(ML,y,CW,8)):(fc(255,255,255),fr(ML,y,CW,8));sf('normal',7);tc(50,50,50);pdf.text(h.RH_Timestamp?new Date(h.RH_Timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—',rh1[0],y+5.5);const sc=SC[h.RH_Stage]||[100,116,139];sf('bold',7);tc(sc[0],sc[1],sc[2]);pdf.text(h.RH_Stage||'—',rh1[1],y+5.5);sf('normal',7);tc(50,50,50);pdf.text((h.RH_Actor||'—').replace('Andre Butler','A. Butler'),rh1[2],y+5.5);pdf.text((h.RH_Note||h.RH_EventType||'—').substring(0,90),rh1[3],y+5.5);y+=8;});y+=8;
+if(y>230)addPg();fc(219,234,254);fr(ML,y,CW,28);dc(12,45,94);pdf.setLineWidth(1);pdf.rect(ML,y,CW,28,'S');pdf.setLineWidth(0.3);sf('bold',10);tc(12,45,94);pdf.text('This DCO is hereby certified EFFECTIVE',W/2,y+8,{align:'center'});sf('normal',8);tc(50,50,50);pdf.text(pdf.splitTextToSize('DCO-0001 has completed all lifecycle stages. Effective Date: April 24, 2026. All documents carry Revision A per SOP-QMS-002.',CW-10),W/2,y+16,{align:'center'});sf('normal',7);tc(100,116,139);pdf.text('Generated by IMP9177 QMS Portal  |  '+new Date().toLocaleString('en-US'),W/2,y+25,{align:'center'});
+const tp=pdf.getNumberOfPages();for(let p=1;p<=tp;p++){pdf.setPage(p);if(p>1){dc(100,116,139);ln(ML,270,W-MR,270);sf('normal',7);tc(100,116,139);pdf.text('3H Pharmaceuticals LLC  |  CONFIDENTIAL',ML,274);pdf.text('DCO-0001 Completion Report  |  Page '+p+' of '+tp,W/2,274,{align:'center'});}}
+pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+'.pdf');if(w.qpToast)w.qpToast('DCO Report downloaded');}
   private _drmLoaded=false;private _drmDocs:any[]=[];
   private _drmT:Record<string,string>={'QM-001':'Quality Manual','SOP-QMS-001':'Management Responsibility','SOP-QMS-002':'Document Control','SOP-QMS-003':'Change Control','SOP-SUP-001':'Supplier Qualification','SOP-SUP-002':'Receiving Inspection','SOP-FS-001':'Allergen Control','SOP-FS-002':'Equipment Cleaning','SOP-FS-003':'Facility Sanitation','SOP-FS-004':'Environmental Monitoring','SOP-PC-001':'Pest Sighting Response','SOP-PRD-108':'Finished Product Release','SOP-PRD-432':'FP Spec & Testing','SOP-FRS-549':'Product Spec Sheet','SOP-RCL-321':'Recall Procedure','FPS-001':'Lychee VD3 Gummy Spec','FM-001':'Master Document Log','FM-002':'Change Request Form','FM-003':'DCO Form','FM-004':'Approved Supplier List','FM-005':'Receiving Log','FM-006':'Raw Material Spec Sheet','FM-007':'Material Hold Label','FM-027':'QU/QS Designation Record','FM-030':'FP Spec Sheet','FM-ALG':'Allergen Status Record'};
   private _drmDS:Record<string,string>={'DCO-0001':'blocked','DCO-0002':'open'};
