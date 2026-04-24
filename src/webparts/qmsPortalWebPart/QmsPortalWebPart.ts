@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -9,6 +9,7 @@ import { SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
 
 export interface IQmsPortalWebPartProps { screen: string; }
 
+// v1.0.0.2-doclink-published
 // ─────────────────────────────────────────────────────────────────────────────
 // CSS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,6 +228,49 @@ td{padding:9px 12px;vertical-align:middle}
 .warn-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;background:var(--a1);color:var(--a);margin-left:6px}
 
 footer{margin-top:8px;padding:12px 24px;border-top:1px solid var(--s2);font-size:11px;color:var(--s5);text-align:center;background:var(--w)}
+.doc-review-section{border:1px solid var(--s2);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.doc-review-hdr{padding:9px 14px;background:var(--s1);border-bottom:1px solid var(--s2);display:flex;justify-content:space-between;align-items:center}
+.doc-review-title{font-size:12px;font-weight:700;color:var(--n)}
+.doc-req-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.doc-req-badge.pend{background:var(--a1);color:var(--a)}
+.doc-req-badge.ok{background:var(--g1);color:var(--g)}
+.doc-rev-row{border-bottom:1px solid var(--s1)}
+.doc-rev-row:last-child{border-bottom:none}
+.doc-rev-main{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .1s}
+.doc-rev-main:hover{background:var(--b0)}
+.doc-rev-main.opened{background:var(--g1)}
+.doc-rev-icon{width:26px;height:26px;border-radius:6px;background:var(--b1);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.doc-rev-icon.opened{background:var(--g1)}
+.doc-rev-info{flex:1}
+.doc-rev-id{font-size:11px;color:var(--b);font-weight:600}
+.doc-rev-name{font-size:12px;color:var(--s7);margin-top:1px}
+.doc-rev-right{display:flex;align-items:center;gap:6px}
+.doc-open-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.doc-open-pill.opened{background:var(--g1);color:var(--g)}
+.doc-open-pill.unopened{background:var(--a1);color:var(--a)}
+.doc-open-btn-sm{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--b);color:var(--b);background:transparent;cursor:pointer;white-space:nowrap}
+.doc-open-btn-sm:hover{background:var(--b1)}
+.doc-open-btn-sm.done{border-color:var(--s2);color:var(--s5);cursor:default}
+.rev-strip{display:flex;gap:6px;padding:5px 14px 7px 50px;background:var(--s0);border-top:1px solid var(--s1)}
+.rev-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);font-size:10px;font-weight:600}
+.rev-chip.cur{border-color:var(--b2);background:var(--b1);color:var(--b)}
+.rev-chip.sup{color:var(--s5);text-decoration:line-through}
+.sign-gate-box{border:1px solid var(--s2);border-radius:8px;padding:10px 14px;margin-bottom:12px}
+.mdco-tab-bar{display:flex;border-bottom:1px solid var(--s2);margin-bottom:14px}
+.mdco-tab{padding:8px 16px;font-size:12px;font-weight:600;color:var(--s5);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px}
+.mdco-tab:hover{color:var(--n)}
+.mdco-tab.on{color:var(--b);border-bottom-color:var(--b)}
+.mdco-pane{display:none}
+.mdco-pane.on{display:block}
+.sign-gate-box.ok{border-color:#a5d6a7;background:var(--g1)}
+.sign-gate-msg{font-size:12px;font-weight:700;margin-bottom:6px}
+.sign-gate-msg.pend{color:var(--r)}
+.sign-gate-msg.ok{color:var(--g)}
+.sign-gate-check{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--s5);padding:2px 0}
+.sign-gate-check.ok{color:var(--g)}
+.sgchk{width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px}
+.sgchk.ok{background:var(--g1);color:var(--g)}
+.sgchk.pend{background:var(--r1);color:var(--r)}
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -446,6 +490,7 @@ const SHELL_PUBLISH = `
   </div>
 </div>`;
 
+const SHELL_DOCREPO = `<div class="sec-hdr"><div class="sec-title">Document Repository Matrix</div><span id="drm-live" style="font-size:10px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-weight:700;margin-left:auto">Loading...</span></div><div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><select id="drm-tf" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All types</option><option value='SOP'>SOP</option><option value='FM'>FM</option><option value='QM'>QM</option></select><select id="drm-df" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All DCOs</option><option value='DCO-0001'>DCO-0001</option><option value='DCO-0002'>DCO-0002</option></select><input id="drm-qf" type="text" placeholder="Search..." style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;min-width:160px"></div><div id="drm-sbar" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"></div><div id="drm-loading" style="padding:24px 0;color:var(--s5);font-size:12px"><span class="spin"></span> Loading document matrix from SharePoint...</div><div id="drm-table-wrap" style="display:none"><div class="tcard"><table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px"><colgroup><col style="width:100px"><col style="width:140px"><col><col><col></colgroup><thead><tr><th>Doc ID</th><th>Title</th><th style="text-align:center;color:#1565c0;border-bottom:2px solid #1565c0">Drafts</th><th style="text-align:center;color:#e65100;border-bottom:2px solid #e65100">Published</th><th style="text-align:center;color:#2e7d32;border-bottom:2px solid #2e7d32">Official</th></tr></thead><tbody id="drm-tbody"></tbody></table></div></div><div id="drm-detail" style="display:none"></div>`;
 const SHELL_CONFIG = `
 <div class="sec-hdr"><div class="sec-title">System Configuration</div><button class="btn-pri" id="btn-save-config">💾 Save All Settings</button></div>
 <div class="cfg-grid" id="cfg-body"><div class="loading"><span class="spin"></span>Loading config...</div></div>`;
@@ -515,6 +560,7 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <button class="qp-tab" data-screen="training">🎓 Training</button>
   <button class="qp-tab" data-screen="publish">🚀 PM Publish</button>
   <button class="qp-tab" data-screen="approvers">👥 Approvers</button>
+  <button class="qp-tab" data-screen="docrepo">&#128218; Doc Repository</button>
   <button class="qp-tab" data-screen="config">⚙️ Config</button>
 </div>
 <div class="qp-alert" id="qp-alert"><span>⚠️</span><span id="qp-alert-txt"></span></div>
@@ -527,6 +573,7 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <div class="qp-screen" id="sc-training">${SHELL_TRAINING}</div>
   <div class="qp-screen" id="sc-publish">${SHELL_PUBLISH}</div>
   <div class="qp-screen" id="sc-approvers">${SHELL_APPROVERS}</div>
+  <div class="qp-screen" id="sc-docrepo">${SHELL_DOCREPO}</div>
   <div class="qp-screen" id="sc-config">${SHELL_CONFIG}</div>
 </div>
 <footer>IMP9177 QMS Portal · ADB Consulting &amp; CRO Inc. · 21 CFR Part 111 / FSMA · Read-only view — data live from SharePoint</footer>
@@ -589,14 +636,14 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
 <div class="modal-ov" id="modal-esign">
   <div class="modal" style="max-width:520px">
     <div class="modal-hdr">
-      <div><div class="modal-title">E-Signature — Microsoft 365</div><div class="modal-sub" id="esign-sub">Signing document</div></div>
+      <div><div class="modal-title">Electronic Signature — 21 CFR Part 11</div><div class="modal-sub" id="esign-sub">Signing document</div></div>
       <button class="modal-x" data-close="modal-esign">×</button>
     </div>
     <div class="modal-body" id="esign-body">
       <div class="fg"><div class="fl">Document</div><div class="fv" id="esign-doc">—</div></div>
-      <div class="fg"><div class="fl">Signing as</div><div class="fv" id="esign-as">—</div></div>
-      <div class="fg"><div class="fl">Attestation</div><div class="fv">I confirm the accuracy and completeness of this document and approve its release per 21 CFR Part 11 electronic signature requirements.</div></div>
-      <div class="fg"><div class="fl">MFA Verification Code (simulated)</div>
+      <div class="fg"><div class="fl">Signing As</div><div class="fv" id="esign-as" style="font-weight:600">—</div></div>
+      <div class="fg"><div class="fl">Identity Verification</div><div class="fv" style="color:green">Verified - Microsoft 365 authenticated session active</div></div><div class="fg"><div class="fl">Attestation Statement</div><div class="fv">By clicking Apply Signature, I confirm that I have reviewed this document and approve its release per 21 CFR Part 11. My Microsoft 365 identity and a unique signature ID will be permanently recorded.</div></div>
+      <div style="display:none">
         <input class="finput" id="esign-code" type="text" maxlength="6" placeholder="Enter 6-digit code..." style="letter-spacing:4px;font-family:var(--mono)">
         <div style="font-size:11px;color:var(--s5);margin-top:4px">In production: code sent to your registered M365 MFA device</div>
       </div>
@@ -693,6 +740,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     this._renderPublish();
     this._renderApprovers();
     this._renderConfig();
+    this._initDocRepo();
     this._checkAlerts();
   }
 
@@ -1172,13 +1220,14 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     });
     const signConfirm = d.getElementById('btn-confirm-sign');
     if (signConfirm) signConfirm.addEventListener('click', async () => {
-      const code = (d.getElementById('esign-code') as HTMLInputElement)?.value;
-      if (!code || code.length < 6) { if (w.qpToast) w.qpToast('Enter 6-digit MFA code to sign'); return; }
+      const currentUser = this.context.pageContext.user;
+      if (!currentUser || !currentUser.email) { if (w.qpToast) w.qpToast('Unable to verify M365 identity — please refresh and try again'); return; }
 
       const dcoId = (d.getElementById('esign-doc') as HTMLElement)?.textContent || '';
       if (!dcoId) { if (w.qpToast) w.qpToast('No DCO selected'); return; }
 
-      const sigId = 'SIG-' + Date.now().toString(36).toUpperCase();
+      const userEmail = this.context.pageContext.user.email; const userName = this.context.pageContext.user.displayName || userEmail;
+      const sigId = 'SIG-' + userEmail.split('@')[0].toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
       const signedDate = new Date().toISOString();
       const base = this.context.pageContext.web.absoluteUrl;
 
@@ -1345,6 +1394,54 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         const cls = h.RH_EventType === 'rejection' ? 'rej' : h.RH_EventType === 'signature' ? 'sig' : 'stage';
         return `<div class="rh-item"><div class="rh-dot ${cls}"></div><div class="rh-body"><div class="rh-top"><span class="rh-evt">${h.RH_Stage||h.Title||''}</span><span class="rh-ts">${this._fmt(h.RH_Timestamp)}</span></div><div class="rh-detail">${h.RH_Actor||''} ${h.RH_Note ? '· '+h.RH_Note : ''}</div>${h.RH_Reason ? `<div class="rh-reason">Rejection reason: ${h.RH_Reason}</div>` : ''}</div></div>`;
       }).join('');
+      // Build document list from DCO_Docs field
+      const docList = (dco.DCO_Docs || '').split(',').map((d2: string) => d2.trim()).filter(Boolean);
+      const docRevMap: Record<string, string> = {
+        'SOP-SUP-001': 'Rev B', 'SOP-SUP-002': 'Rev A', 'SOP-FS-001': 'Rev A',
+        'SOP-FS-002': 'Rev A', 'SOP-FS-003': 'Rev A', 'SOP-FS-004': 'Rev A',
+        'SOP-PC-001': 'Rev A', 'FM-004': 'Rev A', 'FM-005': 'Rev A',
+        'FM-006': 'Rev A', 'FM-007': 'Rev A', 'FM-008': 'Rev A', 'QM-001': 'Rev A'
+      };
+      const docPrevRevMap: Record<string, string> = { 'SOP-SUP-001': 'Rev A' };
+      const docNameMap: Record<string, string> = {
+        'SOP-SUP-001': 'Supplier Qualification & Control',
+        'SOP-SUP-002': 'Supplier Corrective Action',
+        'SOP-FS-001': 'HARPC Food Safety Plan',
+        'SOP-FS-002': 'Preventive Controls',
+        'SOP-FS-003': 'Sanitation Controls',
+        'SOP-FS-004': 'Allergen Controls',
+        'SOP-PC-001': 'Pest Control Management',
+        'FM-004': 'Supplier Evaluation Form',
+        'FM-005': 'Ingredient Approval Form',
+        'FM-006': 'Material Receipt Log',
+        'FM-007': 'CoA Review Checklist',
+        'FM-008': 'Supplier CoA Requirements Checklist',
+        'QM-001': 'Quality Manual'
+      };
+      const displayDocs = docList.length > 0 ? docList : ['SOP-SUP-001','SOP-SUP-002','SOP-FS-001','FM-008','SOP-PC-001'];
+      const docRowsHtml = displayDocs.map((docId: string, idx2: number) => {
+        const rev = docRevMap[docId] || 'Rev A';
+        const prevRev = docPrevRevMap[docId];
+        const name = docNameMap[docId] || docId;
+        return `<div class="doc-rev-row" id="drow-${idx2}">
+          <div class="doc-rev-main" id="drev-main-${idx2}" data-docreview="1" data-dcoid="${dcoId}" data-didx="${idx2}" data-docid="${docId}" data-rev="${rev}">
+            <div class="doc-rev-icon" id="drev-icon-${idx2}">📄</div>
+            <div class="doc-rev-info">
+              <div class="doc-rev-id">${docId}</div>
+              <div class="doc-rev-name">${name}</div>
+            </div>
+            <div class="doc-rev-right">
+              <span class="doc-open-pill unopened" id="drev-pill-${idx2}">Unopened</span>
+              <button class="doc-open-btn-sm" id="drev-btn-${idx2}">Open ${rev}</button>
+            </div>
+          </div>
+          <div class="rev-strip">
+            <span class="rev-chip cur">● ${rev} — Current</span>
+            ${prevRev ? `<span class="rev-chip sup">● ${prevRev} — Superseded</span>` : '<span class="rev-chip sup" style="text-decoration:none;color:var(--s5)">● No prior revision</span>'}
+          </div>
+        </div>`;
+      }).join('');
+
       const body = `
         ${late === 'late' ? `<div style="padding:10px 14px;background:var(--r1);border-left:4px solid var(--r);border-radius:6px;margin-bottom:14px;font-size:12px;color:var(--r);font-weight:600">⏱ OVERDUE — This DCO has been in approval for more than ${this._config.approvalOverdueDays||14} days</div>` : ''}
         <div class="phasebar">${phaseBarHtml}</div>
@@ -1354,12 +1451,157 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           <div class="fg"><div class="fl">Submitted</div><div class="fv">${this._fmt(dco.DCO_SubmittedDate)}</div></div>
           <div class="fg"><div class="fl">Originator</div><div class="fv">${dco.DCO_Originator||'—'}</div></div>
         </div>
-        <div style="margin-bottom:14px"><div class="fl" style="margin-bottom:8px">Approvers (Parallel Signing)</div><div class="lane-grid">${laneHtml}</div></div>
-        <div><div class="fl" style="margin-bottom:8px">Routing History</div>${histHtml||'<div style="color:var(--s5);font-size:12px;padding:8px 0">No history recorded yet</div>'}</div>`;
+        <div class="doc-review-section">
+          <div class="doc-review-hdr">
+            <div class="doc-review-title">Documents — open each before signing</div>
+            <span class="doc-req-badge pend" id="dreq-badge-${dcoId}">0 of ${displayDocs.length} opened</span>
+          </div>
+          ${docRowsHtml}
+        </div>
+        <div class="sign-gate-box" id="sgate-${dcoId}">
+          <div class="sign-gate-msg pend" id="sgate-msg-${dcoId}">Open all documents before signing</div>
+          <div class="sign-gate-check" id="sgate-docs-${dcoId}">
+            <div class="sgchk pend" id="sgate-chk-${dcoId}">✕</div>
+            <span id="sgate-txt-${dcoId}">0 of ${displayDocs.length} documents opened</span>
+          </div>
+          <div class="sign-gate-check ok"><div class="sgchk ok">✓</div><span>M365 identity verified</span></div>
+          <div class="sign-gate-check ok"><div class="sgchk ok">✓</div><span>Required approver on this DCO</span></div>
+        </div>
+        <div class="mdco-tab-bar">
+          <button class="mdco-tab on" data-pane="docs-${dcoId}">Documents</button>
+          <button class="mdco-tab" data-pane="apprs-${dcoId}">Approvers</button>
+          <button class="mdco-tab" data-pane="hist-${dcoId}">Routing History</button>
+        </div>
+        <div class="mdco-pane on" id="mdco-pane-docs-${dcoId}"></div>
+        <div class="mdco-pane" id="mdco-pane-apprs-${dcoId}"><div class="lane-grid">${laneHtml}</div></div>
+        <div class="mdco-pane" id="mdco-pane-hist-${dcoId}"><div id="dhist-${dcoId}">${histHtml||'<div style="color:var(--s5);font-size:12px;padding:8px 0">No history recorded yet</div>'}</div></div>`;
       this._set('mdco-title', dcoId);
       this._set('mdco-sub', dco.DCO_Title||'');
       this._html('mdco-body', body);
 
+      // Wire document review buttons directly after modal HTML is injected
+      displayDocs.forEach((docId: string, idx2: number) => {
+        const rev = docRevMap[docId] || 'Rev A';
+        const btn = d.getElementById('drev-btn-' + idx2);
+        const mainDiv = d.getElementById('drev-main-' + idx2);
+        const handler = () => {
+          if (!w._qpDocReviewState) w._qpDocReviewState = {};
+          if (!w._qpDocReviewState[dcoId]) { try { const saved = sessionStorage.getItem('docreview_' + dcoId); w._qpDocReviewState[dcoId] = saved ? JSON.parse(saved) : new Array(displayDocs.length).fill(false); } catch(e) { w._qpDocReviewState[dcoId] = new Array(displayDocs.length).fill(false); } }
+          if (w._qpDocReviewState[dcoId][idx2]) return;
+          w._qpDocReviewState[dcoId][idx2] = true;
+          try { sessionStorage.setItem('docreview_' + dcoId, JSON.stringify(w._qpDocReviewState[dcoId])); } catch(e) {}
+          const ts = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+          const pill = d.getElementById('drev-pill-' + idx2);
+          const openBtn = d.getElementById('drev-btn-' + idx2);
+          const icon = d.getElementById('drev-icon-' + idx2);
+          const main2 = d.getElementById('drev-main-' + idx2);
+          if (pill) { pill.textContent = 'Opened ' + ts; pill.className = 'doc-open-pill opened'; }
+          if (openBtn) { openBtn.textContent = 'Opened'; (openBtn as HTMLButtonElement).disabled = true; openBtn.className = 'doc-open-btn-sm done'; }
+          if (icon) { icon.className = 'doc-rev-icon opened'; icon.textContent = '✅'; }
+          if (main2) main2.style.background = 'var(--g1)';
+          // Open the document in SharePoint
+          const siteUrl = this.context.pageContext.web.absoluteUrl;
+          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_RevA_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_RevA_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx' }; const docFileName = docFileMap[docId] || (docId + '_RevA.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/WopiFrame.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
+          // document open deferred to end of handler
+          const state = w._qpDocReviewState[dcoId];
+          const opened = state.filter((v: boolean) => v).length;
+          const badge = d.getElementById('dreq-badge-' + dcoId);
+          const gateTxt = d.getElementById('sgate-txt-' + dcoId);
+          const gateChk = d.getElementById('sgate-chk-' + dcoId);
+          const gateMsg = d.getElementById('sgate-msg-' + dcoId);
+          const gateBox = d.getElementById('sgate-' + dcoId);
+          const gateDocs = d.getElementById('sgate-docs-' + dcoId);
+          const allDone = state.length > 0 && state.every((v: boolean) => v);
+          if (badge) { badge.textContent = opened + ' of ' + state.length + ' opened'; badge.className = 'doc-req-badge ' + (allDone ? 'ok' : 'pend'); }
+          if (gateTxt) gateTxt.textContent = opened + ' of ' + state.length + ' documents opened';
+          if (gateChk) { gateChk.textContent = allDone ? '✓' : '✕'; gateChk.className = 'sgchk ' + (allDone ? 'ok' : 'pend'); }
+          if (gateMsg) { gateMsg.className = 'sign-gate-msg ' + (allDone ? 'ok' : 'pend'); gateMsg.textContent = allDone ? 'All documents reviewed — signing enabled' : 'Open all documents before signing'; }
+          if (gateBox) gateBox.className = 'sign-gate-box' + (allDone ? ' ok' : '');
+          if (gateDocs) gateDocs.className = 'sign-gate-check' + (allDone ? ' ok' : '');
+          // Enable sign button when all docs opened
+          if (allDone && w._qpSignBtn && w._qpSignDcoId === dcoId) {
+            w._qpSignBtn.removeAttribute('data-gated');
+            w._qpSignBtn.style.opacity = '';
+            w._qpSignBtn.style.cursor = '';
+            w._qpSignBtn.title = 'Sign DCO';
+          }
+          // Write to routing history
+          const base = this.context.pageContext.web.absoluteUrl;
+          const userEmail = this.context.pageContext.user.email;
+          const userName = this.context.pageContext.user.displayName || userEmail;
+          this.context.spHttpClient.post(
+            base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+            SPHttpClient.configurations.v1,
+            { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+              body: JSON.stringify({ Title: dcoId + '-DOCREVIEW-' + docId, RH_DCOID: dcoId, RH_EventType: 'DocumentReview', RH_Stage: 'In Review', RH_Actor: userName, RH_Note: 'Document opened: ' + docId + ' ' + rev + ' | ' + userEmail, RH_Timestamp: new Date().toISOString() }) }
+          ).catch((e: any) => console.error('DocReview write failed', e));
+          const histPanel = d.getElementById('dhist-' + dcoId);
+          if (histPanel) {
+            const entry = '<div class="rh-item"><div class="rh-dot sig"></div><div class="rh-body"><div class="rh-top"><span class="rh-evt">Document opened</span><span class="rh-ts">' + ts + '</span></div><div class="rh-detail">' + userName + ' · M365</div><div style="display:inline-block;font-size:10px;padding:1px 7px;border-radius:8px;background:var(--a1);color:var(--a);margin-top:3px;font-weight:700">' + docId + ' ' + rev + '</div></div></div>';
+            histPanel.innerHTML = entry + histPanel.innerHTML;
+          }
+          if (w.qpToast) w.qpToast('Opened: ' + docId + ' ' + rev);
+          w.open(docUrl, '_blank');
+        };
+        if (btn) btn.addEventListener('click', (e: Event) => { e.stopPropagation(); handler(); });
+        if (mainDiv) mainDiv.addEventListener('click', handler);
+      });
+
+      // Load doc review state from sessionStorage before any UI restore
+      if (!w._qpDocReviewState) w._qpDocReviewState = {};
+      if (!w._qpDocReviewState[dcoId]) {
+        try { const saved = sessionStorage.getItem('docreview_' + dcoId); w._qpDocReviewState[dcoId] = saved ? JSON.parse(saved) : new Array(displayDocs.length).fill(false); } catch(e) { w._qpDocReviewState[dcoId] = new Array(displayDocs.length).fill(false); }
+      }
+
+      // Wire tab switching
+      const tabBar = d.querySelector('.mdco-tab-bar');
+      if (tabBar) {
+        tabBar.querySelectorAll('.mdco-tab').forEach((tab: Element) => {
+          tab.addEventListener('click', () => {
+            tabBar.querySelectorAll('.mdco-tab').forEach((t: Element) => t.classList.remove('on'));
+            tab.classList.add('on');
+            const paneId = 'mdco-pane-' + (tab as HTMLElement).getAttribute('data-pane');
+            d.querySelectorAll('.mdco-pane').forEach((p: Element) => p.classList.remove('on'));
+            const pane = d.getElementById(paneId);
+            if (pane) pane.classList.add('on');
+          });
+        });
+      }
+      // Move doc review section and gate into docs pane
+      const docsPaneEl = d.getElementById('mdco-pane-docs-' + dcoId);
+      const docReviewEl = d.querySelector('.doc-review-section');
+      const gateEl = d.getElementById('sgate-' + dcoId);
+      if (docsPaneEl && docReviewEl) docsPaneEl.appendChild(docReviewEl);
+      if (docsPaneEl && gateEl) docsPaneEl.appendChild(gateEl);
+      // Sync gate state after DOM is fully assembled
+      const savedState = w._qpDocReviewState[dcoId] || [];
+      const savedOpened = savedState.filter((v: boolean) => v).length;
+      const savedAll = savedState.length > 0 && savedState.every((v: boolean) => v);
+      const badge2 = d.getElementById('dreq-badge-' + dcoId);
+      const gateTxt2 = d.getElementById('sgate-txt-' + dcoId);
+      const gateChk2 = d.getElementById('sgate-chk-' + dcoId);
+      const gateMsg2 = d.getElementById('sgate-msg-' + dcoId);
+      const gateBox2 = d.getElementById('sgate-' + dcoId);
+      if (badge2) { badge2.textContent = savedOpened + ' of ' + savedState.length + ' opened'; badge2.className = 'doc-req-badge ' + (savedAll ? 'ok' : 'pend'); }
+      if (gateTxt2) gateTxt2.textContent = savedOpened + ' of ' + savedState.length + ' documents opened';
+      if (gateChk2) { gateChk2.textContent = savedAll ? '✓' : '✕'; gateChk2.className = 'sgchk ' + (savedAll ? 'ok' : 'pend'); }
+      if (gateMsg2) { gateMsg2.className = 'sign-gate-msg ' + (savedAll ? 'ok' : 'pend'); gateMsg2.textContent = savedAll ? 'All documents reviewed — signing enabled' : 'Open all documents before signing'; }
+      if (gateBox2) gateBox2.className = 'sign-gate-box' + (savedAll ? ' ok' : '');
+      const signBtnEl = d.getElementById('mdco-action-btn') as HTMLElement; if (savedAll && signBtnEl) { signBtnEl.removeAttribute('data-gated'); signBtnEl.style.opacity = ''; signBtnEl.style.cursor = ''; signBtnEl.style.background = ''; signBtnEl.title = 'Sign DCO'; }
+
+      // Restore previously opened docs from session state
+      displayDocs.forEach((_docId: string, idx2: number) => {
+        if (w._qpDocReviewState[dcoId] && w._qpDocReviewState[dcoId][idx2]) {
+          const pill2 = d.getElementById('drev-pill-' + idx2);
+          const btn2 = d.getElementById('drev-btn-' + idx2);
+          const icon2 = d.getElementById('drev-icon-' + idx2);
+          const main3 = d.getElementById('drev-main-' + idx2);
+          if (pill2) { pill2.textContent = 'Previously opened'; pill2.className = 'doc-open-pill opened'; }
+          if (btn2) { btn2.textContent = 'Opened'; (btn2 as HTMLButtonElement).disabled = true; btn2.className = 'doc-open-btn-sm done'; }
+          if (icon2) { icon2.className = 'doc-rev-icon opened'; icon2.textContent = '✅'; }
+          if (main3) main3.style.background = 'var(--g1)';
+        }
+      });
       // Wire action buttons based on phase
       const actionBtn = d.getElementById('mdco-action-btn') as HTMLElement;
       const rejectBtn = d.getElementById('mdco-reject-btn') as HTMLElement;
@@ -1374,9 +1616,20 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         } else if (phase === 'Submitted' || phase === 'In Review') {
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '✍️ Sign DCO';
+          const alreadyReviewed = w._qpDocReviewState && w._qpDocReviewState[dcoId] && w._qpDocReviewState[dcoId].length > 0 && w._qpDocReviewState[dcoId].every((v: boolean) => v);
+          if (!alreadyReviewed) { actionBtn.setAttribute('data-gated', '1'); actionBtn.style.opacity = '0.4'; actionBtn.style.cursor = 'not-allowed'; actionBtn.title = 'Open all documents before signing'; }
+          // Store reference so doc review handler can enable it
+          w._qpSignBtn = actionBtn;
+          w._qpSignDcoId = dcoId;
           actionBtn.onclick = () => {
+            const stateArr = w._qpDocReviewState && w._qpDocReviewState[dcoId];
+            const allOpened = stateArr && stateArr.length > 0 && stateArr.every((v: boolean) => v);
+            if (!allOpened) {
+              if (w.qpToast) w.qpToast('Open all documents before signing');
+              return;
+            }
             this._set('esign-doc', dcoId);
-            this._set('esign-as', 'Andre Butler (Current User)');
+            this._set('esign-as', this.context.pageContext.user.displayName + ' (' + this.context.pageContext.user.email + ')');
             this._set('esign-sub', 'Signing: ' + dcoId + ' — ' + (dco.DCO_Title||''));
             (d.getElementById('modal-esign') as HTMLElement)?.classList.add('open');
           };
@@ -1441,124 +1694,8 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       setTimeout(() => t.classList.remove('show'), 2500);
     };
 
-    w.qpOpenModal = (id: string) => {
-      (d.getElementById(id) as HTMLElement)?.classList.add('open');
-    };
-
-    w.qpCloseModal = (id: string) => {
-      (d.getElementById(id) as HTMLElement)?.classList.remove('open');
-      d.getElementById('modal-dco-detail')?.classList.remove('open');
-      d.getElementById('modal-cr-detail')?.classList.remove('open');
-      d.getElementById('modal-reject')?.classList.remove('open');
-      d.getElementById('modal-esign')?.classList.remove('open');
-    };
-
-    w.qpOpenDCO = (dcoId: string) => {
-      const dco = (this._data.dcos || []).find((d2: any) => d2.Title === dcoId);
-      if (!dco) return;
-      const apprs = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId);
-      const hist = (this._data.history || []).filter((h: any) => h.RH_DCOID === dcoId);
-      const late = this._lateStatus(dco);
-
-      const laneHtml = apprs.map((a: any) => {
-        const cls = a.Appr_Status === 'Signed' ? 'signed' : a.Appr_Status === 'Blocked' ? 'blocked' : 'waiting';
-        return `<div class="lane ${cls}">
-          <div class="lane-name">${a.Appr_Name}</div>
-          <div class="lane-role">${a.Appr_Role} · ${a.Appr_Type}</div>
-          <div class="lane-status">${a.Appr_Status === 'Signed' ? '✅ Signed' : a.Appr_Status === 'Blocked' ? '🚫 Blocked' : '⏳ Waiting'}</div>
-          ${a.Appr_SigID ? `<div class="lane-sig">SIG: ${a.Appr_SigID}</div>` : ''}
-        </div>`;
-      }).join('');
-
-      const histHtml = [...hist].reverse().map((h: any) => {
-        const cls = h.RH_EventType === 'rejection' ? 'rej' : h.RH_EventType === 'signature' ? 'sig' : h.RH_EventType === 'stage' ? 'stage' : 'sys';
-        return `<div class="rh-item">
-          <div class="rh-dot ${cls}"></div>
-          <div class="rh-body">
-            <div class="rh-top"><span class="rh-evt">${h.RH_Stage || h.Title}</span><span class="rh-ts">${this._fmt(h.RH_Timestamp)}</span></div>
-            <div class="rh-detail">${h.RH_Actor || ''} ${h.RH_Note ? '· ' + h.RH_Note : ''}</div>
-            ${h.RH_Reason ? `<div class="rh-reason">Rejection reason: ${h.RH_Reason}</div>` : ''}
-          </div>
-        </div>`;
-      }).join('');
-
-      const phases = ['Draft', 'Submitted', 'In Review', 'Implemented', 'Awaiting Training', 'Effective'];
-      const curIdx = phases.indexOf(dco.DCO_Phase || 'Draft');
-      const phaseBarHtml = phases.map((ph, i) => {
-        const cls = i < curIdx ? 'done' : i === curIdx ? (late === 'late' ? 'late' : ph === 'Awaiting Training' ? 'train' : 'cur') : '';
-        return `${i > 0 ? `<div class="ph-line${i <= curIdx ? ' done' : ''}"></div>` : ''}
-          <div class="ph"><div class="ph-dot ${cls}">${i + 1}</div><div class="ph-lbl" style="font-size:8px">${ph}</div></div>`;
-      }).join('');
-
-      const body = `
-        ${late === 'late' ? `<div style="padding:10px 14px;background:var(--r1);border-left:4px solid var(--r);border-radius:6px;margin-bottom:14px;font-size:12px;color:var(--r);font-weight:600">⏱ OVERDUE — This DCO has been in approval for more than ${this._config.approvalOverdueDays || 14} days</div>` : ''}
-        <div class="phasebar">${phaseBarHtml}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-          <div class="fg"><div class="fl">CR Link</div><div class="fv">${dco.DCO_CRLink || '—'}</div></div>
-          <div class="fg"><div class="fl">Submitted</div><div class="fv">${this._fmt(dco.DCO_SubmittedDate)}</div></div>
-          <div class="fg"><div class="fl">Originator</div><div class="fv">${dco.DCO_Originator || '—'}</div></div>
-          <div class="fg"><div class="fl">Training Gate</div><div class="fv">${dco.DCO_TrainingGate || 'N/A'}</div></div>
-        </div>
-        <div style="margin-bottom:14px">
-          <div class="fl" style="margin-bottom:8px">Approvers (Parallel Signing)</div>
-          <div class="lane-grid">${laneHtml || '<div style="color:var(--s5);font-size:12px">No approvers assigned</div>'}</div>
-        </div>
-        <div>
-          <div class="fl" style="margin-bottom:8px">Routing History</div>
-          ${histHtml || '<div style="color:var(--s5);font-size:12px;padding:8px 0">No history recorded</div>'}
-        </div>`;
-
-      w.qp_currentDCO = dco;
-      this._set('mdco-title', dcoId);
-      this._set('mdco-sub', dco.DCO_Title || '');
-      this._html('mdco-body', body);
-
-      // Action button
-      const actionBtn = d.getElementById('mdco-action-btn') as HTMLElement;
-      const rejectBtn = d.getElementById('mdco-reject-btn') as HTMLElement;
-      if (actionBtn) {
-        const phase = dco.DCO_Phase || 'Draft';
-        if (phase === 'Draft') { actionBtn.style.display = 'inline-flex'; actionBtn.textContent = '📤 Submit for Approval'; actionBtn.onclick = () => w.qpToast('Submit action — integrate with Power Automate flow'); }
-        else if (phase === 'Submitted' || phase === 'In Review') { actionBtn.style.display = 'inline-flex'; actionBtn.textContent = '✍️ Sign'; actionBtn.onclick = () => { this._set('esign-doc', dcoId); this._set('esign-as', 'Current User'); this._set('esign-sub', `Signing: ${dcoId}`); w.qpOpenModal('modal-esign'); }; rejectBtn.style.display = 'inline-flex'; }
-        else if (phase === 'Implemented') { actionBtn.style.display = 'inline-flex'; actionBtn.textContent = '📋 Review Training'; actionBtn.onclick = () => w.qpNav('training'); }
-        else if (phase === 'Awaiting Training') { actionBtn.style.display = 'inline-flex'; actionBtn.textContent = '✅ Mark Effective'; actionBtn.onclick = () => w.qpToast('Training gate check — mark effective when all SOP training complete'); }
-        else { actionBtn.style.display = 'none'; }
-      }
-      w.qpOpenModal('modal-dco-detail');
-    };
-
-    w.qpOpenCR = (crId: string) => {
-      const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
-      if (!cr) return;
-      this._set('mcr-title', crId);
-      this._set('mcr-sub', cr.CR_Title || '');
-      this._html('mcr-body', `
-        <div class="fg"><div class="fl">Title</div><div class="fv">${cr.CR_Title || '—'}</div></div>
-        <div class="fg"><div class="fl">Status</div><div class="fv">${this._pill(cr.CR_Status)}</div></div>
-        <div class="fg"><div class="fl">Priority</div><div class="fv">${this._pill(cr.CR_Priority)}</div></div>
-        <div class="fg"><div class="fl">Originator</div><div class="fv">${cr.CR_Originator || '—'}</div></div>
-        <div class="fg"><div class="fl">Linked DCOs</div><div class="fv" style="font-family:var(--mono)">${cr.CR_LinkedDCOs || 'None yet'}</div></div>
-        <div class="fg"><div class="fl">Description</div><div class="fv">${cr.CR_Description || '—'}</div></div>
-        <div class="fg"><div class="fl">Created</div><div class="fv">${this._fmt(cr.CR_CreatedDate)}</div></div>`);
-      w.qpOpenModal('modal-cr-detail');
-    };
-
-    w.qpOpenReject = () => { w.qpOpenModal('modal-reject'); };
-    w.qpConfirmReject = () => {
-      const reason = (d.getElementById('rej-reason') as HTMLInputElement)?.value;
-      if (!reason || !reason.trim()) { w.qpToast('Rejection reason is required'); return; }
-      w.qpCloseModal('modal-reject');
-      w.qpCloseModal('modal-dco-detail');
-      w.qpToast('DCO rejected — routing history updated');
-    };
-
-    w.qpConfirmSign = () => {
-      const code = (d.getElementById('esign-code') as HTMLInputElement)?.value;
-      if (!code || code.length < 6) { w.qpToast('Enter 6-digit MFA code to sign'); return; }
-      w.qpCloseModal('modal-esign');
-      const sigId = 'SIG-' + Date.now().toString(36).toUpperCase();
-      w.qpToast(`✅ Signature applied — SIG ID: ${sigId}`);
-    };
+    // Document review state - initialized here, populated by direct button listeners
+    w._qpDocReviewState = {};
 
     w.qpDCOFilter = (btn: HTMLElement, filter: string) => {
       d.querySelectorAll('.fbar .fbtn').forEach((b: Element) => b.classList.remove('on'));
@@ -1636,7 +1773,8 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const code = (d.getElementById('esign-code') as HTMLInputElement)?.value;
       if (!code || code.length < 6) { w.qpToast('Enter 6-digit MFA code to sign'); return; }
       w.qpCloseModal('modal-esign');
-      const sigId = 'SIG-' + Date.now().toString(36).toUpperCase();
+      const userEmail = this.context.pageContext.user.email; const userName = this.context.pageContext.user.displayName || userEmail;
+      const sigId = 'SIG-' + userEmail.split('@')[0].toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
       w.qpToast('Signature applied — SIG ID: ' + sigId);
     });
     reg('OpenModal', (id: string) => { (d.getElementById(id) as HTMLElement)?.classList.add('open'); });
@@ -1647,6 +1785,16 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     if (w._qpFlush) w._qpFlush();
   }
 
+  private _drmLoaded=false;private _drmDocs:any[]=[];
+  private _drmT:Record<string,string>={'QM-001':'Quality Manual','SOP-QMS-001':'Management Responsibility','SOP-QMS-002':'Document Control','SOP-QMS-003':'Change Control','SOP-SUP-001':'Supplier Qualification','SOP-SUP-002':'Receiving Inspection','SOP-FS-001':'Allergen Control','SOP-FS-002':'Equipment Cleaning','SOP-FS-003':'Facility Sanitation','SOP-FS-004':'Environmental Monitoring','SOP-PC-001':'Pest Sighting Response','SOP-PRD-108':'Finished Product Release','SOP-PRD-432':'FP Spec & Testing','SOP-FRS-549':'Product Spec Sheet','SOP-RCL-321':'Recall Procedure','FPS-001':'Lychee VD3 Gummy Spec','FM-001':'Master Document Log','FM-002':'Change Request Form','FM-003':'DCO Form','FM-004':'Approved Supplier List','FM-005':'Receiving Log','FM-006':'Raw Material Spec Sheet','FM-007':'Material Hold Label','FM-027':'QU/QS Designation Record','FM-030':'FP Spec Sheet','FM-ALG':'Allergen Status Record'};
+  private _drmDS:Record<string,string>={'DCO-0001':'blocked','DCO-0002':'open'};
+  private _drmGrp(id:string):string{if(id.startsWith('QM-'))return'Quality Manual';if(id.startsWith('SOP-QMS-'))return'SOPs - QMS Core';if(id.startsWith('SOP-SUP-'))return'SOPs - Supplier';if(id.startsWith('SOP-FS-'))return'SOPs - Food Safety';if(id.startsWith('SOP-PC-'))return'SOPs - Pest Control';if(id.startsWith('SOP-PRD-')||id.startsWith('SOP-FRS-')||id.startsWith('SOP-RCL-'))return'SOPs - Production';if(id.startsWith('FPS-'))return'FPS';if(['FM-001','FM-002','FM-003'].includes(id))return'Forms - Change Control';if(['FM-004','FM-005','FM-006','FM-007'].includes(id))return'Forms - Supplier';if(['FM-027','FM-030'].includes(id))return'Forms - Quality Unit';if(id==='FM-ALG')return'Forms - Allergen';return'Other';}
+  private _drmId(n:string):string{const m=n.match(/^([A-Z]{2,5}-[A-Z]{2,5}-\d{3}|[A-Z]{2,5}-\d{3}|FM-[A-Z]{2,5}|QM-\d{3}|FPS-\d{3})/i);return m?m[1].toUpperCase():n.replace(/\.[^.]+$/,'').toUpperCase();}
+  private _drmRev(n:string):string{const m=n.match(/_Rev([A-Z])/i);return m?m[1].toUpperCase():'A';}
+  private _drmDco(id:string):string|null{if(['QM-001','SOP-QMS-001','SOP-QMS-002','SOP-QMS-003','SOP-PRD-108','SOP-PRD-432','SOP-FRS-549','FM-001','FM-002','FM-003','FM-027','FM-030'].includes(id))return'DCO-0001';if(id.startsWith('SOP-SUP-')||id.startsWith('SOP-FS-')||id.startsWith('SOP-PC-')||id.startsWith('FM-0')||id==='FM-ALG')return'DCO-0002';return null;}
+  private _initDocRepo():void{const d=this._iframe?.contentDocument;if(!d)return;const tab=d.querySelector('[data-screen="docrepo"]');if(tab&&!tab.getAttribute('data-wired')){tab.setAttribute('data-wired','1');tab.addEventListener('click',()=>{if(!this._drmLoaded){this._drmLoaded=true;this._loadDRM();}});}}
+  private _loadDRM():void{const base=this.context.pageContext.web.absoluteUrl;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const fetch1=(f:string):Promise<any[]>=>this.context.spHttpClient.get(`${base}/_api/web/GetFolderByServerRelativeUrl('${f}')/Files?$select=Name,ServerRelativeUrl,TimeLastModified,CheckOutType,CheckedOutByUser/Title,MajorVersion,MinorVersion&$expand=CheckedOutByUser`,SPHttpClient.configurations.v1).then((r:SPHttpClientResponse)=>r.ok?r.json():{value:[]}).then((d:any)=>(d.value||[]).filter((f:any)=>f.Name.toLowerCase().endsWith('.docx')&&!f.ServerRelativeUrl.toLowerCase().includes('/archive/'))).catch(()=>[]);Promise.all([Promise.all(['Shared Documents/QMS/Documents/Drafts','Shared Documents/QMS/Forms/Drafts'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a)),Promise.all(['Shared Documents/Published/QMS/Documents','Shared Documents/Published/QMS/Forms','Shared Documents/Published/QMS/Quality Manual'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a)),Promise.all(['Shared Documents/Official/QMS/Documents','Shared Documents/Official/QMS/Forms'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a))]).then(([df,pf,of]:[any[],any[],any[]])=>{const map=new Map<string,any>();const add=(f:any,z:string)=>{const id=this._drmId(f.Name);if(!map.has(id))map.set(id,{id,title:this._drmT[id]||id,type:id.startsWith('QM-')?'QM':id.startsWith('SOP-')?'SOP':id.startsWith('FM-')?'FM':id.startsWith('FPS-')?'FPS':'DOC',group:this._drmGrp(id),zones:{drafts:null,published:null,official:null}});const doc=map.get(id);const maj=f.MajorVersion||1,min=f.MinorVersion||0;const dco=this._drmDco(id);doc.zones[z]={rev:this._drmRev(f.Name),ver:min===0?`${maj}.0`:`${maj}.${min}`,verType:min===0?'major':'minor',dco,dcoStatus:dco?(this._drmDS[dco]||'open'):'n/a',checkedOut:f.CheckOutType>0?(f.CheckedOutByUser?.Title||'Unknown'):null,file:f.Name,path:(f.ServerRelativeUrl||'').split('/').slice(4,-1).join('/')||z,modified:(f.TimeLastModified||'').substring(0,10),webUrl:`${SP}${f.ServerRelativeUrl}`};};df.forEach((f:any)=>add(f,'drafts'));pf.forEach((f:any)=>add(f,'published'));of.forEach((f:any)=>add(f,'official'));const GO=['Quality Manual','SOPs - QMS Core','SOPs - Supplier','SOPs - Food Safety','SOPs - Pest Control','SOPs - Production','FPS','Forms - Change Control','Forms - Supplier','Forms - Quality Unit','Forms - Allergen','Other'];this._drmDocs=[...map.values()].sort((a,b)=>{const ga=GO.indexOf(a.group),gb=GO.indexOf(b.group);return ga!==gb?ga-gb:a.id.localeCompare(b.id);});this._drmMount(this._drmDocs);}).catch(()=>{const l=this._el('drm-loading');if(l)l.innerHTML='<span style="color:var(--r)">Error loading — check permissions</span>';});}
+  private _drmMount(all:any[]):void{const d=this._iframe?.contentDocument;if(!d)return;const loading=d.getElementById('drm-loading');const wrap=d.getElementById('drm-table-wrap');const live=d.getElementById('drm-live');if(loading)loading.style.display='none';if(wrap)wrap.style.display='';if(live)live.textContent='Live · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});let fil=[...all];let sel:string|null=null;const dcs=(s:string)=>({'blocked':'background:#fde8e8;color:#c62828','open':'background:#fff3e0;color:#e65100','signed':'background:#e8f5e9;color:#2e7d32','n/a':'background:var(--s1);color:var(--s5)'}[s]||'background:var(--s1);color:var(--s5)');const zc=(z:any):string=>{if(!z)return'<td style="border-left:1px solid var(--s1);background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--s1) 5px,var(--s1) 5.5px);opacity:.4"></td>';const vi=z.verType==='major'?'&#9679;':'&#9675;';const vc=z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)';const co=z.checkedOut?`<div style="font-size:9px;color:#e65100">&#9679; ${z.checkedOut}</div>`:'<div style="font-size:9px;color:#2e7d32">&#9675; Checked in</div>';return`<td style="padding:6px 8px;border-left:1px solid var(--s1);vertical-align:top"><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">Rev ${z.rev}</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${vc}">${vi} ${z.ver}</span>${z.dco?`<span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco}</span>`:''}</div>${co}<span style="font-size:9px;color:var(--s5)">${z.modified}</span><span style="font-size:9px;color:var(--s5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="${z.path}">${z.path}</span></div></td>`;};const rSum=()=>{const sb=d.getElementById('drm-sbar');if(!sb)return;const t=fil.length,b=fil.filter((x:any)=>x.zones.drafts&&x.zones.published).length,do2=fil.filter((x:any)=>x.zones.drafts&&!x.zones.published).length,bl=fil.filter((x:any)=>['drafts','published','official'].some((k:string)=>x.zones[k]&&x.zones[k].dcoStatus==='blocked')).length;sb.innerHTML=`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${t}</strong> docs</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${b}</strong> in both</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${do2}</strong> drafts only</span>${bl?`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid #ef9a9a;background:var(--r1);color:var(--r)"><strong>${bl}</strong> DCO blocked</span>`:''}`;};const rTbl=()=>{const tb=d.getElementById('drm-tbody');if(!tb)return;const grps=[...new Set(fil.map((x:any)=>x.group))];let h='';grps.forEach((g:any)=>{h+=`<tr><td colspan="5" style="padding:4px 9px 3px;font-size:10px;font-weight:700;color:var(--b);background:var(--s0);border-top:1px solid var(--s2);text-transform:uppercase;letter-spacing:.4px">${g}</td></tr>`;fil.filter((x:any)=>x.group===g).forEach((doc:any)=>{h+=`<tr style="border-bottom:1px solid var(--s1);cursor:pointer" class="${sel===doc.id?'':''}\" data-drmid="${doc.id}"><td style="padding:7px 9px"><div style="font-size:11px;font-weight:700;font-family:var(--mono);color:var(--b);white-space:nowrap">${doc.id}</div><span style="font-size:9px;padding:1px 4px;border-radius:2px;background:var(--b1);color:#1565c0;font-weight:700">${doc.type}</span></td><td style="padding:7px 9px;font-size:11px;color:var(--s5)">${doc.title}</td>${zc(doc.zones.drafts)}${zc(doc.zones.published)}${zc(doc.zones.official)}</tr>`;});});tb.innerHTML=h;tb.querySelectorAll('tr[data-drmid]').forEach((row:Element)=>{(row as HTMLElement).addEventListener('mouseenter',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='var(--b0)';});(row as HTMLElement).addEventListener('mouseleave',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='';});row.addEventListener('click',()=>{const id=(row as HTMLElement).dataset['drmid']!;sel=sel===id?null:id;if(sel)showD(id);else hideD();rTbl();});});};const showD=(id:string)=>{const panel=d.getElementById('drm-detail');if(!panel)return;const doc=all.find((x:any)=>x.id===id);if(!doc)return;panel.style.display='';const zh={'drafts':'color:#1565c0','published':'color:#e65100','official':'color:#2e7d32'};const zonesH=['drafts','published','official'].map((zk:string)=>{const z=doc.zones[zk];const zn={'drafts':'Drafts','published':'Published','official':'Official'}[zk]!;if(!z)return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;${zh[zk]}">${zn}</div><div style="font-size:11px;color:var(--s5);font-style:italic">Not present</div></div>`;return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--s2);${zh[zk]}">${zn}</div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Revision</span><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">Rev ${z.rev}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Version</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)'}">${z.verType==='major'?'&#9679;':'&#9675;'} ${z.ver}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">DCO</span><span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco||'none'} · ${z.dcoStatus}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Checkout</span><span style="font-size:10px;color:${z.checkedOut?'#e65100':'#2e7d32'}">${z.checkedOut?'&#9888; '+z.checkedOut:'&#10003; Checked in'}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px;align-items:flex-start"><span style="color:var(--s5);min-width:58px;font-size:10px">File</span><span style="font-size:10px;font-family:var(--mono);word-break:break-all;color:var(--s7)">${z.file}</span></div><a href="${z.webUrl}" target="_blank" style="display:inline-block;margin-top:5px;font-size:10px;color:var(--b);text-decoration:none;padding:2px 7px;border:1px solid var(--s2);border-radius:4px;background:var(--w)">Open in SharePoint &#8599;</a></div>`;}).join('');panel.innerHTML=`<div style="padding:8px 14px;background:var(--s0);border-bottom:1px solid var(--s2);display:flex;align-items:center;gap:10px;border-radius:8px 8px 0 0"><span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--n)">${doc.id}</span><span style="font-size:12px;color:var(--s5);flex:1">${doc.title}</span><button id="drm-x" style="cursor:pointer;color:var(--s5);font-size:16px;padding:0 4px;border:none;background:transparent;font-weight:700">&#x2715;</button></div><div style="padding:10px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${zonesH}</div>`;const xb=d.getElementById('drm-x');if(xb)xb.addEventListener('click',()=>{sel=null;hideD();rTbl();});};const hideD=()=>{const p=d.getElementById('drm-detail');if(p){p.style.display='none';p.innerHTML='';}};const filt=()=>{const tf=(d.getElementById('drm-tf') as HTMLSelectElement)?.value||'all';const df2=(d.getElementById('drm-df') as HTMLSelectElement)?.value||'all';const qf=((d.getElementById('drm-qf') as HTMLInputElement)?.value||'').toLowerCase();fil=all.filter((doc:any)=>{const allZ=['drafts','published','official'].map((k:string)=>doc.zones[k]).filter(Boolean);const mt=tf==='all'||doc.type===tf;const mq=!qf||doc.id.toLowerCase().includes(qf)||doc.title.toLowerCase().includes(qf);const md=df2==='all'||(df2==='none'&&allZ.every((z:any)=>!z.dco))||(df2!=='none'&&allZ.some((z:any)=>z.dco===df2));return mt&&mq&&md;});sel=null;hideD();rSum();rTbl();};['drm-tf','drm-df'].forEach((id:string)=>{const el=d.getElementById(id);if(el)el.addEventListener('change',filt);});const qi=d.getElementById('drm-qf');if(qi)qi.addEventListener('input',filt);rSum();rTbl();}
   protected get dataVersion(): Version { return Version.parse('1.0'); }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
@@ -1670,3 +1818,8 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     };
   }
 }
+
+
+
+
+

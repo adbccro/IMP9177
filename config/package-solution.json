@@ -3,7 +3,7 @@
   "solution": {
     "name": "imp-9177-spfx-client-side-solution",
     "id": "9ae27d79-9290-47cd-ad41-cd55506bc995",
-    "version": "1.0.0.1",
+    "version": "1.0.0.2",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
