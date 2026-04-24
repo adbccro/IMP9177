@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -1916,6 +1916,15 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     });
     // Flush any queued onclick calls that fired before listeners were ready
     if (w._qpFlush) w._qpFlush();
+
+    // Expose helpers so iframe onclick can reach parent TypeScript instance
+    w._qpDownloadDocx = (url: string, fileName: string) => {
+      const a = window.document.createElement('a');
+      a.href = url; a.download = fileName; a.target = '_blank';
+      window.document.body.appendChild(a); a.click();
+      window.document.body.removeChild(a);
+    };
+    w._qpGenerateReport = (dcoId: string) => { this._generateDCOReport(dcoId); };
 
     // Expose download helpers on iframe window so buttons can call them directly
     w._qpDownloadDocx = (downloadUrl: string, fileName: string) => {
