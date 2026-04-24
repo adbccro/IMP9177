@@ -1466,7 +1466,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             <div style="font-size:12px;font-weight:700;color:#fff">&#128196; DCO Completion Report — ${dcoId}</div>
             <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">21 CFR Part 11 · Signatures · Training Compliance · Routing History</div>
           </div>
-          <button id="dl-rpt-btn-${dcoId}" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:5px;background:#fff;color:var(--n);border:none;cursor:pointer;white-space:nowrap">&#11015; Download PDF</button>
+          <button onclick="window._qpGenerateReport('${dcoId}')" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:5px;background:#fff;color:var(--n);border:none;cursor:pointer;white-space:nowrap">&#11015; Download PDF</button>
         </div>` +
         // Per-document rows
         displayDocs.map((docId: string) => {
@@ -1490,7 +1490,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               <span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:3px;background:var(--b1);color:var(--b)">${_rev}</span>
               <span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--g1);color:var(--g);font-weight:700">Effective Apr 24, 2026</span>
               <a href="${_view}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--b);color:var(--b);background:var(--w);text-decoration:none">View &#8599;</a>
-              <a href="${_dl}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);text-decoration:none">&#11015; DOCX</a>
+              <button onclick="window._qpDownloadDocx('${_dl}','${docId}_RevA.docx')" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);cursor:pointer;white-space:nowrap">&#11015; DOCX</button>
               <button data-pdf-path="${_pdfPath}" data-doc-id="${docId}" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid #dc2626;color:#dc2626;background:#fef2f2;cursor:pointer;white-space:nowrap">&#11015; PDF</button>
             </div>
           </div>`;
@@ -1652,9 +1652,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         const _dlWrap = d.createElement('div');
         _dlWrap.innerHTML = dlDocsHtml;
         docsPaneEl.appendChild(_dlWrap);
-        // Wire DCO report button — query inside _dlWrap directly (tab may be hidden)
-        const _rptBtn = _dlWrap.querySelector('#dl-rpt-btn-' + dcoId) as HTMLElement;
-        if (_rptBtn) _rptBtn.addEventListener('click', () => { (this as any)._generateDCOReport(dcoId); });
+        // DCO report button uses onclick="window._qpGenerateReport()" — no wiring needed here
         // Wire PDF download buttons — fetch via Graph API with SPFx auth token
         _dlWrap.querySelectorAll('[data-pdf-path]').forEach((btn: Element) => {
           btn.addEventListener('click', async (e: Event) => {
@@ -1918,6 +1916,21 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     });
     // Flush any queued onclick calls that fired before listeners were ready
     if (w._qpFlush) w._qpFlush();
+
+    // Expose download helpers on iframe window so buttons can call them directly
+    w._qpDownloadDocx = (downloadUrl: string, fileName: string) => {
+      // Open download.aspx in parent window (not iframe) to avoid sandbox blocking
+      const a = window.document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      a.target = '_blank';
+      window.document.body.appendChild(a);
+      a.click();
+      window.document.body.removeChild(a);
+    };
+    w._qpGenerateReport = (dcoId: string) => {
+      this._generateDCOReport(dcoId);
+    };
   }
 
   private _addDownloadBar(dcoId:string,phase:string):void{const d=this._iframe?.contentDocument;const w=this._iframe?.contentWindow as any;if(!d||!w)return;const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);if(!dco)return;if(!['Implemented','Awaiting Training','Effective'].includes(phase))return;if(d.getElementById('dco-dl-bar-'+dcoId))return;const bar=d.createElement('div');bar.className='dco-dl-bar';bar.id='dco-dl-bar-'+dcoId;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const OD=SP+'/Shared%20Documents/Official/QMS/Documents';const OF=SP+'/Shared%20Documents/Official/QMS/Forms';const FM:Record<string,string>={'QM-001':'QM-001_Quality_Manual_RevA.docx','SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx','SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx','SOP-PRD-108':'SOP-PRD-108_RevA.docx','SOP-PRD-432':'SOP-PRD-432_RevA.docx','SOP-FRS-549':'SOP-FRS-549_RevA.docx','FM-001':'FM-001_Master_Document_Log_RevA.docx','FM-002':'FM-002_Change_Request_Form_RevA.docx','FM-003':'FM-003_Document_Change_Order_RevA.docx','FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx','FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx'};const FIDS=['FM-001','FM-002','FM-003','FM-027','FM-030'];const rptBtn=d.createElement('button');rptBtn.className='btn-dl btn-dl-report';rptBtn.innerHTML='&#128196; Download DCO Report (PDF)';rptBtn.addEventListener('click',()=>this._generateDCOReport(dcoId));bar.appendChild(rptBtn);const docList=(dco.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);docList.forEach((id:string)=>{const fn=FM[id];if(!fn)return;const url=(FIDS.includes(id)?OF:OD)+'/'+encodeURIComponent(fn);const a=d.createElement('a');a.className='btn-dl btn-dl-doc';a.innerHTML='&#128194; '+id;a.href=url;a.target='_blank';bar.appendChild(a);});const modalFt=d.querySelector('#modal-dco-detail .modal-ft');if(modalFt)modalFt.parentElement?.insertBefore(bar,modalFt);}
