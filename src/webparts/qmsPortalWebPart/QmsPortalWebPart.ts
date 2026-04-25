@@ -478,10 +478,18 @@ const SHELL_TRAINING = `
 const SHELL_PUBLISH = `
 <div class="sec-hdr">
   <div class="sec-title">PM Publish Queue — Draft → Published Zone</div>
+  <button class="btn-pri" id="pub-publish-btn" style="display:none">🚀 Publish Selected</button>
 </div>
 <div class="panel" style="margin-bottom:16px">
-  <div class="panel-hdr"><div class="panel-title">📝 Drafts Ready to Publish <span class="panel-cnt" id="pub-cnt">—</span></div></div>
-  <div id="pub-list"><div class="loading"><span class="spin"></span>Loading...</div></div>
+  <div class="panel-hdr">
+    <div class="panel-title">📝 Ready to Publish <span class="panel-cnt" id="pub-cnt">—</span></div>
+    <label style="font-size:11px;color:var(--s5);display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="pub-select-all"> Select all</label>
+  </div>
+  <div id="pub-list"><div class="loading"><span class="spin"></span>Loading draft files...</div></div>
+</div>
+<div class="panel" style="margin-bottom:16px">
+  <div class="panel-hdr"><div class="panel-title">🔍 Under Review <span class="panel-cnt" id="pub-review-cnt">—</span></div></div>
+  <div id="pub-review-list"><div class="loading"><span class="spin"></span>Loading...</div></div>
 </div>
 <div class="panel">
   <div class="panel-hdr"><div class="panel-title">✅ Recently Published</div></div>
@@ -1033,10 +1041,242 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   }
 
   // ── Publish queue ──
-  private _renderPublish(): void {
-    this._html('pub-list', '<div style="padding:16px;font-size:12px;color:var(--s5)">Connect to document library to see Draft → Ready-to-Publish items. Use SharePoint document library view filtered to <strong>QMS_Status = Ready to Publish</strong>.</div>');
-    this._html('pub-hist-tbody', '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--s5)">Recently published documents appear here</td></tr>');
-    this._set('pub-cnt', '—');
+  private async _renderPublish(): Promise<void> {
+    const base = this.context.pageContext.web.absoluteUrl;
+    const fetchFiles = (folder: string, expand: boolean): Promise<any[]> =>
+      this.context.spHttpClient.get(
+        `${base}/_api/web/GetFolderByServerRelativeUrl('${folder}')/Files?$select=Name,ServerRelativeUrl,TimeLastModified,MajorVersion${expand ? ',Author/Title,Author/EMail,ListItemAllFields/QMS_Status,ListItemAllFields/QMS_PublishedDate,ListItemAllFields/Id' : ''}&$expand=${expand ? 'Author,ListItemAllFields' : ''}`,
+        SPHttpClient.configurations.v1
+      )
+      .then((r: SPHttpClientResponse) => r.ok ? r.json() : { value: [] })
+      .then((d: any) => (d.value || []).filter((f: any) => f.Name.toLowerCase().endsWith('.docx') && !f.ServerRelativeUrl.toLowerCase().includes('/archive/')))
+      .catch(() => []);
+
+    const DRAFT_FOLDERS = ['Shared Documents/QMS/Documents/Drafts', 'Shared Documents/QMS/Forms/Drafts'];
+    const PUB_FOLDERS   = ['Shared Documents/Published/QMS/Documents', 'Shared Documents/Published/QMS/Forms', 'Shared Documents/Published/QMS/Quality Manual'];
+
+    const [draftFiles, pubFiles] = await Promise.all([
+      Promise.all(DRAFT_FOLDERS.map(f => fetchFiles(f, false))).then((a: any[][]) => ([] as any[]).concat(...a)),
+      Promise.all(PUB_FOLDERS.map(f => fetchFiles(f, true))).then((a: any[][]) => ([] as any[]).concat(...a))
+    ]);
+
+    const pubIdSet = new Set(pubFiles.map((f: any) => this._drmId(f.Name)));
+    const readyToPub = draftFiles.filter((f: any) => !pubIdSet.has(this._drmId(f.Name)));
+    const underReview  = pubFiles.filter((f: any) => (f.ListItemAllFields?.QMS_Status || '') === 'Under Review');
+    const recentlyPub  = pubFiles.filter((f: any) => { const s = f.ListItemAllFields?.QMS_Status || ''; return s && s !== 'Under Review'; });
+
+    // Panel A
+    this._set('pub-cnt', String(readyToPub.length));
+    const pubBtn = document.getElementById('pub-publish-btn');
+    if (pubBtn) pubBtn.style.display = readyToPub.length ? '' : 'none';
+    if (!readyToPub.length) {
+      this._html('pub-list', '<div style="padding:20px;font-size:12px;color:var(--s5);text-align:center">No drafts pending publish — all current drafts have a published counterpart.</div>');
+    } else {
+      const rows = readyToPub.map((f: any, i: number) => {
+        const id = this._drmId(f.Name);
+        return `<tr>
+          <td style="width:32px;text-align:center"><input type="checkbox" class="pub-chk" data-idx="${i}" data-name="${f.Name}" data-src="${f.ServerRelativeUrl}"></td>
+          <td><span class="cid">${id}</span></td>
+          <td style="font-size:12px;color:var(--s7)">${this._drmT[id] || id}</td>
+          <td><span class="pill pb">${this._drmRev(f.Name)}</span></td>
+          <td><span class="cmut">${f.Name}</span></td>
+          <td><span class="cdate">${(f.TimeLastModified || '').substring(0, 10)}</span></td>
+        </tr>`;
+      }).join('');
+      this._html('pub-list', `<div class="tcard" style="margin:0;border:none;box-shadow:none"><table>
+        <thead><tr><th style="width:32px"></th><th>Doc ID</th><th>Title</th><th>Rev</th><th>Filename</th><th>Modified</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`);
+    }
+
+    // Panel B
+    this._set('pub-review-cnt', String(underReview.length));
+    if (!underReview.length) {
+      this._html('pub-review-list', '<div style="padding:20px;font-size:12px;color:var(--s5);text-align:center">No documents currently under review.</div>');
+    } else {
+      const rows = underReview.map((f: any) => {
+        const id = this._drmId(f.Name);
+        return `<tr>
+          <td><span class="cid">${id}</span></td>
+          <td style="font-size:12px;color:var(--s7)">${this._drmT[id] || id}</td>
+          <td><span class="cmut">${f.Name}</span></td>
+          <td><span class="cdate">${f.ListItemAllFields?.QMS_PublishedDate || '—'}</span></td>
+          <td><span class="cmut">${f.Author?.Title || '—'}</span></td>
+          <td><button class="btn-sec btn-sm pub-return-btn"
+            data-name="${f.Name}" data-src="${f.ServerRelativeUrl}"
+            data-author-email="${f.Author?.EMail || ''}" data-docid="${id}">↩ Return to Draft</button></td>
+        </tr>`;
+      }).join('');
+      this._html('pub-review-list', `<div class="tcard" style="margin:0;border:none;box-shadow:none"><table>
+        <thead><tr><th>Doc ID</th><th>Title</th><th>Filename</th><th>Published</th><th>Author</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`);
+    }
+
+    // Panel C
+    if (!recentlyPub.length) {
+      this._html('pub-hist-tbody', '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--s5)">No recently published documents.</td></tr>');
+    } else {
+      this._html('pub-hist-tbody', recentlyPub.map((f: any) => {
+        const id = this._drmId(f.Name);
+        return `<tr>
+          <td><span class="cid">${id}</span></td>
+          <td style="font-size:12px">${this._drmT[id] || id}</td>
+          <td><span class="pill pg">${this._drmRev(f.Name)}</span></td>
+          <td><span class="cdate">${f.ListItemAllFields?.QMS_PublishedDate || (f.TimeLastModified || '').substring(0, 10)}</span></td>
+          <td><span class="cmut">${f.Author?.Title || '—'}</span></td>
+        </tr>`;
+      }).join(''));
+    }
+
+    // Wire events
+    const d = document;
+    const selAll = d.getElementById('pub-select-all') as HTMLInputElement;
+    if (selAll) selAll.addEventListener('change', () => {
+      d.querySelectorAll('.pub-chk').forEach((cb: Element) => { (cb as HTMLInputElement).checked = selAll.checked; });
+    });
+    const pubBtnEl = d.getElementById('pub-publish-btn');
+    if (pubBtnEl) pubBtnEl.addEventListener('click', () => this._doPublish(base));
+    d.querySelectorAll('.pub-return-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const el = btn as HTMLElement;
+        this._doReturnToDraft(
+          el.getAttribute('data-src') || '',
+          el.getAttribute('data-name') || '',
+          el.getAttribute('data-author-email') || '',
+          el.getAttribute('data-docid') || '',
+          base
+        );
+      });
+    });
+  }
+
+  private async _doPublish(base: string): Promise<void> {
+    const d = document;
+    const w = window as any;
+    const checked = Array.from(d.querySelectorAll('.pub-chk:checked')) as HTMLInputElement[];
+    if (!checked.length) { if (w.qpToast) w.qpToast('Select at least one document'); return; }
+    if (w.qpToast) w.qpToast(`Publishing ${checked.length} document(s)…`);
+
+    const docTypeApprovers = await this.spGet('QMS_Approvers', 'Id,Appr_Name,Approver_Email,Appr_DocType,Appr_Active', "Appr_DocType ne null and Appr_Active eq 1");
+
+    let published = 0;
+    for (const cb of checked) {
+      const srcUrl  = cb.getAttribute('data-src')  || '';
+      const fileName = cb.getAttribute('data-name') || '';
+      if (!srcUrl || !fileName) continue;
+      const docId = this._drmId(fileName);
+      const destFolder = docId.startsWith('QM-') ? 'Shared Documents/Published/QMS/Quality Manual'
+        : docId.startsWith('FM-') ? 'Shared Documents/Published/QMS/Forms'
+        : 'Shared Documents/Published/QMS/Documents';
+      const destUrl = `/sites/IMP9177/${destFolder}/${fileName}`;
+      try {
+        await this.context.spHttpClient.post(
+          `${base}/_api/web/GetFileByServerRelativeUrl('${srcUrl}')/copyTo(strNewUrl='${destUrl}',bOverWrite=true)`,
+          SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' }, body: '{}' }
+        );
+        try {
+          await this.context.spHttpClient.post(
+            `${base}/_api/web/GetFileByServerRelativeUrl('${destUrl}')/ListItemAllFields`,
+            SPHttpClient.configurations.v1,
+            { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
+              body: JSON.stringify({ QMS_Status: 'Under Review', QMS_PublishedDate: new Date().toISOString().substring(0, 10), QMS_DocID: docId }) }
+          );
+        } catch(e) { console.error('Stamp failed:', e); }
+        const docType = docId.startsWith('QM-') ? 'QM' : docId.startsWith('FM-') ? 'FM' : docId.startsWith('FPS-') ? 'FPS' : 'SOP';
+        const recipients = docTypeApprovers.filter((a: any) => a.Appr_DocType === docType).map((a: any) => a.Approver_Email).filter(Boolean);
+        if (recipients.length) {
+          const docTitle = this._drmT[docId] || docId;
+          const docLink = `https://adbccro.sharepoint.com${destUrl}`;
+          try {
+            await this.context.spHttpClient.post(
+              `${base}/_api/SP.Utilities.Utility.SendEmail`,
+              SPHttpClient.configurations.v1,
+              { headers: { 'Content-Type': 'application/json;odata=verbose', 'Accept': 'application/json;odata=verbose' },
+                body: JSON.stringify({ properties: {
+                  __metadata: { type: 'SP.Utilities.EmailProperties' },
+                  To: { results: recipients },
+                  Subject: '[IMP9177] Document Ready for Review: ' + docId,
+                  Body: '<p>A document has been published to the Under Review zone and requires your approval.</p><p><strong>' + docId + ' — ' + docTitle + '</strong></p><p><a href="' + docLink + '">Open in SharePoint</a></p><p>Please review and sign in the IMP9177 QMS Portal.</p>'
+                } }) }
+            );
+          } catch(e) { console.error('Email failed:', e); }
+        }
+        published++;
+      } catch(e) { console.error('Publish failed:', fileName, e); }
+    }
+    if (w.qpToast) w.qpToast(`✅ Published ${published} document(s) — approvers notified`);
+    setTimeout(() => this._renderPublish(), 1500);
+  }
+
+  private async _doReturnToDraft(pubSrcUrl: string, fileName: string, authorEmail: string, docId: string, base: string): Promise<void> {
+    const w = window as any;
+    const draftFolder = docId.startsWith('FM-') ? 'Shared Documents/QMS/Forms/Drafts' : 'Shared Documents/QMS/Documents/Drafts';
+    const draftUrl = `/sites/IMP9177/${draftFolder}/${fileName}`;
+
+    // Version conflict check
+    try {
+      const [draftMeta, pubMeta] = await Promise.all([
+        this.context.spHttpClient.get(`${base}/_api/web/GetFileByServerRelativeUrl('${draftUrl}')?$select=MajorVersion`, SPHttpClient.configurations.v1)
+          .then((r: SPHttpClientResponse) => r.ok ? r.json() : null).catch(() => null),
+        this.context.spHttpClient.get(`${base}/_api/web/GetFileByServerRelativeUrl('${pubSrcUrl}')?$select=MajorVersion`, SPHttpClient.configurations.v1)
+          .then((r: SPHttpClientResponse) => r.ok ? r.json() : null).catch(() => null)
+      ]);
+      const draftMaj = draftMeta?.MajorVersion || 0;
+      const pubMaj   = pubMeta?.MajorVersion   || 0;
+      if (draftMaj > pubMaj) {
+        const ok = window.confirm(`Draft has been updated since publishing (Draft v${draftMaj} > Published v${pubMaj}). Overwriting will lose draft changes. Confirm return to draft?`);
+        if (!ok) return;
+      }
+    } catch(e) { /* proceed */ }
+
+    if (w.qpToast) w.qpToast('Returning document to Draft zone…');
+    try {
+      await this.context.spHttpClient.post(
+        `${base}/_api/web/GetFileByServerRelativeUrl('${pubSrcUrl}')/copyTo(strNewUrl='${draftUrl}',bOverWrite=true)`,
+        SPHttpClient.configurations.v1,
+        { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' }, body: '{}' }
+      );
+      try {
+        await this.context.spHttpClient.post(
+          `${base}/_api/web/GetFileByServerRelativeUrl('${draftUrl}')/ListItemAllFields`,
+          SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
+            body: JSON.stringify({ QMS_Status: '' }) }
+        );
+      } catch(e) { console.error('Clear status failed:', e); }
+      try {
+        await this.context.spHttpClient.post(
+          `${base}/_api/web/GetFileByServerRelativeUrl('${pubSrcUrl}')`,
+          SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'DELETE' }, body: '{}' }
+        );
+      } catch(e) { console.error('Delete published failed:', e); }
+      try {
+        const apprRows = await this.spGet('QMS_Approvers', 'Id,Approver_Email,Appr_DocType,Appr_Active', "Appr_DocType ne null and Appr_Active eq 1");
+        const docType = docId.startsWith('QM-') ? 'QM' : docId.startsWith('FM-') ? 'FM' : docId.startsWith('FPS-') ? 'FPS' : 'SOP';
+        const approverEmails = apprRows.filter((a: any) => a.Appr_DocType === docType).map((a: any) => a.Approver_Email).filter(Boolean);
+        const recipients = [...new Set([...(authorEmail ? [authorEmail] : []), ...approverEmails])];
+        if (recipients.length) {
+          const docTitle = this._drmT[docId] || docId;
+          await this.context.spHttpClient.post(
+            `${base}/_api/SP.Utilities.Utility.SendEmail`,
+            SPHttpClient.configurations.v1,
+            { headers: { 'Content-Type': 'application/json;odata=verbose', 'Accept': 'application/json;odata=verbose' },
+              body: JSON.stringify({ properties: {
+                __metadata: { type: 'SP.Utilities.EmailProperties' },
+                To: { results: recipients },
+                Subject: '[IMP9177] Document Returned to Draft: ' + docId,
+                Body: '<p>' + docId + ' — ' + docTitle + ' has been returned to the Draft zone for revision. The published copy has been removed.</p>'
+              } }) }
+          );
+        }
+      } catch(e) { console.error('Return email failed:', e); }
+      if (w.qpToast) w.qpToast('↩ Returned to Draft — approvers notified');
+      setTimeout(() => this._renderPublish(), 1500);
+    } catch(err) {
+      console.error('Return to Draft failed:', err);
+      if (w.qpToast) w.qpToast('Error returning to draft — check console');
+    }
   }
 
   // ── Approvers ──
@@ -1057,8 +1297,9 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   }
 
   // ── Config ──
-  private _renderConfig(): void {
+  private async _renderConfig(): Promise<void> {
     const cfg = this._config;
+    const base = this.context.pageContext.web.absoluteUrl;
     this._html('cfg-body', `
       <div class="cfg-panel">
         <div class="cfg-title">⏱ DCO Timing</div>
@@ -1083,7 +1324,253 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         <div class="cfg-row"><span class="cfg-lbl">MFA required</span><span class="cfg-val">Yes</span></div>
         <div class="cfg-row"><span class="cfg-lbl">21 CFR Part 11 compliant</span><span class="cfg-val">Yes — sig ID + timestamp stored</span></div>
       </div>
+      <div class="cfg-panel" style="grid-column:1/-1" id="cfg-approver-panel">
+        <div class="loading"><span class="spin"></span>Loading approver assignments…</div>
+      </div>
     `);
+
+    const [employees, approvers] = await Promise.all([
+      this.spGet('QMS_Employees', 'Id,Title,Emp_Email,Emp_Title,Emp_Status,Emp_Dept', "Emp_Status eq 'Active'"),
+      this.spGet('QMS_Approvers', 'Id,Title,Appr_Name,Approver_Email,Appr_DocType,Appr_EmpID,Appr_Role,Appr_Active', 'Appr_DocType ne null')
+    ]);
+
+    const panel = document.getElementById('cfg-approver-panel');
+    if (!panel) return;
+
+    const empRows = employees.map((e: any) => `
+      <div class="cfg-approver-emp" data-id="${e.Id}" style="border:1px solid var(--s2);border-radius:7px;padding:10px 12px;margin-bottom:8px;background:var(--w)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--s7)">${e.Title || '—'}</div>
+            <div style="font-size:11px;color:var(--s5);margin-top:2px">${e.Emp_Title || '—'} · ${e.Emp_Email || '—'}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-sec btn-sm cfg-emp-edit-btn" data-id="${e.Id}" data-name="${e.Title || ''}" data-title="${e.Emp_Title || ''}" data-email="${e.Emp_Email || ''}">Edit</button>
+            <button class="btn-sec btn-sm btn-r cfg-emp-deact-btn" data-id="${e.Id}" data-name="${e.Title || ''}" style="color:var(--r)">Deactivate</button>
+          </div>
+        </div>
+        <div class="cfg-emp-edit-form" id="cfg-emp-form-${e.Id}" style="display:none;margin-top:10px;border-top:1px solid var(--s2);padding-top:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><div class="fl">Title / Role</div><input class="finput" id="cfg-emp-title-${e.Id}" value="${e.Emp_Title || ''}"></div>
+            <div><div class="fl">Email</div><input class="finput" id="cfg-emp-email-${e.Id}" value="${e.Emp_Email || ''}"></div>
+          </div>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <button class="btn-sec btn-sm cfg-emp-cancel-btn" data-id="${e.Id}">Cancel</button>
+            <button class="btn-pri btn-sm cfg-emp-save-btn" data-id="${e.Id}">Save</button>
+          </div>
+        </div>
+      </div>`).join('');
+
+    const addEmpForm = `
+      <div id="cfg-add-emp-area" style="display:none;border:1px solid var(--b);border-radius:7px;padding:12px;margin-top:8px;background:var(--b0)">
+        <div class="cfg-title" style="margin-bottom:10px">Add Employee</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><div class="fl">Full Name</div><input class="finput" id="cfg-new-emp-name" placeholder="Jane Smith"></div>
+          <div><div class="fl">Title / Role</div><input class="finput" id="cfg-new-emp-title" placeholder="Quality Specialist"></div>
+          <div><div class="fl">Email</div><input class="finput" id="cfg-new-emp-email" placeholder="jane@example.com"></div>
+          <div><div class="fl">Department</div><input class="finput" id="cfg-new-emp-dept" placeholder="Quality"></div>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:flex-end">
+          <button class="btn-sec btn-sm" id="cfg-add-emp-cancel">Cancel</button>
+          <button class="btn-pri btn-sm" id="cfg-add-emp-save">Add Employee</button>
+        </div>
+      </div>`;
+
+    const DOCTYPE_LABELS: Record<string, string> = { QM: 'Quality Manual', SOP: 'SOPs', FM: 'Forms', FPS: 'FPS' };
+    const apprSections = ['QM', 'SOP', 'FM', 'FPS'].map((dt: string) => {
+      const dtApprovers = approvers.filter((a: any) => a.Appr_DocType === dt && a.Appr_Active);
+      const apprRows = dtApprovers.map((a: any) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--s1)">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--s7)">${a.Appr_Name || a.Title || '—'}</div>
+            <div style="font-size:11px;color:var(--s5)">${a.Appr_Role || '—'} · ${a.Approver_Email || '—'}</div>
+          </div>
+          <button class="btn-sec btn-sm cfg-appr-remove-btn" data-id="${a.Id}" data-dt="${dt}" style="color:var(--r)">Remove</button>
+        </div>`).join('');
+      const empOptions = employees.map((e: any) => `<option value="${e.Id}" data-email="${e.Emp_Email || ''}" data-name="${e.Title || ''}">${e.Title || ''}</option>`).join('');
+      return `
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${dt} — ${DOCTYPE_LABELS[dt]}</div>
+          <div id="cfg-appr-list-${dt}">${apprRows || '<div style="font-size:11px;color:var(--s5);padding:6px 0">No approvers assigned.</div>'}</div>
+          <div id="cfg-appr-add-area-${dt}" style="display:none;margin-top:8px;border:1px solid var(--b);border-radius:6px;padding:10px;background:var(--b0)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div><div class="fl">Employee</div><select class="fsel" id="cfg-appr-emp-${dt}">${empOptions}</select></div>
+              <div><div class="fl">Role</div><input class="finput" id="cfg-appr-role-${dt}" placeholder="e.g. QA Lead"></div>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end">
+              <button class="btn-sec btn-sm cfg-appr-add-cancel" data-dt="${dt}">Cancel</button>
+              <button class="btn-pri btn-sm cfg-appr-add-save" data-dt="${dt}">Add Approver</button>
+            </div>
+          </div>
+          <button class="btn-sec btn-sm cfg-appr-add-btn" data-dt="${dt}" style="margin-top:8px">+ Add Approver</button>
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+      <div class="cfg-title">👥 Approver Assignments</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Active Employees</div>
+          <div id="cfg-emp-list">${empRows || '<div style="font-size:11px;color:var(--s5)">No active employees found.</div>'}</div>
+          ${addEmpForm}
+          <button class="btn-sec btn-sm" id="cfg-add-emp-btn" style="margin-top:8px">+ Add Employee</button>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Approvers by Document Type</div>
+          ${apprSections}
+        </div>
+      </div>`;
+
+    this._wireApproverPanel(employees, approvers, base);
+  }
+
+  private _wireApproverPanel(employees: any[], approvers: any[], base: string): void {
+    const d = document;
+    const w = window as any;
+
+    // ── Employee edit toggle ──
+    d.querySelectorAll('.cfg-emp-edit-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).getAttribute('data-id');
+        const form = d.getElementById('cfg-emp-form-' + id);
+        if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+    d.querySelectorAll('.cfg-emp-cancel-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).getAttribute('data-id');
+        const form = d.getElementById('cfg-emp-form-' + id);
+        if (form) form.style.display = 'none';
+      });
+    });
+
+    // ── Employee save ──
+    d.querySelectorAll('.cfg-emp-save-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).getAttribute('data-id');
+        const titleEl = d.getElementById('cfg-emp-title-' + id) as HTMLInputElement;
+        const emailEl = d.getElementById('cfg-emp-email-' + id) as HTMLInputElement;
+        if (!id) return;
+        try {
+          await this.context.spHttpClient.post(
+            `${base}/_api/web/lists/getbytitle('QMS_Employees')/items(${id})`,
+            SPHttpClient.configurations.v1,
+            { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
+              body: JSON.stringify({ Emp_Title: titleEl?.value || '', Emp_Email: emailEl?.value || '' }) }
+          );
+          if (w.qpToast) w.qpToast('Employee updated');
+          this._renderConfig();
+        } catch(e) { if (w.qpToast) w.qpToast('Update failed — check console'); console.error(e); }
+      });
+    });
+
+    // ── Employee deactivate ──
+    d.querySelectorAll('.cfg-emp-deact-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const id   = (btn as HTMLElement).getAttribute('data-id');
+        const name = (btn as HTMLElement).getAttribute('data-name');
+        if (!id || !window.confirm(`Deactivate ${name}? They will no longer appear in approver selections.`)) return;
+        try {
+          await this.context.spHttpClient.post(
+            `${base}/_api/web/lists/getbytitle('QMS_Employees')/items(${id})`,
+            SPHttpClient.configurations.v1,
+            { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
+              body: JSON.stringify({ Emp_Status: 'Inactive' }) }
+          );
+          if (w.qpToast) w.qpToast('Employee deactivated');
+          this._renderConfig();
+        } catch(e) { if (w.qpToast) w.qpToast('Deactivate failed'); console.error(e); }
+      });
+    });
+
+    // ── Add Employee toggle ──
+    const addEmpBtn = d.getElementById('cfg-add-emp-btn');
+    const addEmpArea = d.getElementById('cfg-add-emp-area');
+    if (addEmpBtn && addEmpArea) addEmpBtn.addEventListener('click', () => { addEmpArea.style.display = 'block'; addEmpBtn.style.display = 'none'; });
+    const addEmpCancel = d.getElementById('cfg-add-emp-cancel');
+    if (addEmpCancel && addEmpArea && addEmpBtn) addEmpCancel.addEventListener('click', () => { addEmpArea.style.display = 'none'; addEmpBtn.style.display = ''; });
+
+    // ── Add Employee save ──
+    const addEmpSave = d.getElementById('cfg-add-emp-save');
+    if (addEmpSave) addEmpSave.addEventListener('click', async () => {
+      const name  = (d.getElementById('cfg-new-emp-name')  as HTMLInputElement)?.value?.trim();
+      const title = (d.getElementById('cfg-new-emp-title') as HTMLInputElement)?.value?.trim();
+      const email = (d.getElementById('cfg-new-emp-email') as HTMLInputElement)?.value?.trim();
+      const dept  = (d.getElementById('cfg-new-emp-dept')  as HTMLInputElement)?.value?.trim();
+      if (!name || !email) { if (w.qpToast) w.qpToast('Name and email are required'); return; }
+      try {
+        await this.context.spHttpClient.post(
+          `${base}/_api/web/lists/getbytitle('QMS_Employees')/items`,
+          SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+            body: JSON.stringify({ Title: name, Emp_Title: title, Emp_Email: email, Emp_Dept: dept, Emp_Status: 'Active' }) }
+        );
+        if (w.qpToast) w.qpToast('Employee added');
+        this._renderConfig();
+      } catch(e) { if (w.qpToast) w.qpToast('Add failed — check console'); console.error(e); }
+    });
+
+    // ── Approver add toggle ──
+    d.querySelectorAll('.cfg-appr-add-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const dt = (btn as HTMLElement).getAttribute('data-dt');
+        const area = d.getElementById('cfg-appr-add-area-' + dt);
+        if (area) area.style.display = 'block';
+        (btn as HTMLElement).style.display = 'none';
+      });
+    });
+    d.querySelectorAll('.cfg-appr-add-cancel').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const dt = (btn as HTMLElement).getAttribute('data-dt');
+        const area = d.getElementById('cfg-appr-add-area-' + dt);
+        if (area) area.style.display = 'none';
+        const addBtn = d.querySelector(`.cfg-appr-add-btn[data-dt="${dt}"]`) as HTMLElement;
+        if (addBtn) addBtn.style.display = '';
+      });
+    });
+
+    // ── Approver add save ──
+    d.querySelectorAll('.cfg-appr-add-save').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const dt = (btn as HTMLElement).getAttribute('data-dt');
+        const empSel  = d.getElementById('cfg-appr-emp-'  + dt) as HTMLSelectElement;
+        const roleInp = d.getElementById('cfg-appr-role-' + dt) as HTMLInputElement;
+        const empId   = empSel?.value;
+        const empOpt  = empSel?.options[empSel.selectedIndex];
+        const empName  = empOpt?.getAttribute('data-name') || '';
+        const empEmail = empOpt?.getAttribute('data-email') || '';
+        const role     = roleInp?.value?.trim();
+        if (!empId || !role) { if (w.qpToast) w.qpToast('Select an employee and enter a role'); return; }
+        try {
+          await this.context.spHttpClient.post(
+            `${base}/_api/web/lists/getbytitle('QMS_Approvers')/items`,
+            SPHttpClient.configurations.v1,
+            { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+              body: JSON.stringify({ Title: empName + '-' + dt, Appr_Name: empName, Approver_Email: empEmail, Appr_DocType: dt, Appr_EmpID: empId, Appr_Role: role, Appr_Active: true }) }
+          );
+          if (w.qpToast) w.qpToast('Approver added');
+          this._renderConfig();
+        } catch(e) { if (w.qpToast) w.qpToast('Add approver failed'); console.error(e); }
+      });
+    });
+
+    // ── Approver remove ──
+    d.querySelectorAll('.cfg-appr-remove-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).getAttribute('data-id');
+        if (!id || !window.confirm('Remove this approver assignment?')) return;
+        try {
+          await this.context.spHttpClient.post(
+            `${base}/_api/web/lists/getbytitle('QMS_Approvers')/items(${id})`,
+            SPHttpClient.configurations.v1,
+            { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
+              body: JSON.stringify({ Appr_Active: false }) }
+          );
+          if (w.qpToast) w.qpToast('Approver removed');
+          this._renderConfig();
+        } catch(e) { if (w.qpToast) w.qpToast('Remove failed'); console.error(e); }
+      });
+    });
   }
 
   // ── Alert bar ──
