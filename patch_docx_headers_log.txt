@@ -1,0 +1,185 @@
+
+2026-04-25 07:28:00  === patch_docx_headers.ps1 started ===
+2026-04-25 07:28:00  Temp dir: C:\Users\andre\AppData\Local\Temp\IMP9177_DocxPatch
+2026-04-25 07:28:00  
+2026-04-25 07:28:00  ── Folder: Shared Documents/QMS/Documents/Drafts (Draft) ──
+2026-04-25 07:28:00    Processing: FPS-001_Lychee_VD3_Gummy_Spec_DRAFT.docx
+2026-04-25 07:28:01      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:01    Processing: QM-001_Quality_Manual_DRAFT.docx
+2026-04-25 07:28:01      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:01    Processing: SOP-FRS-549_DRAFT.docx
+2026-04-25 07:28:02      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:02    Processing: SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx
+2026-04-25 07:28:02      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:02    Processing: SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx
+2026-04-25 07:28:03      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:03    Processing: SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx
+2026-04-25 07:28:03      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:03    Processing: SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx
+2026-04-25 07:28:03      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:03    Processing: SOP-PC-001_DRAFT_Pest_Sighting_Response.docx
+2026-04-25 07:28:04      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:04    Processing: SOP-PRD-108_DRAFT.docx
+2026-04-25 07:28:04      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:04    Processing: SOP-PRD-432_DRAFT.docx
+2026-04-25 07:28:04      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:04    Processing: SOP-QMS-001_DRAFT_Management_Responsibility.docx
+2026-04-25 07:28:05      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:05    Processing: SOP-QMS-002_DRAFT_Document_Control.docx
+2026-04-25 07:28:05      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:05    Processing: SOP-QMS-003_DRAFT_Change_Control.docx
+2026-04-25 07:28:05      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:05    Processing: SOP-RCL-321_DRAFT.docx
+2026-04-25 07:28:06      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:06    Processing: SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx
+2026-04-25 07:28:06      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:06    Processing: SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx
+2026-04-25 07:28:06      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:06  
+2026-04-25 07:28:07  ── Folder: Shared Documents/QMS/Forms/Drafts (Draft) ──
+2026-04-25 07:28:07    Processing: FM-001_Master_Document_Log_DRAFT.docx
+2026-04-25 07:28:07      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:07    Processing: FM-002_Change_Request_Form_DRAFT.docx
+2026-04-25 07:28:07      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:07    Processing: FM-003_Document_Change_Order_DRAFT.docx
+2026-04-25 07:28:08      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:08    Processing: FM-004_DRAFT_Approved_Supplier_List_TEMPLATE.docx
+2026-04-25 07:28:08      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:08    Processing: FM-005_DRAFT_Receiving_Log_TEMPLATE.docx
+2026-04-25 07:28:09      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:09    Processing: FM-006_DRAFT_RawMaterial_Spec_Sheet_TEMPLATE.docx
+2026-04-25 07:28:09      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:09    Processing: FM-007_DRAFT_Material_Hold_Label_TEMPLATE.docx
+2026-04-25 07:28:09      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:09    Processing: FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx
+2026-04-25 07:28:10      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:10    Processing: FM-027_QU_QS_Designation_Record_DRAFT.docx
+2026-04-25 07:28:10      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:10    Processing: FM-030_Finished_Product_Spec_Sheet_DRAFT.docx
+2026-04-25 07:28:10      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:10    Processing: FM-ALG_DRAFT_Allergen_Status_Record_TEMPLATE.docx
+2026-04-25 07:28:11      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:11  
+2026-04-25 07:28:11  ── Folder: Shared Documents/Published/QMS/Documents (Published) ──
+2026-04-25 07:28:11    Processing: FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx
+2026-04-25 07:28:12      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:12      [RENAME] FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx → FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx
+2026-04-25 07:28:13      [UPLOADED] FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:13      [DELETED] Old file: FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx
+2026-04-25 07:28:13    Processing: SOP-FRS-549_RevB.docx
+2026-04-25 07:28:14      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:14      [RENAME] SOP-FRS-549_RevB.docx → SOP-FRS-549_DRAFT_.docx
+2026-04-25 07:28:15      [UPLOADED] SOP-FRS-549_DRAFT_.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:16      [DELETED] Old file: SOP-FRS-549_RevB.docx
+2026-04-25 07:28:16    Processing: SOP-FS-001_RevA_Allergen_Control_FINAL.docx
+2026-04-25 07:28:16      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:16      [RENAME] SOP-FS-001_RevA_Allergen_Control_FINAL.docx → SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx
+2026-04-25 07:28:17      [UPLOADED] SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:18      [DELETED] Old file: SOP-FS-001_RevA_Allergen_Control_FINAL.docx
+2026-04-25 07:28:18    Processing: SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx
+2026-04-25 07:28:18      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:18      [RENAME] SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx → SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx
+2026-04-25 07:28:19      [UPLOADED] SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:19      [DELETED] Old file: SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx
+2026-04-25 07:28:19    Processing: SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx
+2026-04-25 07:28:20      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:20      [RENAME] SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx → SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx
+2026-04-25 07:28:21      [UPLOADED] SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:21      [DELETED] Old file: SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx
+2026-04-25 07:28:21    Processing: SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx
+2026-04-25 07:28:22      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:22      [RENAME] SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx → SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx
+2026-04-25 07:28:23      [UPLOADED] SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:23      [DELETED] Old file: SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx
+2026-04-25 07:28:23    Processing: SOP-PC-001_RevA_Pest_Sighting_Response.docx
+2026-04-25 07:28:23      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:23      [RENAME] SOP-PC-001_RevA_Pest_Sighting_Response.docx → SOP-PC-001_DRAFT_Pest_Sighting_Response.docx
+2026-04-25 07:28:25      [UPLOADED] SOP-PC-001_DRAFT_Pest_Sighting_Response.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:25      [DELETED] Old file: SOP-PC-001_RevA_Pest_Sighting_Response.docx
+2026-04-25 07:28:25    Processing: SOP-PRD-108_RevB.docx
+2026-04-25 07:28:25      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:25      [RENAME] SOP-PRD-108_RevB.docx → SOP-PRD-108_DRAFT_.docx
+2026-04-25 07:28:27      [UPLOADED] SOP-PRD-108_DRAFT_.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:27      [DELETED] Old file: SOP-PRD-108_RevB.docx
+2026-04-25 07:28:27    Processing: SOP-PRD-432_RevB.docx
+2026-04-25 07:28:28      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:28      [RENAME] SOP-PRD-432_RevB.docx → SOP-PRD-432_DRAFT_.docx
+2026-04-25 07:28:29      [UPLOADED] SOP-PRD-432_DRAFT_.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:29      [DELETED] Old file: SOP-PRD-432_RevB.docx
+2026-04-25 07:28:29    Processing: SOP-QMS-001_RevA_Management_Responsibility.docx
+2026-04-25 07:28:30      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:30      [RENAME] SOP-QMS-001_RevA_Management_Responsibility.docx → SOP-QMS-001_DRAFT_Management_Responsibility.docx
+2026-04-25 07:28:31      [UPLOADED] SOP-QMS-001_DRAFT_Management_Responsibility.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:31      [DELETED] Old file: SOP-QMS-001_RevA_Management_Responsibility.docx
+2026-04-25 07:28:31    Processing: SOP-QMS-002_RevA_Document_Control.docx
+2026-04-25 07:28:31      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:31      [RENAME] SOP-QMS-002_RevA_Document_Control.docx → SOP-QMS-002_DRAFT_Document_Control.docx
+2026-04-25 07:28:33      [UPLOADED] SOP-QMS-002_DRAFT_Document_Control.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:33      [DELETED] Old file: SOP-QMS-002_RevA_Document_Control.docx
+2026-04-25 07:28:33    Processing: SOP-QMS-003_RevA_Change_Control.docx
+2026-04-25 07:28:33      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:33      [RENAME] SOP-QMS-003_RevA_Change_Control.docx → SOP-QMS-003_DRAFT_Change_Control.docx
+2026-04-25 07:28:34      [UPLOADED] SOP-QMS-003_DRAFT_Change_Control.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:35      [DELETED] Old file: SOP-QMS-003_RevA_Change_Control.docx
+2026-04-25 07:28:35    Processing: SOP-RCL-321_RevB.docx
+2026-04-25 07:28:35      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:35      [RENAME] SOP-RCL-321_RevB.docx → SOP-RCL-321_DRAFT_.docx
+2026-04-25 07:28:37      [UPLOADED] SOP-RCL-321_DRAFT_.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:37      [DELETED] Old file: SOP-RCL-321_RevB.docx
+2026-04-25 07:28:37    Processing: SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx
+2026-04-25 07:28:37      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:37      [RENAME] SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx → SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx
+2026-04-25 07:28:38      [UPLOADED] SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:39      [DELETED] Old file: SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx
+2026-04-25 07:28:39    Processing: SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx
+2026-04-25 07:28:39      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:39      [RENAME] SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx → SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx
+2026-04-25 07:28:40      [UPLOADED] SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx → Shared Documents/Published/QMS/Documents
+2026-04-25 07:28:40      [DELETED] Old file: SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx
+2026-04-25 07:28:40  
+2026-04-25 07:28:40  ── Folder: Shared Documents/Published/QMS/Forms (Published) ──
+2026-04-25 07:28:41    Processing: FM-001_Master_Document_Log_RevA.docx
+2026-04-25 07:28:41      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:41      [RENAME] FM-001_Master_Document_Log_RevA.docx → FM-001_Master_Document_Log_DRAFT_.docx
+2026-04-25 07:28:42      [UPLOADED] FM-001_Master_Document_Log_DRAFT_.docx → Shared Documents/Published/QMS/Forms
+2026-04-25 07:28:42      [DELETED] Old file: FM-001_Master_Document_Log_RevA.docx
+2026-04-25 07:28:42    Processing: FM-002_Change_Request_Form_RevA.docx
+2026-04-25 07:28:43      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:43      [RENAME] FM-002_Change_Request_Form_RevA.docx → FM-002_Change_Request_Form_DRAFT_.docx
+2026-04-25 07:28:44      [UPLOADED] FM-002_Change_Request_Form_DRAFT_.docx → Shared Documents/Published/QMS/Forms
+2026-04-25 07:28:44      [DELETED] Old file: FM-002_Change_Request_Form_RevA.docx
+2026-04-25 07:28:44    Processing: FM-003_Document_Change_Order_RevA.docx
+2026-04-25 07:28:44      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:44      [RENAME] FM-003_Document_Change_Order_RevA.docx → FM-003_Document_Change_Order_DRAFT_.docx
+2026-04-25 07:28:46      [UPLOADED] FM-003_Document_Change_Order_DRAFT_.docx → Shared Documents/Published/QMS/Forms
+2026-04-25 07:28:46      [DELETED] Old file: FM-003_Document_Change_Order_RevA.docx
+2026-04-25 07:28:46    Processing: FM-025_RCD-FM-219_RevB.docx
+2026-04-25 07:28:47      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:47      [RENAME] FM-025_RCD-FM-219_RevB.docx → FM-025_RCD-FM-219_DRAFT_.docx
+2026-04-25 07:28:48      [UPLOADED] FM-025_RCD-FM-219_DRAFT_.docx → Shared Documents/Published/QMS/Forms
+2026-04-25 07:28:48      [DELETED] Old file: FM-025_RCD-FM-219_RevB.docx
+2026-04-25 07:28:48    Processing: FM-027_QU_QS_Designation_Record_RevA.docx
+2026-04-25 07:28:48      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:48      [RENAME] FM-027_QU_QS_Designation_Record_RevA.docx → FM-027_QU_QS_Designation_Record_DRAFT_.docx
+2026-04-25 07:28:50      [UPLOADED] FM-027_QU_QS_Designation_Record_DRAFT_.docx → Shared Documents/Published/QMS/Forms
+2026-04-25 07:28:50      [DELETED] Old file: FM-027_QU_QS_Designation_Record_RevA.docx
+2026-04-25 07:28:50    Processing: FM-030_Finished_Product_Spec_Sheet_RevA.docx
+2026-04-25 07:28:50      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:50      [RENAME] FM-030_Finished_Product_Spec_Sheet_RevA.docx → FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx
+2026-04-25 07:28:51      [UPLOADED] FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx → Shared Documents/Published/QMS/Forms
+2026-04-25 07:28:52      [DELETED] Old file: FM-030_Finished_Product_Spec_Sheet_RevA.docx
+2026-04-25 07:28:52  
+2026-04-25 07:28:52  ── Folder: Shared Documents/Published/QMS/Quality Manual (Published) ──
+2026-04-25 07:28:52    Processing: QM-001_Quality_Manual_RevA.docx
+2026-04-25 07:28:52      [OK] Headers already clean — no changes needed
+2026-04-25 07:28:52      [RENAME] QM-001_Quality_Manual_RevA.docx → QM-001_Quality_Manual_DRAFT_.docx
+2026-04-25 07:28:53      [UPLOADED] QM-001_Quality_Manual_DRAFT_.docx → Shared Documents/Published/QMS/Quality Manual
+2026-04-25 07:28:54      [DELETED] Old file: QM-001_Quality_Manual_RevA.docx
+2026-04-25 07:28:54  
+2026-04-25 07:28:54  === Summary ===
+2026-04-25 07:28:54    Total files processed : 49
+2026-04-25 07:28:54    Headers patched       : 0
+2026-04-25 07:28:54    Files renamed         : 22
+2026-04-25 07:28:54    Errors                : 0
+2026-04-25 07:28:54  
+2026-04-25 07:28:54  Log written to: C:\Users\andre\ADBCCRO Dropbox\Andre Butler\IMP9177\imp9177-spfx\patch_docx_headers_log.txt

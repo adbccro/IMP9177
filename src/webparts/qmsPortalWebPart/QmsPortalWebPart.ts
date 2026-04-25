@@ -1518,14 +1518,14 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         'FM-001':'FM-001_Master_Document_Log_DRAFT.docx',
         'FM-002':'FM-002_Change_Request_Form_DRAFT.docx',
         'FM-003':'FM-003_Document_Change_Order_DRAFT.docx',
-        'FM-004':'FM-004_Supplier_Evaluation_Form_RevA.docx',
-        'FM-005':'FM-005_Ingredient_Approval_Form_RevA.docx',
-        'FM-006':'FM-006_Material_Receipt_Log_RevA.docx',
-        'FM-007':'FM-007_CoA_Review_Checklist_RevA.docx',
+        'FM-004':'FM-004_DRAFT_Approved_Supplier_List_TEMPLATE.docx',
+        'FM-005':'FM-005_DRAFT_Receiving_Log_TEMPLATE.docx',
+        'FM-006':'FM-006_DRAFT_RawMaterial_Spec_Sheet_TEMPLATE.docx',
+        'FM-007':'FM-007_DRAFT_Material_Hold_Label_TEMPLATE.docx',
         'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx',
         'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT.docx',
         'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT.docx',
-        'FM-ALG':'FM-ALG_Allergen_Status_Record_RevA.docx',
+        'FM-ALG':'FM-ALG_DRAFT_Allergen_Status_Record_TEMPLATE.docx',
       };
 
       // ── Download pane HTML (Effective phase only) ──
@@ -1542,7 +1542,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         displayDocs.map((docId: string) => {
           const _rev  = docRevMap[docId] || 'Rev A';
           const _name = docNameMap[docId] || docId;
-          const _fn   = _FM[docId] || (docId + '_RevA.docx');
+          const _fn   = _FM[docId] || (docId + '_DRAFT_.docx');
           const _isF  = _FIDS.includes(docId);
           const _base = _isF ? 'Shared Documents/Official/QMS/Forms' : 'Shared Documents/Official/QMS/Documents';
           const _view   = _SP + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/' + _base + '/' + _fn) + '&action=view';
@@ -1560,7 +1560,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               <span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:3px;background:var(--b1);color:var(--b)">${_rev}</span>
               <span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--g1);color:var(--g);font-weight:700">Effective Apr 24, 2026</span>
               <a href="${_view}" target="_blank" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--b);color:var(--b);background:var(--w);text-decoration:none">View &#8599;</a>
-              <button data-dl-url="${_dl}" data-dl-name="${docId}_RevA.docx" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);cursor:pointer;white-space:nowrap">&#11015; DOCX</button>
+              <button data-dl-url="${_dl}" data-dl-name="${docId}_DRAFT_.docx" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--s2);color:var(--s7);background:var(--s1);cursor:pointer;white-space:nowrap">&#11015; DOCX</button>
               <button data-pdf-path="${_pdfPath}" data-doc-id="${docId}" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid #dc2626;color:#dc2626;background:#fef2f2;cursor:pointer;white-space:nowrap">&#11015; PDF</button>
             </div>
           </div>`;
@@ -1650,7 +1650,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           if (main2) main2.style.background = 'var(--g1)';
           // Open the document in SharePoint
           const siteUrl = this.context.pageContext.web.absoluteUrl;
-          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx' }; const docFileName = docFileMap[docId] || (docId + '_RevA.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
+          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx' }; const docFileName = docFileMap[docId] || (docId + '_DRAFT_.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
           // document open deferred to end of handler
           const state = w._qpDocReviewState[dcoId];
           const opened = state.filter((v: boolean) => v).length;
@@ -1739,7 +1739,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           btn.addEventListener("click", () => {
             const url  = (btn as HTMLElement).getAttribute("data-dl-url") || "";
             const name = (btn as HTMLElement).getAttribute("data-dl-name") || "document.docx";
-            const docIdAudit = name.replace("_RevA.docx", "");
+            const docIdAudit = name.replace("_DRAFT_.docx", "");
             // Trigger download from parent window
             const a = window.document.createElement("a");
             a.href = url; a.download = name; a.target = "_blank";
@@ -1841,33 +1841,33 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
 
         // Known documents catalogue — populated from Drafts folders
         const _allDocs: Record<string, {name:string, zone:string, rev:string}> = {
-          'QM-001':      { name:'Quality Manual',                          zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-QMS-001': { name:'Management Responsibility',               zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-QMS-002': { name:'Document Control',                        zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-QMS-003': { name:'Change Control',                          zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-SUP-001': { name:'Supplier Qualification',                  zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-SUP-002': { name:'Receiving Inspection',                    zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-FS-001':  { name:'Allergen Control',                        zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-FS-002':  { name:'Equipment Cleaning',                      zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-FS-003':  { name:'Facility Sanitation',                     zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-FS-004':  { name:'Environmental Monitoring',                zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-PC-001':  { name:'Pest Sighting Response',                  zone:'Documents/Drafts', rev:'Rev A' },
-          'SOP-PRD-108': { name:'Finished Product Release Management',     zone:'Documents/Drafts', rev:'Rev B' },
-          'SOP-PRD-432': { name:'Finished Product Specifications',         zone:'Documents/Drafts', rev:'Rev B' },
-          'SOP-FRS-549': { name:'Product Specification Sheet',             zone:'Documents/Drafts', rev:'Rev B' },
-          'SOP-RCL-321': { name:'Product Recall Procedure',                zone:'Documents/Drafts', rev:'Rev B' },
-          'FM-001':      { name:'Master Document Log',                     zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-002':      { name:'Change Request Form',                     zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-003':      { name:'Document Change Order Form',              zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-004':      { name:'Approved Supplier List',                  zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-005':      { name:'Receiving Log',                           zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-006':      { name:'Raw Material Specification Sheet',        zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-007':      { name:'Material Hold Label',                     zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-008':      { name:'Supplier CoA Requirements Checklist',     zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-027':      { name:'QU/QS Designation Record',                zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-030':      { name:'Finished Product Spec Sheet Template',    zone:'Forms/Drafts', rev:'Rev A' },
-          'FM-ALG':      { name:'Allergen Status Record',                  zone:'Forms/Drafts', rev:'Rev A' },
-          'FPS-001':     { name:'Lychee VD3 Gummy Finished Product Spec',  zone:'Documents/Drafts', rev:'Rev A' },
+          'QM-001':      { name:'Quality Manual',                          zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-QMS-001': { name:'Management Responsibility',               zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-QMS-002': { name:'Document Control',                        zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-QMS-003': { name:'Change Control',                          zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-SUP-001': { name:'Supplier Qualification',                  zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-SUP-002': { name:'Receiving Inspection',                    zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-FS-001':  { name:'Allergen Control',                        zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-FS-002':  { name:'Equipment Cleaning',                      zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-FS-003':  { name:'Facility Sanitation',                     zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-FS-004':  { name:'Environmental Monitoring',                zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-PC-001':  { name:'Pest Sighting Response',                  zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-PRD-108': { name:'Finished Product Release Management',     zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-PRD-432': { name:'Finished Product Specifications',         zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-FRS-549': { name:'Product Specification Sheet',             zone:'Documents/Drafts', rev:'DRAFT' },
+          'SOP-RCL-321': { name:'Product Recall Procedure',                zone:'Documents/Drafts', rev:'DRAFT' },
+          'FM-001':      { name:'Master Document Log',                     zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-002':      { name:'Change Request Form',                     zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-003':      { name:'Document Change Order Form',              zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-004':      { name:'Approved Supplier List',                  zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-005':      { name:'Receiving Log',                           zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-006':      { name:'Raw Material Specification Sheet',        zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-007':      { name:'Material Hold Label',                     zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-008':      { name:'Supplier CoA Requirements Checklist',     zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-027':      { name:'QU/QS Designation Record',                zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-030':      { name:'Finished Product Spec Sheet Template',    zone:'Forms/Drafts', rev:'DRAFT' },
+          'FM-ALG':      { name:'Allergen Status Record',                  zone:'Forms/Drafts', rev:'DRAFT' },
+          'FPS-001':     { name:'Lychee VD3 Gummy Finished Product Spec',  zone:'Documents/Drafts', rev:'DRAFT' },
         };
 
         // Live doc list — re-renders on every change
@@ -2449,7 +2449,7 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
     try {
       if (w.qpToast) w.qpToast('Promoting ' + docIds.length + ' documents to Official zone...');
       for (const docId of docIds) {
-        const fn = fileMap[docId] || (docId + '_RevA.docx');
+        const fn = fileMap[docId] || (docId + '_DRAFT_.docx');
         const isForm = FORM_IDS.includes(docId);
         const srcPath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Published/QMS/Forms/' : 'Shared Documents/Published/QMS/Documents/') + fn;
         const destPath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Official/QMS/Forms/' : 'Shared Documents/Official/QMS/Documents/') + fn;
@@ -2485,7 +2485,7 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
         const tokenProvider = await this.context.aadTokenProviderFactory.getTokenProvider();
         const token = await tokenProvider.getToken('https://graph.microsoft.com');
         for (const docId of docIds) {
-          const fn = fileMap[docId] || (docId + '_RevA.docx');
+          const fn = fileMap[docId] || (docId + '_DRAFT_.docx');
           const isForm = FORM_IDS.includes(docId);
           const filePath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Official/QMS/Forms/' : 'Shared Documents/Official/QMS/Documents/') + fn;
           try {
