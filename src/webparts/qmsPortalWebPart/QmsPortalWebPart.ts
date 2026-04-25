@@ -287,6 +287,13 @@ const SHELL_DASHBOARD = `
   <div class="kpi a"><div class="kpi-l">Training Due</div><div class="kpi-v a" id="db-k5">—</div><div class="kpi-s">Overdue or due soon</div></div>
 </div>
 <div class="bucket-grid" id="db-buckets">
+  <div class="bucket g" id="db-bucket-official">
+    <div class="bucket-icon">📚</div>
+    <div class="bucket-count g" id="db-bc0">—</div>
+    <div class="bucket-label">Official / Effective Documents</div>
+    <div class="bucket-desc">Currently effective QMS documents</div>
+    <div class="bucket-items" id="db-bi0"><div style="padding:6px 0;font-size:11px;color:var(--s5)">Loading...</div></div>
+  </div>
   <div class="bucket" data-nav="dco">
     <div class="bucket-icon">📋</div>
     <div class="bucket-count" id="db-bc1">—</div>
@@ -572,6 +579,7 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <button class="qp-tab" data-screen="approvers">👥 Approvers</button>
   <button class="qp-tab" data-screen="docrepo">&#128218; Doc Repository</button>
   <button class="qp-tab" data-screen="config">⚙️ Config</button>
+  <button class="qp-tab" data-screen="admin" id="qp-tab-admin" style="display:none">🛡 Admin</button>
 </div>
 <div class="qp-alert" id="qp-alert"><span>⚠️</span><span id="qp-alert-txt"></span></div>
 <div class="qp-main">
@@ -585,6 +593,14 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <div class="qp-screen" id="sc-approvers">${SHELL_APPROVERS}</div>
   <div class="qp-screen" id="sc-docrepo">${SHELL_DOCREPO}</div>
   <div class="qp-screen" id="sc-config">${SHELL_CONFIG}</div>
+  <div class="qp-screen" id="sc-admin">
+    <div class="sec-hdr"><div class="sec-title">🛡 Admin — Portal Role Management</div></div>
+    <div id="admin-role-panel" style="margin-top:14px">
+      <div style="font-size:12px;color:var(--s5);margin-bottom:12px">Manage user portal roles. Only visible to <strong>Consulting</strong> department members.</div>
+      <div class="tcard"><table><thead><tr><th>Employee ID</th><th>Name / Email</th><th>Department</th><th>Portal Role</th><th>Actions</th></tr></thead>
+      <tbody id="admin-emp-tbody"><tr><td colspan="5" class="loading"><span class="spin"></span>Loading...</td></tr></tbody></table></div>
+    </div>
+  </div>
 </div>
 <footer>IMP9177 QMS Portal · ADB Consulting &amp; CRO Inc. · 21 CFR Part 111 / FSMA · Read-only view — data live from SharePoint</footer>
 <div class="toast" id="qp-toast"></div>
@@ -774,6 +790,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     this._renderPublish();
     this._renderApprovers();
     this._renderConfig();
+    this._renderAdmin();
     this._initDocRepo();
     this._checkAlerts();
   }
@@ -858,6 +875,92 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     const trItems = overdueTraining.slice(0, 3).map(t =>
       `<div class="bucket-item"><span style="font-size:11px">${t.docId}</span><span style="font-size:10px;color:var(--r)">Overdue</span></div>`).join('');
     this._html('db-bi5', trItems || '<div style="padding:6px 0;font-size:11px;color:var(--s5)">No training due</div>');
+
+    // Task 8 — load Official docs async
+    this._loadOfficialDocsBucket();
+  }
+
+  private _loadOfficialDocsBucket(): void {
+    const base = this.context.pageContext.web.absoluteUrl;
+    const fetchFolder = (path: string): Promise<any[]> =>
+      this.context.spHttpClient.get(
+        `${base}/_api/web/GetFolderByServerRelativeUrl('${path}')/Files?$select=Name,ServerRelativeUrl,TimeLastModified&$top=200`,
+        SPHttpClient.configurations.v1
+      ).then((r: SPHttpClientResponse) => r.ok ? r.json() : { value: [] })
+       .then((d: any) => (d.value || []).filter((f: any) => f.Name.toLowerCase().endsWith('.docx')))
+       .catch(() => []);
+
+    Promise.all([
+      fetchFolder('/sites/IMP9177/Shared Documents/Official/QMS/Documents'),
+      fetchFolder('/sites/IMP9177/Shared Documents/Official/QMS/Forms'),
+      fetchFolder('/sites/IMP9177/Shared Documents/Official/QMS/Quality Manual'),
+    ]).then(([docs, forms, qm]: any[][]) => {
+      const all = [...docs, ...forms, ...qm];
+      this._set('db-bc0', String(all.length));
+      const items = all.slice(0, 5).map((f: any) => {
+        const name = (f.Name || '').replace(/_DRAFT_?\.docx$/i, '').replace(/_/g, ' ');
+        return `<div class="bucket-item"><span style="font-size:11px;font-family:var(--mono);font-size:10px;color:var(--g)">${name.substring(0, 32)}</span></div>`;
+      }).join('');
+      this._html('db-bi0', items || '<div style="padding:6px 0;font-size:11px;color:var(--s5)">No effective documents yet</div>');
+    }).catch(() => {
+      this._set('db-bc0', '0');
+      this._html('db-bi0', '<div style="padding:6px 0;font-size:11px;color:var(--s5)">Could not load</div>');
+    });
+  }
+
+  // ── Admin tab (Task 9) ──
+  private _renderAdmin(): void {
+    const { employees = [] } = this._data;
+    const userEmail = this.context.pageContext.user.email || '';
+    const me = employees.find((e: any) =>
+      (e.Emp_Email || '').toLowerCase() === userEmail.toLowerCase() ||
+      (e.Title || '').toLowerCase().includes(userEmail.toLowerCase().split('@')[0])
+    );
+    const isConsulting = me && (me.Emp_Dept || '').toLowerCase() === 'consulting';
+    const tabEl = document?.getElementById('qp-tab-admin');
+    if (tabEl) tabEl.style.display = isConsulting ? '' : 'none';
+    if (!isConsulting) return;
+
+    const rows = employees.map((e: any) => {
+      const role = e.Emp_PortalRole || '';
+      return `<tr>
+        <td><span class="cid">${e.Title || '—'}</span></td>
+        <td style="font-size:12px">${e.Emp_Email || '—'}</td>
+        <td style="font-size:12px">${e.Emp_Dept || '—'}</td>
+        <td>
+          <select class="fsel admin-role-sel" style="font-size:11px;padding:3px 6px" data-empid="${e.Id}" data-empname="${e.Title}">
+            <option value="" ${!role ? 'selected' : ''}>(none)</option>
+            <option value="PM" ${role === 'PM' ? 'selected' : ''}>PM</option>
+            <option value="Change Analyst" ${role === 'Change Analyst' ? 'selected' : ''}>Change Analyst</option>
+            <option value="External" ${role === 'External' ? 'selected' : ''}>External</option>
+          </select>
+        </td>
+        <td><button class="btn-pri btn-sm admin-role-save" data-empid="${e.Id}" data-empname="${e.Title||''}">Save</button></td>
+      </tr>`;
+    }).join('');
+    this._html('admin-emp-tbody', rows || '<tr><td colspan="5" style="color:var(--s5);text-align:center;padding:20px">No employees found</td></tr>');
+
+    // Wire save buttons
+    const d = document;
+    d.querySelectorAll('.admin-role-save').forEach((btn: Element) => {
+      (btn as HTMLElement).addEventListener('click', async () => {
+        const empId = (btn as HTMLElement).getAttribute('data-empid') || '';
+        const sel = d.querySelector(`.admin-role-sel[data-empid="${empId}"]`) as HTMLSelectElement;
+        if (!sel) return;
+        const newRole = sel.value;
+        const base = this.context.pageContext.web.absoluteUrl;
+        await this.context.spHttpClient.post(
+          base + "/_api/web/lists/getbytitle('QMS_Employees')/items(" + empId + ")",
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+            body: JSON.stringify({ Emp_PortalRole: newRole }) }
+        );
+        const emp = employees.find((e: any) => String(e.Id) === String(empId));
+        if (emp) emp.Emp_PortalRole = newRole;
+        const w = window as any;
+        if (w.qpToast) w.qpToast('Role updated: ' + ((btn as HTMLElement).getAttribute('data-empname') || empId));
+      });
+    });
   }
 
   // ── DCO screen ──
@@ -883,7 +986,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       return;
     }
     const rows = dcos.map(d => {
-      const apprs = approvals.filter(a => a.Appr_DCOID === d.Title);
+      const apprs = approvals.filter(a => a.Appr_DCOID === d.Title && a.Appr_Type !== 'Optional' && a.Appr_Type !== 'Optional-Hidden');
       const signed = apprs.filter(a => a.Appr_Status === 'Signed').length;
       const total = apprs.length;
       const late = this._lateStatus(d);
@@ -894,7 +997,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         <td>${this._pill(d.DCO_Phase)}${lateBadge}</td>
         <td><span class="cmut" style="font-family:var(--mono);font-size:11px">${d.DCO_CRLink || '—'}</span></td>
         <td><span class="cdate">${this._fmt(d.DCO_SubmittedDate)}</span></td>
-        <td><span class="cmut">${signed}/${total} signed</span></td>
+        <td><span class="cmut">${total === 0 ? '—' : signed + '/' + total + ' signed'}</span></td>
         <td><button class="btn-pri btn-sm" data-dcobtn="${d.Title}">Open</button></td>
       </tr>`;
     }).join('');
@@ -1872,7 +1975,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           const dcoItem = (this._data.dcos || []).find((d2: any) => d2.Title === dcoId);
           if (dcoItem && dcoItem.Id) {
             // Determine next phase — check if any SOPs in DCO docs
-            const nextPhase = 'Implemented';
+            const nextPhase = 'Awaiting Training';
             await this.context.spHttpClient.post(
               `${base}/_api/web/lists/getbytitle('QMS_DCOs')/items(${dcoItem.Id})`,
               SPHttpClient.configurations.v1,
@@ -1979,22 +2082,26 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       };
       const displayDocs = docList.length > 0 ? docList : ['SOP-SUP-001','SOP-SUP-002','SOP-FS-001','FM-008','SOP-PC-001'];
       // ── Phase flags ──
-      const isEffective = ['Implemented','Awaiting Training','Effective'].includes(dco.DCO_Phase || '');
-      const isInReview   = !isEffective;
+      const isEffective  = dco.DCO_Phase === 'Effective';
+      const isInReview   = ['Submitted', 'In Review'].includes(dco.DCO_Phase || '');
+      const isDraft      = !dco.DCO_Phase || dco.DCO_Phase === 'Draft';
+      const isSubmitted  = dco.DCO_Phase === 'Submitted';
 
       // ── Official zone file map ──
       const _SP   = 'https://adbccro.sharepoint.com/sites/IMP9177';
       const _OFD  = _SP + '/Shared%20Documents/Official/QMS/Documents';
       const _OFF  = _SP + '/Shared%20Documents/Official/QMS/Forms';
-      const _FIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-027','FM-030','FM-ALG'];
+      const _FIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-025','FM-027','FM-030','FM-ALG'];
+      const _QMIDS = ['QM-001'];
       const _FM: Record<string,string> = {
-        'QM-001':'QM-001_Quality_Manual_DRAFT.docx',
+        'QM-001':'QM-001_Quality_Manual_DRAFT_.docx',
         'SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx',
         'SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx',
         'SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx',
-        'SOP-PRD-108':'SOP-PRD-108_DRAFT.docx',
-        'SOP-PRD-432':'SOP-PRD-432_DRAFT.docx',
-        'SOP-FRS-549':'SOP-FRS-549_DRAFT.docx',
+        'SOP-PRD-108':'SOP-PRD-108_DRAFT_.docx',
+        'SOP-PRD-432':'SOP-PRD-432_DRAFT_.docx',
+        'SOP-FRS-549':'SOP-FRS-549_DRAFT_.docx',
+        'SOP-RCL-321':'SOP-RCL-321_DRAFT_.docx',
         'SOP-SUP-001':'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx',
         'SOP-SUP-002':'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx',
         'SOP-FS-001':'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx',
@@ -2002,16 +2109,17 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         'SOP-FS-003':'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx',
         'SOP-FS-004':'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx',
         'SOP-PC-001':'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx',
-        'FM-001':'FM-001_Master_Document_Log_DRAFT.docx',
-        'FM-002':'FM-002_Change_Request_Form_DRAFT.docx',
-        'FM-003':'FM-003_Document_Change_Order_DRAFT.docx',
+        'FM-001':'FM-001_Master_Document_Log_DRAFT_.docx',
+        'FM-002':'FM-002_Change_Request_Form_DRAFT_.docx',
+        'FM-003':'FM-003_Document_Change_Order_DRAFT_.docx',
         'FM-004':'FM-004_DRAFT_Approved_Supplier_List_TEMPLATE.docx',
         'FM-005':'FM-005_DRAFT_Receiving_Log_TEMPLATE.docx',
         'FM-006':'FM-006_DRAFT_RawMaterial_Spec_Sheet_TEMPLATE.docx',
         'FM-007':'FM-007_DRAFT_Material_Hold_Label_TEMPLATE.docx',
-        'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx',
-        'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT.docx',
-        'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT.docx',
+        'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx',
+        'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx',
+        'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
+        'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
         'FM-ALG':'FM-ALG_DRAFT_Allergen_Status_Record_TEMPLATE.docx',
       };
 
@@ -2031,7 +2139,8 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           const _name = docNameMap[docId] || docId;
           const _fn   = _FM[docId] || (docId + '_DRAFT_.docx');
           const _isF  = _FIDS.includes(docId);
-          const _base = _isF ? 'Shared Documents/Official/QMS/Forms' : 'Shared Documents/Official/QMS/Documents';
+          const _isQM = _QMIDS.includes(docId);
+          const _base = _isF ? 'Shared Documents/Official/QMS/Forms' : _isQM ? 'Shared Documents/Official/QMS/Quality Manual' : 'Shared Documents/Official/QMS/Documents';
           const _view   = _SP + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/' + _base + '/' + _fn) + '&action=view';
           // Authenticated DOCX download via download.aspx
           const _dl    = _SP + '/_layouts/15/download.aspx?SourceUrl=' + encodeURIComponent('/sites/IMP9177/' + _base + '/' + _fn);
@@ -2080,12 +2189,29 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const body = `
         ${late === 'late' ? `<div style="padding:10px 14px;background:var(--r1);border-left:4px solid var(--r);border-radius:6px;margin-bottom:14px;font-size:12px;color:var(--r);font-weight:600">⏱ OVERDUE — This DCO has been in approval for more than ${this._config.approvalOverdueDays||14} days</div>` : ''}
         <div class="phasebar">${phaseBarHtml}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        ${isSubmitted ? `<div style="padding:9px 13px;background:var(--a1);border-left:4px solid var(--a);border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--a)">🔒 Submitted — DCO locked for review. Use Cancel Submission to return to Draft.</div>` : ''}
+        <div id="dco-meta-read-${dcoId}" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
           <div class="fg"><div class="fl">Phase</div><div class="fv">${dco.DCO_Phase||'Draft'}</div></div>
-          <div class="fg"><div class="fl">CR Link</div><div class="fv">${dco.DCO_CRLink||'—'}</div></div>
+          <div class="fg"><div class="fl">CR Link</div><div class="fv" id="fv-crlink-${dcoId}">${dco.DCO_CRLink||'—'}</div></div>
           <div class="fg"><div class="fl">Submitted</div><div class="fv">${this._fmt(dco.DCO_SubmittedDate)}</div></div>
-          <div class="fg"><div class="fl">Originator</div><div class="fv">${dco.DCO_Originator||'—'}</div></div>
+          <div class="fg"><div class="fl">Originator</div><div class="fv" id="fv-orig-${dcoId}">${dco.DCO_Originator||'—'}</div></div>
+          <div class="fg"><div class="fl">Impl. Required</div><div class="fv" id="fv-implreq-${dcoId}">${dco.DCO_ImplActivityRequired ? 'Yes' : 'No'}</div></div>
+          <div class="fg"><div class="fl">Impl. No-Sooner-Than</div><div class="fv" id="fv-implnst-${dcoId}">${dco.DCO_ImplNoSoonerThan ? this._fmt(dco.DCO_ImplNoSoonerThan) : '—'}</div></div>
+          <div class="fg"><div class="fl">Eff. No-Sooner-Than</div><div class="fv" id="fv-effnst-${dcoId}">${dco.DCO_EffNoSoonerThan ? this._fmt(dco.DCO_EffNoSoonerThan) : '—'}</div></div>
+          <div class="fg" style="grid-column:1/-1"><div class="fl">Implementation Plan</div><div class="fv" id="fv-implplan-${dcoId}" style="white-space:pre-wrap;font-size:11px;${!dco.DCO_ImplPlan?'color:var(--s5);font-style:italic':''}">${dco.DCO_ImplPlan||'No plan set'}</div></div>
+          ${isDraft ? `<div style="grid-column:1/-1;padding-top:2px"><button id="dco-edit-btn-${dcoId}" style="font-size:11px;font-weight:600;padding:5px 14px;border-radius:5px;border:1px solid var(--b);color:var(--b);background:var(--b0);cursor:pointer">✏️ Edit Details</button></div>` : ''}
         </div>
+        ${isDraft ? `<div id="dco-edit-form-${dcoId}" style="display:none;border:1px solid var(--b2);border-radius:7px;padding:14px;background:var(--b0);margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--b);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Edit DCO Details</div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">Title</div><input id="dco-edit-title-${dcoId}" class="finput" type="text" value="${(dco.DCO_Title||'').replace(/"/g,'&quot;')}" placeholder="DCO title..."></div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">CR Link</div><input id="dco-edit-crlink-${dcoId}" class="finput" type="text" value="${dco.DCO_CRLink||''}" placeholder="CR-XXXX"></div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">Originator</div><input id="dco-edit-orig-${dcoId}" class="finput" type="text" value="${dco.DCO_Originator||''}" placeholder="Name"></div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. Activity Required</div><select id="dco-edit-implreq-${dcoId}" class="fsel"><option value="0" ${!dco.DCO_ImplActivityRequired?'selected':''}>No</option><option value="1" ${dco.DCO_ImplActivityRequired?'selected':''}>Yes</option></select></div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. No-Sooner-Than</div><input id="dco-edit-implnst-${dcoId}" class="finput" type="date" value="${dco.DCO_ImplNoSoonerThan?dco.DCO_ImplNoSoonerThan.substring(0,10):''}"></div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">Eff. No-Sooner-Than</div><input id="dco-edit-effnst-${dcoId}" class="finput" type="date" value="${dco.DCO_EffNoSoonerThan?dco.DCO_EffNoSoonerThan.substring(0,10):''}"></div>
+          <div class="fg" style="margin-bottom:12px"><div class="fl">Implementation Plan</div><textarea id="dco-edit-implplan-${dcoId}" class="ftxt" rows="3" placeholder="Describe the implementation plan...">${dco.DCO_ImplPlan||''}</textarea></div>
+          <div style="display:flex;gap:8px"><button id="dco-edit-save-${dcoId}" class="btn-pri btn-sm">Save Changes</button><button id="dco-edit-cancel-${dcoId}" class="btn-sec btn-sm">Cancel</button></div>
+        </div>` : ''}
         ${isInReview ? `
         <div class="doc-review-section">
           <div class="doc-review-hdr">
@@ -2109,7 +2235,18 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           <button class="mdco-tab" data-pane="hist-${dcoId}">Routing History</button>
         </div>
         <div class="mdco-pane on" id="mdco-pane-docs-${dcoId}"></div>
-        <div class="mdco-pane" id="mdco-pane-apprs-${dcoId}"><div class="lane-grid">${laneHtml}</div></div>
+        <div class="mdco-pane" id="mdco-pane-apprs-${dcoId}">
+          <div class="lane-grid">${laneHtml}</div>
+          ${isDraft ? `<div style="margin-top:14px;padding:12px;border-top:1px solid var(--s2);background:var(--s0);border-radius:0 0 7px 7px">
+            <div style="font-size:11px;font-weight:700;color:var(--s5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Add Approver</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input id="appr-add-name-${dcoId}" class="finput" type="text" placeholder="Full name" style="flex:1;min-width:140px">
+              <input id="appr-add-email-${dcoId}" class="finput" type="email" placeholder="email@adbccro.com" style="flex:1;min-width:160px">
+              <select id="appr-add-role-${dcoId}" class="fsel" style="min-width:120px"><option>QA Manager</option><option>QA Specialist</option><option>Regulatory</option><option>Operations</option><option>Management</option></select>
+              <button id="appr-add-btn-${dcoId}" class="btn-pri btn-sm">+ Add</button>
+            </div>
+          </div>` : ''}
+        </div>
         <div class="mdco-pane" id="mdco-pane-hist-${dcoId}"><div id="dhist-${dcoId}">${histHtml||'<div style="color:var(--s5);font-size:12px;padding:8px 0">No history recorded yet</div>'}</div></div>`;
       this._set('mdco-title', dcoId);
       this._set('mdco-sub', dco.DCO_Title||'');
@@ -2137,7 +2274,37 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           if (main2) main2.style.background = 'var(--g1)';
           // Open the document in SharePoint
           const siteUrl = this.context.pageContext.web.absoluteUrl;
-          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx' }; const docFileName = docFileMap[docId] || (docId + '_DRAFT_.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
+          const _pubFM: Record<string,string> = {
+            'QM-001':'QM-001_Quality_Manual_DRAFT_.docx',
+            'SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx',
+            'SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx',
+            'SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx',
+            'SOP-PRD-108':'SOP-PRD-108_DRAFT_.docx',
+            'SOP-PRD-432':'SOP-PRD-432_DRAFT_.docx',
+            'SOP-FRS-549':'SOP-FRS-549_DRAFT_.docx',
+            'SOP-RCL-321':'SOP-RCL-321_DRAFT_.docx',
+            'SOP-SUP-001':'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx',
+            'SOP-SUP-002':'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx',
+            'SOP-FS-001':'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx',
+            'SOP-FS-002':'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx',
+            'SOP-FS-003':'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx',
+            'SOP-FS-004':'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx',
+            'SOP-PC-001':'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx',
+            'FM-001':'FM-001_Master_Document_Log_DRAFT_.docx',
+            'FM-002':'FM-002_Change_Request_Form_DRAFT_.docx',
+            'FM-003':'FM-003_Document_Change_Order_DRAFT_.docx',
+            'FM-004':'FM-004_DRAFT_Approved_Supplier_List_TEMPLATE.docx',
+            'FM-005':'FM-005_DRAFT_Receiving_Log_TEMPLATE.docx',
+            'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx',
+            'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx',
+            'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
+            'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
+          };
+          const _pubFMIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-008','FM-025','FM-027','FM-030'];
+          const _pubQMIDS = ['QM-001'];
+          const docFileName = _pubFM[docId] || (docId + '_DRAFT_.docx');
+          const _pubFolder = _pubFMIDS.includes(docId) ? 'Published/QMS/Forms' : _pubQMIDS.includes(docId) ? 'Published/QMS/Quality Manual' : 'Published/QMS/Documents';
+          const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/' + _pubFolder + '/' + docFileName) + '&action=view';
           // document open deferred to end of handler
           const state = w._qpDocReviewState[dcoId];
           const opened = state.filter((v: boolean) => v).length;
@@ -2305,7 +2472,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       if (docsPaneEl && gateEl) docsPaneEl.appendChild(gateEl);
 
       // ── Draft phase — document editor ──────────────────────────────────────
-      if (!isEffective && docsPaneEl) {
+      if (isDraft && docsPaneEl) {
         const _editorWrap = d.createElement('div');
         _editorWrap.id = 'dco-doc-editor-' + dcoId;
         _editorWrap.innerHTML = `
@@ -2559,6 +2726,72 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const actionBtn = d.getElementById('mdco-action-btn') as HTMLElement;
       const rejectBtn = d.getElementById('mdco-reject-btn') as HTMLElement;
 
+      // ── Edit form toggle + save (Task 4) ────────────────────────────────────
+      const _editBtn = d.getElementById('dco-edit-btn-' + dcoId);
+      const _editForm = d.getElementById('dco-edit-form-' + dcoId);
+      const _editCancelBtn = d.getElementById('dco-edit-cancel-' + dcoId);
+      const _editSaveBtn = d.getElementById('dco-edit-save-' + dcoId);
+      if (_editBtn && _editForm) {
+        _editBtn.addEventListener('click', () => { _editForm.style.display = _editForm.style.display === 'none' ? '' : 'none'; });
+      }
+      if (_editCancelBtn && _editForm) {
+        _editCancelBtn.addEventListener('click', () => { _editForm.style.display = 'none'; });
+      }
+      if (_editSaveBtn) {
+        _editSaveBtn.addEventListener('click', async () => {
+          const _title = (d.getElementById('dco-edit-title-' + dcoId) as HTMLInputElement)?.value || '';
+          const _crlink = (d.getElementById('dco-edit-crlink-' + dcoId) as HTMLInputElement)?.value || '';
+          const _orig = (d.getElementById('dco-edit-orig-' + dcoId) as HTMLInputElement)?.value || '';
+          const _implReq = (d.getElementById('dco-edit-implreq-' + dcoId) as HTMLSelectElement)?.value === '1';
+          const _implNst = (d.getElementById('dco-edit-implnst-' + dcoId) as HTMLInputElement)?.value || '';
+          const _effNst = (d.getElementById('dco-edit-effnst-' + dcoId) as HTMLInputElement)?.value || '';
+          const _implPlan = (d.getElementById('dco-edit-implplan-' + dcoId) as HTMLTextAreaElement)?.value || '';
+          const _dcoItem3 = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
+          if (!_dcoItem3?.Id) return;
+          const _base3 = this.context.pageContext.web.absoluteUrl;
+          const _patch: any = { DCO_Title: _title, DCO_CRLink: _crlink, DCO_Originator: _orig, DCO_ImplActivityRequired: _implReq, DCO_ImplPlan: _implPlan };
+          if (_implNst) _patch.DCO_ImplNoSoonerThan = _implNst + 'T00:00:00Z';
+          if (_effNst) _patch.DCO_EffNoSoonerThan = _effNst + 'T00:00:00Z';
+          await this.context.spHttpClient.post(
+            _base3 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + _dcoItem3.Id + ")",
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+              body: JSON.stringify(_patch) }
+          );
+          Object.assign(_dcoItem3, { DCO_Title: _title, DCO_CRLink: _crlink, DCO_Originator: _orig, DCO_ImplActivityRequired: _implReq, DCO_ImplPlan: _implPlan });
+          if (_implNst) _dcoItem3.DCO_ImplNoSoonerThan = _implNst + 'T00:00:00Z';
+          if (_effNst) _dcoItem3.DCO_EffNoSoonerThan = _effNst + 'T00:00:00Z';
+          this._set('mdco-sub', _title);
+          const _fvCr = d.getElementById('fv-crlink-' + dcoId); if (_fvCr) _fvCr.textContent = _crlink || '—';
+          const _fvOr = d.getElementById('fv-orig-' + dcoId); if (_fvOr) _fvOr.textContent = _orig || '—';
+          const _fvIr = d.getElementById('fv-implreq-' + dcoId); if (_fvIr) _fvIr.textContent = _implReq ? 'Yes' : 'No';
+          const _fvIn = d.getElementById('fv-implnst-' + dcoId); if (_fvIn) _fvIn.textContent = _implNst ? this._fmt(_implNst + 'T00:00:00Z') : '—';
+          const _fvEn = d.getElementById('fv-effnst-' + dcoId); if (_fvEn) _fvEn.textContent = _effNst ? this._fmt(_effNst + 'T00:00:00Z') : '—';
+          const _fvIp = d.getElementById('fv-implplan-' + dcoId); if (_fvIp) { _fvIp.textContent = _implPlan || 'No plan set'; (_fvIp as HTMLElement).style.fontStyle = _implPlan ? '' : 'italic'; (_fvIp as HTMLElement).style.color = _implPlan ? '' : 'var(--s5)'; }
+          if (_editForm) _editForm.style.display = 'none';
+          if (w.qpToast) w.qpToast('DCO details saved');
+        });
+      }
+      // ── Approver add (Draft only — Task 4) ────────────────────────────────────
+      const _apprAddBtn = d.getElementById('appr-add-btn-' + dcoId);
+      if (_apprAddBtn) {
+        _apprAddBtn.addEventListener('click', async () => {
+          const _aName = (d.getElementById('appr-add-name-' + dcoId) as HTMLInputElement)?.value.trim() || '';
+          const _aEmail = (d.getElementById('appr-add-email-' + dcoId) as HTMLInputElement)?.value.trim() || '';
+          const _aRole = (d.getElementById('appr-add-role-' + dcoId) as HTMLSelectElement)?.value || 'QA Manager';
+          if (!_aName || !_aEmail) { if (w.qpToast) w.qpToast('Name and email required'); return; }
+          const _base4 = this.context.pageContext.web.absoluteUrl;
+          await this.context.spHttpClient.post(
+            _base4 + "/_api/web/lists/getbytitle('QMS_Approvals')/items",
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+              body: JSON.stringify({ Title: dcoId + '-APPR-' + Date.now(), Appr_DCOID: dcoId, Appr_Name: _aName, Appr_Email: _aEmail, Appr_Role: _aRole, Appr_Type: 'Required', Appr_Status: 'Waiting' }) }
+          );
+          if (w.qpToast) w.qpToast('Approver added: ' + _aName);
+          setTimeout(() => this._loadAll(), 800);
+        });
+      }
+
       // ── Cancel button — only for CA or Originator, not in Draft/Effective ──
       const currentUserName = this.context.pageContext.user.displayName || '';
       const currentUserEmail = this.context.pageContext.user.email || '';
@@ -2600,11 +2833,47 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '📤 Submit for Approval';
           actionBtn.onclick = async () => {
-            if (w.qpToast) w.qpToast('Submitting DCO for approval...');
+            if (w.qpToast) w.qpToast('Validating documents before submission...');
             const base2 = this.context.pageContext.web.absoluteUrl;
             const user2 = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
             const ts2 = new Date().toISOString();
             const dcoItem2 = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
+            // Validate all assigned documents exist in Published zone
+            const _vDocs = (dcoItem2?.DCO_Docs || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+            const _vFM: Record<string,string> = {
+              'QM-001':'QM-001_Quality_Manual_DRAFT_.docx',
+              'SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx','SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx',
+              'SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx','SOP-PRD-108':'SOP-PRD-108_DRAFT_.docx',
+              'SOP-PRD-432':'SOP-PRD-432_DRAFT_.docx','SOP-FRS-549':'SOP-FRS-549_DRAFT_.docx','SOP-RCL-321':'SOP-RCL-321_DRAFT_.docx',
+              'SOP-SUP-001':'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx','SOP-SUP-002':'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx',
+              'SOP-FS-001':'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx','SOP-FS-002':'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx',
+              'SOP-FS-003':'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx','SOP-FS-004':'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx',
+              'SOP-PC-001':'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx',
+              'FM-001':'FM-001_Master_Document_Log_DRAFT_.docx','FM-002':'FM-002_Change_Request_Form_DRAFT_.docx',
+              'FM-003':'FM-003_Document_Change_Order_DRAFT_.docx','FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx',
+              'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx','FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
+              'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
+            };
+            const _vFIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-008','FM-025','FM-027','FM-030'];
+            const _vQMIDS = ['QM-001'];
+            const missing: string[] = [];
+            for (const _vId of _vDocs) {
+              const _vFn = _vFM[_vId] || (_vId + '_DRAFT_.docx');
+              const _vFolder = _vFIDS.includes(_vId) ? 'Published/QMS/Forms' : _vQMIDS.includes(_vId) ? 'Published/QMS/Quality Manual' : 'Published/QMS/Documents';
+              const _vPath = "/sites/IMP9177/Shared Documents/" + _vFolder + "/" + _vFn;
+              try {
+                const _vResp = await this.context.spHttpClient.get(
+                  base2 + "/_api/web/GetFileByServerRelativeUrl('" + _vPath + "')",
+                  SPHttpClient.configurations.v1
+                );
+                if (!_vResp.ok) missing.push(_vId);
+              } catch(e) { missing.push(_vId); }
+            }
+            if (missing.length > 0) {
+              if (w.qpToast) w.qpToast('Submit blocked — files not found in Published zone: ' + missing.join(', '));
+              return;
+            }
+            if (w.qpToast) w.qpToast('Submitting DCO for approval...');
             if (dcoItem2?.Id) {
               await this.context.spHttpClient.post(
                 base2 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem2.Id + ")",
@@ -2648,42 +2917,72 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             (d.getElementById('modal-esign') as HTMLElement)?.classList.add('open');
           };
           if (rejectBtn) rejectBtn.style.display = 'inline-flex';
-        } else if (phase === 'Implemented') {
+        } else if (phase === 'Awaiting Training') {
+          // Build per-document training status (Task 6)
+          const _userEmail6 = this.context.pageContext.user.email || '';
+          const _comps6 = (this._data.completions || []);
+          const _trStatus = displayDocs.map((did: string) => {
+            const trained = _comps6.some((c: any) =>
+              (c.TC_DocID || '').toUpperCase() === did.toUpperCase() &&
+              ((c.TC_EmpID || '').toLowerCase().includes(_userEmail6.toLowerCase().split('@')[0]) ||
+               (c.TC_EmpID || '').toLowerCase() === _userEmail6.toLowerCase())
+            );
+            return { docId: did, trained };
+          });
+          const _allTrained = _trStatus.length === 0 || _trStatus.every((s: any) => s.trained);
+          const _trPane6 = d.getElementById('mdco-pane-docs-' + dcoId);
+          if (_trPane6) {
+            const _trWrap = d.createElement('div');
+            _trWrap.innerHTML = `<div style="padding:12px;background:var(--s0);border-radius:7px;margin-bottom:8px;border:1px solid var(--s2)">
+              <div style="font-size:11px;font-weight:700;color:var(--s5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px">Training Status<span style="font-weight:400;font-size:10px;padding:1px 8px;border-radius:10px;background:${_allTrained ? 'var(--g1)' : 'var(--a1)'};color:${_allTrained ? 'var(--g)' : 'var(--a)'}">${_allTrained ? '✓ All Complete' : 'Pending'}</span></div>
+              ${_trStatus.map((s: any) => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--s1)"><div style="width:18px;height:18px;border-radius:50%;background:${s.trained ? 'var(--g)' : 'var(--r)'};flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700">${s.trained ? '✓' : '!'}</div><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${s.docId}</span><span style="font-size:11px;color:var(--s5);flex:1">${docNameMap[s.docId] || s.docId}</span><span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:${s.trained ? 'var(--g1)' : 'var(--r1)'};color:${s.trained ? 'var(--g)' : 'var(--r)'}">${s.trained ? 'Complete' : 'Pending'}</span></div>`).join('')}
+            </div>`;
+            _trPane6.appendChild(_trWrap);
+          }
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '🎓 Training Complete';
           actionBtn.style.background = '#7b1fa2';
+          if (!_allTrained) { actionBtn.style.opacity = '0.5'; actionBtn.style.cursor = 'not-allowed'; actionBtn.title = 'Complete training for all documents first'; }
           actionBtn.onclick = async () => {
+            if (!_allTrained) { if (w.qpToast) w.qpToast('Complete training for all documents first'); return; }
             if (w.qpToast) w.qpToast('Recording training completion...');
             const base2 = this.context.pageContext.web.absoluteUrl;
             const user2 = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
             const ts2 = new Date().toISOString();
-            // Advance DCO to Awaiting Training
             const dcoItem2 = (this._data.dcos||[]).find((x:any)=>x.Title===dcoId);
             if (dcoItem2?.Id) {
               await this.context.spHttpClient.post(
                 base2 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem2.Id + ")",
                 SPHttpClient.configurations.v1,
                 { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
-                  body: JSON.stringify({ DCO_Phase: 'Awaiting Training' }) }
+                  body: JSON.stringify({ DCO_Phase: 'Implemented' }) }
               );
-              dcoItem2.DCO_Phase = 'Awaiting Training';
+              dcoItem2.DCO_Phase = 'Implemented';
             }
             await this.context.spHttpClient.post(
               base2 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
               SPHttpClient.configurations.v1,
               { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
                 body: JSON.stringify({ Title: dcoId+'-TRAINING-'+Date.now(), RH_DCOID: dcoId, RH_EventType: 'stage',
-                  RH_Stage: 'Awaiting Training', RH_Actor: user2,
-                  RH_Note: 'Training confirmed complete by ' + user2 + '. DCO advanced to Awaiting Training.', RH_Timestamp: ts2 }) }
+                  RH_Stage: 'Implemented', RH_Actor: user2,
+                  RH_Note: 'Training confirmed complete by ' + user2 + '. DCO advanced to Implemented.', RH_Timestamp: ts2 }) }
             );
-            if (w.qpToast) w.qpToast('Training recorded — DCO now Awaiting Training');
+            if (w.qpToast) w.qpToast('Training recorded — DCO now Implemented');
             setTimeout(() => this._loadAll(), 1000);
           };
-        } else if (phase === 'Awaiting Training') {
+        } else if (phase === 'Implemented') {
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '✅ Mark Effective';
           actionBtn.style.background = 'var(--g)';
+          // Date gate: block if DCO_EffNoSoonerThan has not passed (Task 7)
+          const _effNST = dco.DCO_EffNoSoonerThan ? new Date(dco.DCO_EffNoSoonerThan) : null;
+          const _nstBlocked = _effNST && _effNST > new Date();
+          if (_nstBlocked) {
+            actionBtn.style.opacity = '0.5'; actionBtn.style.cursor = 'not-allowed';
+            actionBtn.title = 'Effective No-Sooner-Than date not yet reached: ' + (_effNST ? _effNST.toLocaleDateString() : '');
+          }
           actionBtn.onclick = async () => {
+            if (_nstBlocked) { if (w.qpToast) w.qpToast('Cannot mark effective — Eff. No-Sooner-Than date not yet reached'); return; }
             if (w.qpToast) w.qpToast('Executing DCO closure — promoting documents...');
             await this._executeMarkEffective(dcoId);
           };
@@ -2914,12 +3213,15 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
     const ts = new Date().toISOString();
     const dcoItem = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
     const docIds = (dcoItem?.DCO_Docs||'').split(',').map((s: string) => s.trim()).filter(Boolean);
-    const FORM_IDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-027','FM-030','FM-ALG'];
+    const FORM_IDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-025','FM-027','FM-030','FM-ALG'];
+    const QM_IDS   = ['QM-001'];
     const fileMap: Record<string,string> = {
-      'QM-001':'QM-001_Quality_Manual_DRAFT.docx','SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx',
-      'SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx',
-      'SOP-PRD-108':'SOP-PRD-108_DRAFT.docx','SOP-PRD-432':'SOP-PRD-432_DRAFT.docx',
-      'SOP-FRS-549':'SOP-FRS-549_DRAFT.docx',
+      'QM-001':'QM-001_Quality_Manual_DRAFT_.docx',
+      'SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx',
+      'SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx',
+      'SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx',
+      'SOP-PRD-108':'SOP-PRD-108_DRAFT_.docx','SOP-PRD-432':'SOP-PRD-432_DRAFT_.docx',
+      'SOP-FRS-549':'SOP-FRS-549_DRAFT_.docx','SOP-RCL-321':'SOP-RCL-321_DRAFT_.docx',
       'SOP-SUP-001':'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx',
       'SOP-SUP-002':'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx',
       'SOP-FS-001':'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx',
@@ -2927,10 +3229,13 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
       'SOP-FS-003':'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx',
       'SOP-FS-004':'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx',
       'SOP-PC-001':'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx',
-      'FM-001':'FM-001_Master_Document_Log_DRAFT.docx','FM-002':'FM-002_Change_Request_Form_DRAFT.docx',
-      'FM-003':'FM-003_Document_Change_Order_DRAFT.docx',
-      'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT.docx',
-      'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT.docx',
+      'FM-001':'FM-001_Master_Document_Log_DRAFT_.docx',
+      'FM-002':'FM-002_Change_Request_Form_DRAFT_.docx',
+      'FM-003':'FM-003_Document_Change_Order_DRAFT_.docx',
+      'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx',
+      'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx',
+      'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
+      'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
     };
     let promoted = 0; let pdfCount = 0;
     try {
@@ -2938,8 +3243,11 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
       for (const docId of docIds) {
         const fn = fileMap[docId] || (docId + '_DRAFT_.docx');
         const isForm = FORM_IDS.includes(docId);
-        const srcPath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Published/QMS/Forms/' : 'Shared Documents/Published/QMS/Documents/') + fn;
-        const destPath = '/sites/IMP9177/' + (isForm ? 'Shared Documents/Official/QMS/Forms/' : 'Shared Documents/Official/QMS/Documents/') + fn;
+        const isQM   = QM_IDS.includes(docId);
+        const pubZone = isForm ? 'Shared Documents/Published/QMS/Forms/' : isQM ? 'Shared Documents/Published/QMS/Quality Manual/' : 'Shared Documents/Published/QMS/Documents/';
+        const offZone = isForm ? 'Shared Documents/Official/QMS/Forms/' : isQM ? 'Shared Documents/Official/QMS/Quality Manual/' : 'Shared Documents/Official/QMS/Documents/';
+        const srcPath = '/sites/IMP9177/' + pubZone + fn;
+        const destPath = '/sites/IMP9177/' + offZone + fn;
         try {
           await this.context.spHttpClient.post(
             base + "/_api/web/GetFileByServerRelativeUrl('" + srcPath + "')/copyTo(strNewUrl='" + destPath + "',bOverWrite=true)",
