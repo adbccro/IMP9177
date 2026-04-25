@@ -1504,30 +1504,30 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const _OFF  = _SP + '/Shared%20Documents/Official/QMS/Forms';
       const _FIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-027','FM-030','FM-ALG'];
       const _FM: Record<string,string> = {
-        'QM-001':'QM-001_Quality_Manual_RevA.docx',
-        'SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx',
-        'SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx',
-        'SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx',
-        'SOP-PRD-108':'SOP-PRD-108_RevA.docx',
-        'SOP-PRD-432':'SOP-PRD-432_RevA.docx',
-        'SOP-FRS-549':'SOP-FRS-549_RevA.docx',
-        'SOP-SUP-001':'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx',
-        'SOP-SUP-002':'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx',
-        'SOP-FS-001':'SOP-FS-001_RevA_Allergen_Control_FINAL.docx',
-        'SOP-FS-002':'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx',
-        'SOP-FS-003':'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx',
-        'SOP-FS-004':'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx',
-        'SOP-PC-001':'SOP-PC-001_RevA_Pest_Sighting_Response.docx',
-        'FM-001':'FM-001_Master_Document_Log_RevA.docx',
-        'FM-002':'FM-002_Change_Request_Form_RevA.docx',
-        'FM-003':'FM-003_Document_Change_Order_RevA.docx',
+        'QM-001':'QM-001_Quality_Manual_DRAFT.docx',
+        'SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx',
+        'SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx',
+        'SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx',
+        'SOP-PRD-108':'SOP-PRD-108_DRAFT.docx',
+        'SOP-PRD-432':'SOP-PRD-432_DRAFT.docx',
+        'SOP-FRS-549':'SOP-FRS-549_DRAFT.docx',
+        'SOP-SUP-001':'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx',
+        'SOP-SUP-002':'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx',
+        'SOP-FS-001':'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx',
+        'SOP-FS-002':'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx',
+        'SOP-FS-003':'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx',
+        'SOP-FS-004':'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx',
+        'SOP-PC-001':'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx',
+        'FM-001':'FM-001_Master_Document_Log_DRAFT.docx',
+        'FM-002':'FM-002_Change_Request_Form_DRAFT.docx',
+        'FM-003':'FM-003_Document_Change_Order_DRAFT.docx',
         'FM-004':'FM-004_Supplier_Evaluation_Form_RevA.docx',
         'FM-005':'FM-005_Ingredient_Approval_Form_RevA.docx',
         'FM-006':'FM-006_Material_Receipt_Log_RevA.docx',
         'FM-007':'FM-007_CoA_Review_Checklist_RevA.docx',
-        'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx',
-        'FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx',
-        'FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx',
+        'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx',
+        'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT.docx',
+        'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT.docx',
         'FM-ALG':'FM-ALG_Allergen_Status_Record_RevA.docx',
       };
 
@@ -1653,7 +1653,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           if (main2) main2.style.background = 'var(--g1)';
           // Open the document in SharePoint
           const siteUrl = this.context.pageContext.web.absoluteUrl;
-          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_RevA_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_RevA_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_RevA.docx' }; const docFileName = docFileMap[docId] || (docId + '_RevA.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
+          const docFileMap: Record<string, string> = { 'SOP-SUP-001': 'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx', 'SOP-SUP-002': 'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx', 'SOP-FS-001': 'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx', 'SOP-FS-002': 'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx', 'SOP-FS-003': 'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx', 'SOP-FS-004': 'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx', 'SOP-PC-001': 'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx', 'FM-008': 'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT.docx' }; const docFileName = docFileMap[docId] || (docId + '_RevA.docx'); const docPath = siteUrl + '/Shared%20Documents/Published/QMS/Documents/' + encodeURIComponent(docFileName); const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/Published/QMS/Documents/' + docFileName) + '&action=view';
           // document open deferred to end of handler
           const state = w._qpDocReviewState[dcoId];
           const opened = state.filter((v: boolean) => v).length;
@@ -2372,7 +2372,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     };
   }
 
-  private _addDownloadBar(dcoId:string,phase:string):void{const d=this._iframe?.contentDocument;const w=this._iframe?.contentWindow as any;if(!d||!w)return;const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);if(!dco)return;if(!['Implemented','Awaiting Training','Effective'].includes(phase))return;if(d.getElementById('dco-dl-bar-'+dcoId))return;const bar=d.createElement('div');bar.className='dco-dl-bar';bar.id='dco-dl-bar-'+dcoId;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const OD=SP+'/Shared%20Documents/Official/QMS/Documents';const OF=SP+'/Shared%20Documents/Official/QMS/Forms';const FM:Record<string,string>={'QM-001':'QM-001_Quality_Manual_RevA.docx','SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx','SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx','SOP-PRD-108':'SOP-PRD-108_RevA.docx','SOP-PRD-432':'SOP-PRD-432_RevA.docx','SOP-FRS-549':'SOP-FRS-549_RevA.docx','FM-001':'FM-001_Master_Document_Log_RevA.docx','FM-002':'FM-002_Change_Request_Form_RevA.docx','FM-003':'FM-003_Document_Change_Order_RevA.docx','FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx','FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx'};const FIDS=['FM-001','FM-002','FM-003','FM-027','FM-030'];const rptBtn=d.createElement('button');rptBtn.className='btn-dl btn-dl-report';rptBtn.innerHTML='&#128196; Download DCO Report (PDF)';rptBtn.addEventListener('click',()=>this._generateDCOReport(dcoId));bar.appendChild(rptBtn);const docList=(dco.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);docList.forEach((id:string)=>{const fn=FM[id];if(!fn)return;const url=(FIDS.includes(id)?OF:OD)+'/'+encodeURIComponent(fn);const a=d.createElement('a');a.className='btn-dl btn-dl-doc';a.innerHTML='&#128194; '+id;a.href=url;a.target='_blank';bar.appendChild(a);});const modalFt=d.querySelector('#modal-dco-detail .modal-ft');if(modalFt)modalFt.parentElement?.insertBefore(bar,modalFt);}
+  private _addDownloadBar(dcoId:string,phase:string):void{const d=this._iframe?.contentDocument;const w=this._iframe?.contentWindow as any;if(!d||!w)return;const dco=(this._data.dcos||[]).find((x:any)=>x.Title===dcoId);if(!dco)return;if(!['Implemented','Awaiting Training','Effective'].includes(phase))return;if(d.getElementById('dco-dl-bar-'+dcoId))return;const bar=d.createElement('div');bar.className='dco-dl-bar';bar.id='dco-dl-bar-'+dcoId;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const OD=SP+'/Shared%20Documents/Official/QMS/Documents';const OF=SP+'/Shared%20Documents/Official/QMS/Forms';const FM:Record<string,string>={'QM-001':'QM-001_Quality_Manual_DRAFT.docx','SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx','SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx','SOP-PRD-108':'SOP-PRD-108_DRAFT.docx','SOP-PRD-432':'SOP-PRD-432_DRAFT.docx','SOP-FRS-549':'SOP-FRS-549_DRAFT.docx','FM-001':'FM-001_Master_Document_Log_DRAFT.docx','FM-002':'FM-002_Change_Request_Form_DRAFT.docx','FM-003':'FM-003_Document_Change_Order_DRAFT.docx','FM-027':'FM-027_QU_QS_Designation_Record_DRAFT.docx','FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT.docx'};const FIDS=['FM-001','FM-002','FM-003','FM-027','FM-030'];const rptBtn=d.createElement('button');rptBtn.className='btn-dl btn-dl-report';rptBtn.innerHTML='&#128196; Download DCO Report (PDF)';rptBtn.addEventListener('click',()=>this._generateDCOReport(dcoId));bar.appendChild(rptBtn);const docList=(dco.DCO_Docs||'').split(',').map((s:string)=>s.trim()).filter(Boolean);docList.forEach((id:string)=>{const fn=FM[id];if(!fn)return;const url=(FIDS.includes(id)?OF:OD)+'/'+encodeURIComponent(fn);const a=d.createElement('a');a.className='btn-dl btn-dl-doc';a.innerHTML='&#128194; '+id;a.href=url;a.target='_blank';bar.appendChild(a);});const modalFt=d.querySelector('#modal-dco-detail .modal-ft');if(modalFt)modalFt.parentElement?.insertBefore(bar,modalFt);}
 
   private _generateDCOReport(dcoId:string):void{const w=this._iframe?.contentWindow as any;if(!w)return;
     // If jsPDF not loaded yet, inject it dynamically and retry
@@ -2432,21 +2432,21 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
     const docIds = (dcoItem?.DCO_Docs||'').split(',').map((s: string) => s.trim()).filter(Boolean);
     const FORM_IDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-027','FM-030','FM-ALG'];
     const fileMap: Record<string,string> = {
-      'QM-001':'QM-001_Quality_Manual_RevA.docx','SOP-QMS-001':'SOP-QMS-001_RevA_Management_Responsibility.docx',
-      'SOP-QMS-002':'SOP-QMS-002_RevA_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_RevA_Change_Control.docx',
-      'SOP-PRD-108':'SOP-PRD-108_RevA.docx','SOP-PRD-432':'SOP-PRD-432_RevA.docx',
-      'SOP-FRS-549':'SOP-FRS-549_RevA.docx',
-      'SOP-SUP-001':'SOP-SUP-001_RevA_Supplier_Qualification_FINAL.docx',
-      'SOP-SUP-002':'SOP-SUP-002_RevA_Receiving_Inspection_FINAL.docx',
-      'SOP-FS-001':'SOP-FS-001_RevA_Allergen_Control_FINAL.docx',
-      'SOP-FS-002':'SOP-FS-002_RevA_Equipment_Cleaning_FINAL.docx',
-      'SOP-FS-003':'SOP-FS-003_RevA_Facility_Sanitation_FINAL.docx',
-      'SOP-FS-004':'SOP-FS-004_RevA_Environmental_Monitoring_FINAL.docx',
-      'SOP-PC-001':'SOP-PC-001_RevA_Pest_Sighting_Response.docx',
-      'FM-001':'FM-001_Master_Document_Log_RevA.docx','FM-002':'FM-002_Change_Request_Form_RevA.docx',
-      'FM-003':'FM-003_Document_Change_Order_RevA.docx',
-      'FM-027':'FM-027_QU_QS_Designation_Record_RevA.docx',
-      'FM-030':'FM-030_Finished_Product_Spec_Sheet_RevA.docx',
+      'QM-001':'QM-001_Quality_Manual_DRAFT.docx','SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx',
+      'SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx','SOP-QMS-003':'SOP-QMS-003_DRAFT_Change_Control.docx',
+      'SOP-PRD-108':'SOP-PRD-108_DRAFT.docx','SOP-PRD-432':'SOP-PRD-432_DRAFT.docx',
+      'SOP-FRS-549':'SOP-FRS-549_DRAFT.docx',
+      'SOP-SUP-001':'SOP-SUP-001_DRAFT_Supplier_Qualification_FINAL.docx',
+      'SOP-SUP-002':'SOP-SUP-002_DRAFT_Receiving_Inspection_FINAL.docx',
+      'SOP-FS-001':'SOP-FS-001_DRAFT_Allergen_Control_FINAL.docx',
+      'SOP-FS-002':'SOP-FS-002_DRAFT_Equipment_Cleaning_FINAL.docx',
+      'SOP-FS-003':'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx',
+      'SOP-FS-004':'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx',
+      'SOP-PC-001':'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx',
+      'FM-001':'FM-001_Master_Document_Log_DRAFT.docx','FM-002':'FM-002_Change_Request_Form_DRAFT.docx',
+      'FM-003':'FM-003_Document_Change_Order_DRAFT.docx',
+      'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT.docx',
+      'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT.docx',
     };
     let promoted = 0; let pdfCount = 0;
     try {
