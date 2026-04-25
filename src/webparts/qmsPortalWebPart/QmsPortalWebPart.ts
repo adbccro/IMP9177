@@ -608,6 +608,33 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   </div>
 </div>
 
+<div class="modal-ov" id="modal-cancel-submission">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-hdr">
+      <div><div class="modal-title">Cancel Submission — Reason Required</div></div>
+      <button class="modal-x" data-close="modal-cancel-submission">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><div class="fl">Cancellation Category</div>
+        <select class="fsel" id="cancel-cat">
+          <option>Documents need revision</option>
+          <option>Wrong documents assigned</option>
+          <option>Approvers need updating</option>
+          <option>Submitted in error</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="fg"><div class="fl">Cancellation Reason (required)</div>
+        <textarea class="ftxt" id="cancel-reason" placeholder="Describe the reason for cancelling this submission..."></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-sec" data-close="modal-cancel-submission">Keep Submitted</button>
+      <button class="btn-pri btn-r" id="btn-confirm-cancel-submission">Cancel Submission → Return to Draft</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov" id="modal-reject">
   <div class="modal" style="max-width:500px">
     <div class="modal-hdr">
@@ -705,7 +732,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     try {
       const [dcos, crs, approvals, history, records, employees, roles, matrix, completions, config] =
         await Promise.all([
-          this.spGet('QMS_DCOs', 'Id,Title,DCO_Phase,DCO_Title,DCO_CRLink,DCO_SubmittedDate,DCO_Originator,DCO_Docs,DCO_LateDays,DCO_TrainingGate'),
+          this.spGet('QMS_DCOs', 'Id,Title,DCO_Phase,DCO_Title,DCO_CRLink,DCO_SubmittedDate,DCO_Originator,DCO_Docs,DCO_LateDays,DCO_TrainingGate,DCO_CA'),
           this.spGet('QMS_ChangeRequests', 'Id,Title,CR_Title,CR_Status,CR_Priority,CR_Originator,CR_LinkedDCOs,CR_Description,CR_CreatedDate'),
           this.spGet('QMS_DCOApprovals', 'Id,Title,Appr_DCOID,Appr_Name,Appr_Role,Appr_Type,Appr_Status,Appr_SignedDate,Appr_SigID'),
           this.spGet('QMS_RoutingHistory', 'Id,Title,RH_DCOID,RH_EventType,RH_Stage,RH_Actor,RH_Note,RH_Reason,RH_Timestamp'),
@@ -1209,7 +1236,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     });
 
     // Backdrop close
-    ['modal-dco-detail','modal-cr-detail','modal-reject','modal-esign'].forEach(id => {
+    ['modal-dco-detail','modal-cr-detail','modal-reject','modal-esign','modal-cancel-submission'].forEach(id => {
       const modal = d.getElementById(id);
       if (modal) modal.addEventListener('click', (e: Event) => { if ((e.target as HTMLElement).id === id) modal.classList.remove('open'); });
     });
@@ -1224,6 +1251,47 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       (d.getElementById('modal-reject') as HTMLElement)?.classList.remove('open');
       (d.getElementById('modal-dco-detail') as HTMLElement)?.classList.remove('open');
       if (w.qpToast) w.qpToast('DCO rejected — routing history updated');
+    });
+
+    // ── Cancel Submission confirm ───────────────────────────────────────────
+    const cancelConfirm = d.getElementById('btn-confirm-cancel-submission');
+    if (cancelConfirm) cancelConfirm.addEventListener('click', async () => {
+      const reason = (d.getElementById('cancel-reason') as HTMLTextAreaElement)?.value?.trim();
+      const cat    = (d.getElementById('cancel-cat') as HTMLSelectElement)?.value || 'Other';
+      if (!reason) { if (w.qpToast) w.qpToast('Cancellation reason is required'); return; }
+      const dcoId = (w._qpCancelDcoId as string) || '';
+      if (!dcoId) return;
+      const base2 = this.context.pageContext.web.absoluteUrl;
+      const user2 = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
+      const ts2   = new Date().toISOString();
+      const dcoItem2 = (this._data.dcos || []).find((x: any) => x.Title === dcoId);
+      if (dcoItem2?.Id) {
+        await this.context.spHttpClient.post(
+          base2 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem2.Id + ")",
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+            body: JSON.stringify({ DCO_Phase: 'Draft', DCO_SubmittedDate: null }) }
+        );
+        dcoItem2.DCO_Phase = 'Draft';
+        dcoItem2.DCO_SubmittedDate = null;
+      }
+      await this.context.spHttpClient.post(
+        base2 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+        SPHttpClient.configurations.v1,
+        { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+          body: JSON.stringify({ Title: dcoId + '-CANCEL-' + Date.now(),
+            RH_DCOID: dcoId, RH_EventType: 'stage', RH_Stage: 'Draft',
+            RH_Actor: user2,
+            RH_Note: 'Submission cancelled by ' + user2 + '. Category: ' + cat + '. Reason: ' + reason,
+            RH_Reason: reason, RH_Timestamp: ts2 }) }
+      );
+      (d.getElementById('modal-cancel-submission') as HTMLElement)?.classList.remove('open');
+      (d.getElementById('modal-dco-detail') as HTMLElement)?.classList.remove('open');
+      // Reset reason field
+      const reasonEl = d.getElementById('cancel-reason') as HTMLTextAreaElement;
+      if (reasonEl) reasonEl.value = '';
+      if (w.qpToast) w.qpToast(dcoId + ' submission cancelled — returned to Draft');
+      setTimeout(() => this._loadAll(), 1000);
     });
     const signConfirm = d.getElementById('btn-confirm-sign');
     if (signConfirm) signConfirm.addEventListener('click', async () => {
@@ -1609,16 +1677,19 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             w._qpSignBtn.style.cursor = '';
             w._qpSignBtn.title = 'Sign DCO';
           }
-          // Write to routing history
+          // Write to routing history — only when DCO is In Review or later (not Draft)
           const base = this.context.pageContext.web.absoluteUrl;
           const userEmail = this.context.pageContext.user.email;
           const userName = this.context.pageContext.user.displayName || userEmail;
-          this.context.spHttpClient.post(
-            base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
-            SPHttpClient.configurations.v1,
-            { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
-              body: JSON.stringify({ Title: dcoId + '-DOCREVIEW-' + docId, RH_DCOID: dcoId, RH_EventType: 'DocumentReview', RH_Stage: 'In Review', RH_Actor: userName, RH_Note: 'Document opened: ' + docId + ' ' + rev + ' | ' + userEmail, RH_Timestamp: new Date().toISOString() }) }
-          ).catch((e: any) => console.error('DocReview write failed', e));
+          const currentPhase = (this._data.dcos || []).find((x: any) => x.Title === dcoId)?.DCO_Phase || 'Draft';
+          if (currentPhase !== 'Draft') {
+            this.context.spHttpClient.post(
+              base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+              SPHttpClient.configurations.v1,
+              { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+                body: JSON.stringify({ Title: dcoId + '-DOCREVIEW-' + docId, RH_DCOID: dcoId, RH_EventType: 'DocumentReview', RH_Stage: currentPhase, RH_Actor: userName, RH_Note: 'Document opened: ' + docId + ' ' + rev + ' | ' + userEmail, RH_Timestamp: new Date().toISOString() }) }
+            ).catch((e: any) => console.error('DocReview write failed', e));
+          }
           const histPanel = d.getElementById('dhist-' + dcoId);
           if (histPanel) {
             const entry = '<div class="rh-item"><div class="rh-dot sig"></div><div class="rh-body"><div class="rh-top"><span class="rh-evt">Document opened</span><span class="rh-ts">' + ts + '</span></div><div class="rh-detail">' + userName + ' · M365</div><div style="display:inline-block;font-size:10px;padding:1px 7px;border-radius:8px;background:var(--a1);color:var(--a);margin-top:3px;font-weight:700">' + docId + ' ' + rev + '</div></div></div>';
@@ -2003,6 +2074,40 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       // Wire action buttons based on phase
       const actionBtn = d.getElementById('mdco-action-btn') as HTMLElement;
       const rejectBtn = d.getElementById('mdco-reject-btn') as HTMLElement;
+
+      // ── Cancel button — only for CA or Originator, not in Draft/Effective ──
+      const currentUserName = this.context.pageContext.user.displayName || '';
+      const currentUserEmail = this.context.pageContext.user.email || '';
+      const dcoCA = dco.DCO_CA || '';
+      const dcoOriginator = dco.DCO_Originator || '';
+      const isCancelAuthorized = currentUserName.toLowerCase().includes(dcoCA.toLowerCase().split(' ')[0]) ||
+        currentUserName.toLowerCase().includes(dcoOriginator.toLowerCase().split(' ')[0]) ||
+        currentUserEmail.toLowerCase().includes('jeffrey') ||
+        currentUserEmail.toLowerCase().includes('andre');
+      const cancelPhases = ['Submitted', 'In Review', 'Implemented', 'Awaiting Training'];
+      const showCancel = isCancelAuthorized && cancelPhases.includes(dco.DCO_Phase || '');
+
+      // Inject cancel button into modal footer if not already there
+      const modalFt = d.querySelector('#modal-dco-detail .modal-ft') as HTMLElement;
+      const existingCancelBtn = d.getElementById('mdco-cancel-sub-btn-' + dcoId);
+      if (modalFt && !existingCancelBtn && showCancel) {
+        const cancelBtn = d.createElement('button');
+        cancelBtn.id = 'mdco-cancel-sub-btn-' + dcoId;
+        cancelBtn.className = 'btn-sec btn-sm';
+        cancelBtn.style.cssText = 'border-color:var(--a);color:var(--a);margin-right:auto';
+        cancelBtn.textContent = '↩ Cancel Submission';
+        cancelBtn.addEventListener('click', () => {
+          w._qpCancelDcoId = dcoId;
+          const reasonEl = d.getElementById('cancel-reason') as HTMLTextAreaElement;
+          if (reasonEl) reasonEl.value = '';
+          (d.getElementById('modal-cancel-submission') as HTMLElement)?.classList.add('open');
+        });
+        // Insert before the Close button (first child)
+        modalFt.insertBefore(cancelBtn, modalFt.firstChild);
+      } else if (existingCancelBtn) {
+        existingCancelBtn.style.display = showCancel ? 'inline-flex' : 'none';
+      }
+
       if (actionBtn) {
         const phase = dco.DCO_Phase || 'Draft';
         actionBtn.style.display = 'none';
