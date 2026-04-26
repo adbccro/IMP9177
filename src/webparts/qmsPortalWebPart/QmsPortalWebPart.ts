@@ -521,6 +521,9 @@ const SHELL_APPROVERS = `
     <th>Name</th><th>Role</th><th>Type</th><th>Scope</th><th>Signing Mode</th><th>Active</th><th>Actions</th>
   </tr></thead>
   <tbody id="appr-tbody"><tr><td colspan="7" class="loading"><span class="spin"></span>Loading...</td></tr></tbody></table>
+</div>
+<div class="tcard" style="margin-top:16px" id="appr-assign-panel">
+  <div class="loading"><span class="spin"></span>Loading approver assignments…</div>
 </div>`;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -707,6 +710,31 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
     </div>
   </div>
 </div>
+
+<div class="modal-ov" id="modal-train-self">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <div><div class="modal-title">Training Confirmation</div><div class="modal-sub" id="train-modal-sub">Self-Service Training Record</div></div>
+      <button class="modal-x" data-close="modal-train-self">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><div class="fl">Document</div><div class="fv" id="train-modal-docid" style="font-weight:700;font-family:var(--mono)">—</div></div>
+      <div class="fg"><div class="fl">Document Name</div><div class="fv" id="train-modal-docname">—</div></div>
+      <div class="fg"><div class="fl">Employee</div><div class="fv" id="train-modal-emp" style="font-weight:600">—</div></div>
+      <div class="fg"><div class="fl">Training Date</div><div class="fv" id="train-modal-date">—</div></div>
+      <div class="fg" style="margin-top:10px">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="train-modal-confirm-chk" style="margin-top:2px;width:16px;height:16px;cursor:pointer">
+          <span style="font-size:12px;line-height:1.5">I confirm that I have read, understood, and can perform the activities described in this document. My electronic confirmation constitutes a training record per 21 CFR Part 11.</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-sec" data-close="modal-train-self">Cancel</button>
+      <button class="btn-pri btn-g" id="btn-confirm-train" style="opacity:0.4;cursor:not-allowed" disabled>✅ Sign Training Record</button>
+    </div>
+  </div>
+</div>
 </body></html>`;
 }
 
@@ -753,7 +781,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     try {
       const [dcos, crs, approvals, history, records, employees, roles, matrix, completions, config] =
         await Promise.all([
-          this.spGet('QMS_DCOs', 'Id,Title,DCO_Phase,DCO_Title,DCO_CRLink,DCO_SubmittedDate,DCO_Originator,DCO_Docs,DCO_LateDays,DCO_TrainingGate,DCO_CA'),
+          this.spGet('QMS_DCOs', 'Id,Title,DCO_Phase,DCO_Title,DCO_CRLink,DCO_SubmittedDate,DCO_Originator,DCO_Docs,DCO_LateDays,DCO_TrainingGate,DCO_CA,DCO_ImplActivityRequired,DCO_ImplPlan,DCO_ImplNoSoonerThan,DCO_EffNoSoonerThan,DCO_EffDelayRequired,DCO_EffDelayReason,DCO_ImplOwner,DCO_ImplDescription,DCO_ImplRisks,DCO_ImplVerification,DCO_CancelReason,DCO_DocsLastUpdated,DCO_DocPurposes'),
           this.spGet('QMS_ChangeRequests', 'Id,Title,CR_Title,CR_Status,CR_Priority,CR_Originator,CR_LinkedDCOs,CR_Description,CR_CreatedDate'),
           this.spGet('QMS_DCOApprovals', 'Id,Title,Appr_DCOID,Appr_Name,Appr_Role,Appr_Type,Appr_Status,Appr_SignedDate,Appr_SigID'),
           this.spGet('QMS_RoutingHistory', 'Id,Title,RH_DCOID,RH_EventType,RH_Stage,RH_Actor,RH_Note,RH_Reason,RH_Timestamp'),
@@ -898,10 +926,19 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const all = [...docs, ...forms, ...qm];
       this._set('db-bc0', String(all.length));
       const items = all.slice(0, 5).map((f: any) => {
-        const name = (f.Name || '').replace(/_DRAFT_?\.docx$/i, '').replace(/_/g, ' ');
-        return `<div class="bucket-item"><span style="font-size:11px;font-family:var(--mono);font-size:10px;color:var(--g)">${name.substring(0, 32)}</span></div>`;
+        const rawName = f.Name || '';
+        const docId = rawName.match(/^([A-Z][A-Z0-9\-]+)/)?.[1] || rawName;
+        const name = rawName.replace(/_DRAFT_?\.docx$/i, '').replace(/_/g, ' ');
+        return `<div class="bucket-item" style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;font-family:var(--mono);color:var(--g);flex:1">${name.substring(0, 28)}</span>
+          <button class="btn-sec btn-sm off-doc-train-btn" data-docid="${docId}" data-docname="${name.substring(0,40)}" style="font-size:9px;padding:2px 7px">🎓</button>
+        </div>`;
       }).join('');
       this._html('db-bi0', items || '<div style="padding:6px 0;font-size:11px;color:var(--s5)">No effective documents yet</div>');
+      // Wire Train buttons (Task 10)
+      document.querySelectorAll('.off-doc-train-btn').forEach((btn: Element) => {
+        btn.addEventListener('click', () => this._openTrainModal((btn as HTMLElement).getAttribute('data-docid') || '', (btn as HTMLElement).getAttribute('data-docname') || ''));
+      });
     }).catch(() => {
       this._set('db-bc0', '0');
       this._html('db-bi0', '<div style="padding:6px 0;font-size:11px;color:var(--s5)">Could not load</div>');
@@ -1082,6 +1119,24 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     return pending;
   }
 
+  private _openTrainModal(docId: string, docName: string): void {
+    const d = document; const w = window as any;
+    const emp = (this._data.employees || []).find((e: any) =>
+      (e.Emp_Email || '').toLowerCase() === (this.context.pageContext.user.email || '').toLowerCase()
+    );
+    const empName = emp?.Title || this.context.pageContext.user.displayName || this.context.pageContext.user.email;
+    (d.getElementById('train-modal-docid') as HTMLElement).textContent = docId;
+    (d.getElementById('train-modal-docname') as HTMLElement).textContent = docName;
+    (d.getElementById('train-modal-emp') as HTMLElement).textContent = empName;
+    (d.getElementById('train-modal-date') as HTMLElement).textContent = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+    (d.getElementById('train-modal-sub') as HTMLElement).textContent = 'Self-Service Training — ' + docId;
+    const chk = d.getElementById('train-modal-confirm-chk') as HTMLInputElement;
+    const btn = d.getElementById('btn-confirm-train') as HTMLButtonElement;
+    if (chk) chk.checked = false;
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed'; }
+    (d.getElementById('modal-train-self') as HTMLElement)?.classList.add('open');
+  }
+
   private _renderTraining(): void {
     const pending = this._computePendingTraining();
     const { completions = [], employees = [], matrix = [], roles = [] } = this._data;
@@ -1099,9 +1154,13 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       <td><span class="cmut">${t.empRoles}</span></td>
       <td><span class="cdate">${this._fmt(t.dueDate)}</span></td>
       <td>${this._pill(t.status)}</td>
-      <td><button class="btn-pri btn-sm">Initiate</button></td>
+      <td><button class="btn-pri btn-sm tr-train-btn" data-docid="${t.docId}" data-docname="${t.docId}">🎓 Train</button></td>
     </tr>`).join('');
     this._html('tr-tbody', rows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s5)">All training current ✅</td></tr>');
+    // Wire Train buttons (Task 11)
+    document.querySelectorAll('.tr-train-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => this._openTrainModal((btn as HTMLElement).getAttribute('data-docid') || '', (btn as HTMLElement).getAttribute('data-docname') || ''));
+    });
 
     // Matrix
     const docIdsMap: Record<string, boolean> = {}; matrix.forEach((m: any) => { docIdsMap[m.TM_DocID] = true; });
@@ -1383,20 +1442,102 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   }
 
   // ── Approvers ──
-  private _renderApprovers(): void {
-    this.spGet('QMS_Approvers', 'Id,Title,Appr_Role,Appr_Type,Appr_Scope,Appr_SigningMode,Appr_Active')
-      .then(rows => {
-        const tableRows = rows.map(a => `<tr>
-          <td style="font-size:12px;font-weight:600">${a.Title}</td>
-          <td><span class="cmut">${a.Appr_Role || '—'}</span></td>
-          <td>${this._pill(a.Appr_Type || '')}</td>
-          <td><span class="cmut">${a.Appr_Scope || '—'}</span></td>
-          <td><span class="cmut">${a.Appr_SigningMode || 'Parallel'}</span></td>
-          <td>${a.Appr_Active ? '<span class="pill pg">Active</span>' : '<span class="pill pz">Inactive</span>'}</td>
-          <td><button class="btn-sec btn-sm">Edit</button></td>
-        </tr>`).join('');
-        this._html('appr-tbody', tableRows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s5)">No approvers configured</td></tr>');
+  private async _renderApprovers(): Promise<void> {
+    const [rows, employees, approverAssignments] = await Promise.all([
+      this.spGet('QMS_Approvers', 'Id,Title,Appr_Role,Appr_Type,Appr_Scope,Appr_SigningMode,Appr_Active'),
+      this.spGet('QMS_Employees', 'Id,Title,Emp_Email,Emp_Title,Emp_Status,Emp_Dept', "Emp_Status eq 'Active'"),
+      this.spGet('QMS_Approvers', 'Id,Title,Appr_Name,Approver_Email,Appr_DocType,Appr_EmpID,Appr_Role,Appr_Active', 'Appr_DocType ne null'),
+    ]);
+    const tableRows = rows.map(a => `<tr>
+      <td style="font-size:12px;font-weight:600">${a.Title}</td>
+      <td><span class="cmut">${a.Appr_Role || '—'}</span></td>
+      <td>${this._pill(a.Appr_Type || '')}</td>
+      <td><span class="cmut">${a.Appr_Scope || '—'}</span></td>
+      <td><span class="cmut">${a.Appr_SigningMode || 'Parallel'}</span></td>
+      <td>${a.Appr_Active ? '<span class="pill pg">Active</span>' : '<span class="pill pz">Inactive</span>'}</td>
+      <td><button class="btn-sec btn-sm">Edit</button></td>
+    </tr>`).join('');
+    this._html('appr-tbody', tableRows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s5)">No approvers configured</td></tr>');
+
+    // ── Task 12: Approver Assignments panel ──────────────────────────────────
+    const _apprAssignEl = document.getElementById('appr-assign-panel');
+    if (!_apprAssignEl) return;
+    const DOCTYPE_LABELS: Record<string, string> = { QM: 'Quality Manual', SOP: 'SOPs', FM: 'Forms', FPS: 'FPS' };
+    const apprSections12 = ['QM', 'SOP', 'FM', 'FPS'].map((dt: string) => {
+      const dtApprovers = approverAssignments.filter((a: any) => a.Appr_DocType === dt && a.Appr_Active);
+      const apprRows12 = dtApprovers.map((a: any) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--s1)">
+          <div><div style="font-size:12px;font-weight:600;color:var(--s7)">${a.Appr_Name || a.Title || '—'}</div>
+          <div style="font-size:11px;color:var(--s5)">${a.Appr_Role || '—'} · ${a.Approver_Email || '—'}</div></div>
+          <button class="btn-sec btn-sm cfg-appr-remove-btn" data-id="${a.Id}" data-dt="${dt}" style="color:var(--r)">Remove</button>
+        </div>`).join('');
+      const empOptions = employees.map((e: any) => `<option value="${e.Id}" data-email="${e.Emp_Email || ''}" data-name="${e.Title || ''}">${e.Title || ''}</option>`).join('');
+      return `
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${dt} — ${DOCTYPE_LABELS[dt]}</div>
+          <div id="appr-list-${dt}">${apprRows12 || '<div style="font-size:11px;color:var(--s5);padding:6px 0">No approvers assigned.</div>'}</div>
+          <div id="appr-add-area-${dt}" style="display:none;margin-top:8px;border:1px solid var(--b);border-radius:6px;padding:10px;background:var(--b0)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div><div class="fl">Employee</div><select class="fsel" id="appr-emp-${dt}">${empOptions}</select></div>
+              <div><div class="fl">Role</div><input class="finput" id="appr-role-${dt}" placeholder="e.g. QA Lead"></div>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end">
+              <button class="btn-sec btn-sm appr-add-cancel" data-dt="${dt}">Cancel</button>
+              <button class="btn-pri btn-sm appr-add-save" data-dt="${dt}">Add Approver</button>
+            </div>
+          </div>
+          <button class="btn-sec btn-sm appr-add-btn" data-dt="${dt}" style="margin-top:8px">+ Add ${dt} Approver</button>
+        </div>`;
+    }).join('');
+
+    _apprAssignEl.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--s7);margin-bottom:14px">👥 Approver Assignments — By Document Type</div>
+      <div style="font-size:11px;color:var(--s5);margin-bottom:12px">These approvers are auto-added to DCOs based on the document types in scope. Used by auto-populate when a DCO is submitted.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">${apprSections12}</div>`;
+
+    // Wire buttons
+    _apprAssignEl.querySelectorAll('.appr-add-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const dt12 = (btn as HTMLElement).getAttribute('data-dt') || '';
+        const area = document.getElementById('appr-add-area-' + dt12);
+        if (area) area.style.display = area.style.display === 'none' ? '' : 'none';
       });
+    });
+    _apprAssignEl.querySelectorAll('.appr-add-cancel').forEach((btn: Element) => {
+      btn.addEventListener('click', () => { const area = document.getElementById('appr-add-area-' + (btn as HTMLElement).getAttribute('data-dt')); if (area) area.style.display = 'none'; });
+    });
+    _apprAssignEl.querySelectorAll('.appr-add-save').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const dt12 = (btn as HTMLElement).getAttribute('data-dt') || '';
+        const empSel = document.getElementById('appr-emp-' + dt12) as HTMLSelectElement;
+        const roleInp = document.getElementById('appr-role-' + dt12) as HTMLInputElement;
+        const empOpt = empSel?.options[empSel.selectedIndex];
+        const empName = empOpt?.text || ''; const empEmail = empOpt?.getAttribute('data-email') || '';
+        const role12 = roleInp?.value.trim() || 'Approver';
+        if (!empName) return;
+        await this.context.spHttpClient.post(
+          this.context.pageContext.web.absoluteUrl + "/_api/web/lists/getbytitle('QMS_Approvers')/items",
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+            body: JSON.stringify({ Title: empName + '-' + dt12, Appr_Name: empName, Approver_Email: empEmail, Appr_Role: role12, Appr_DocType: dt12, Appr_Active: true }) }
+        );
+        if ((window as any).qpToast) (window as any).qpToast('Approver added: ' + empName + ' for ' + dt12);
+        this._renderApprovers();
+      });
+    });
+    _apprAssignEl.querySelectorAll('.cfg-appr-remove-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const id12 = (btn as HTMLElement).getAttribute('data-id') || '';
+        if (!id12) return;
+        await this.context.spHttpClient.post(
+          this.context.pageContext.web.absoluteUrl + "/_api/web/lists/getbytitle('QMS_Approvers')/items(" + id12 + ")",
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'}, body: JSON.stringify({ Appr_Active: false }) }
+        );
+        if ((window as any).qpToast) (window as any).qpToast('Approver removed');
+        this._renderApprovers();
+      });
+    });
   }
 
   // ── Config ──
@@ -1426,6 +1567,11 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         <div class="cfg-row"><span class="cfg-lbl">Provider</span><span class="cfg-val">Microsoft 365 (native)</span></div>
         <div class="cfg-row"><span class="cfg-lbl">MFA required</span><span class="cfg-val">Yes</span></div>
         <div class="cfg-row"><span class="cfg-lbl">21 CFR Part 11 compliant</span><span class="cfg-val">Yes — sig ID + timestamp stored</span></div>
+      </div>
+      <div class="cfg-panel">
+        <div class="cfg-title">🤖 AI Integration</div>
+        <div class="cfg-row"><span class="cfg-lbl">Anthropic API Key</span><input class="cfg-input" id="cfg-anthropic-key" type="password" value="${cfg.anthropicApiKey || ''}" placeholder="sk-ant-..."></div>
+        <div class="cfg-row"><span class="cfg-lbl" style="font-size:10px;color:var(--s5)">Used for AI-generated Purpose &amp; Justification per document in DCO</span></div>
       </div>
       <div class="cfg-panel" style="grid-column:1/-1" id="cfg-approver-panel">
         <div class="loading"><span class="spin"></span>Loading approver assignments…</div>
@@ -1510,19 +1656,11 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     }).join('');
 
     panel.innerHTML = `
-      <div class="cfg-title">👥 Approver Assignments</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Active Employees</div>
-          <div id="cfg-emp-list">${empRows || '<div style="font-size:11px;color:var(--s5)">No active employees found.</div>'}</div>
-          ${addEmpForm}
-          <button class="btn-sec btn-sm" id="cfg-add-emp-btn" style="margin-top:8px">+ Add Employee</button>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Approvers by Document Type</div>
-          ${apprSections}
-        </div>
-      </div>`;
+      <div class="cfg-title">👥 Employee Management</div>
+      <div style="font-size:11px;color:var(--s5);margin-bottom:10px">Approver assignments by document type have moved to the <strong>Approvers</strong> tab.</div>
+      <div id="cfg-emp-list">${empRows || '<div style="font-size:11px;color:var(--s5)">No active employees found.</div>'}</div>
+      ${addEmpForm}
+      <button class="btn-sec btn-sm" id="cfg-add-emp-btn" style="margin-top:8px">+ Add Employee</button>`;
 
     this._wireApproverPanel(employees, approvers, base);
   }
@@ -1812,7 +1950,36 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     nb('btn-new-record', siteUrl + '/Lists/QMS_Records/NewForm.aspx');
     nb('btn-new-approver', siteUrl + '/Lists/QMS_Approvers/NewForm.aspx');
     const saveBtn = d.getElementById('btn-save-config');
-    if (saveBtn) saveBtn.addEventListener('click', () => { if (w.qpToast) w.qpToast('Configuration saved'); });
+    if (saveBtn) saveBtn.addEventListener('click', async () => {
+      const _cfgBase = this.context.pageContext.web.absoluteUrl;
+      const _cfgSaves: Record<string, string> = {
+        approvalOverdueDays: (d.getElementById('cfg-overdue') as HTMLInputElement)?.value || '14',
+        approvalWarningDays: (d.getElementById('cfg-warn') as HTMLInputElement)?.value || '7',
+        draftStaleDays: (d.getElementById('cfg-stale') as HTMLInputElement)?.value || '30',
+        trainingDueDays: (d.getElementById('cfg-trdue') as HTMLInputElement)?.value || '30',
+        trainingWarningDays: (d.getElementById('cfg-trwarn') as HTMLInputElement)?.value || '7',
+        anthropicApiKey: (d.getElementById('cfg-anthropic-key') as HTMLInputElement)?.value || '',
+      };
+      const existingCfg = await this.spGet('QMS_Config', 'Id,Title,Cfg_Value', '', 20);
+      for (const [key, val] of Object.entries(_cfgSaves)) {
+        const existing = existingCfg.find((r: any) => r.Title === key);
+        if (existing?.Id) {
+          await this.context.spHttpClient.post(
+            _cfgBase + "/_api/web/lists/getbytitle('QMS_Config')/items(" + existing.Id + ")",
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'}, body: JSON.stringify({ Cfg_Value: val }) }
+          ).catch(() => {});
+        } else if (val) {
+          await this.context.spHttpClient.post(
+            _cfgBase + "/_api/web/lists/getbytitle('QMS_Config')/items",
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'}, body: JSON.stringify({ Title: key, Cfg_Value: val }) }
+          ).catch(() => {});
+        }
+        this._config[key] = val;
+      }
+      if (w.qpToast) w.qpToast('Configuration saved');
+    });
 
     // Modal close buttons — data-close
     d.querySelectorAll('[data-close]').forEach((el: Element) => {
@@ -1823,10 +1990,48 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     });
 
     // Backdrop close
-    ['modal-dco-detail','modal-cr-detail','modal-reject','modal-esign','modal-cancel-submission'].forEach(id => {
+    ['modal-dco-detail','modal-cr-detail','modal-reject','modal-esign','modal-cancel-submission','modal-train-self'].forEach(id => {
       const modal = d.getElementById(id);
       if (modal) modal.addEventListener('click', (e: Event) => { if ((e.target as HTMLElement).id === id) modal.classList.remove('open'); });
     });
+
+    // ── Training self-service modal confirm checkbox + sign ──
+    const _trainChk = d.getElementById('train-modal-confirm-chk') as HTMLInputElement;
+    const _trainSignBtn = d.getElementById('btn-confirm-train') as HTMLButtonElement;
+    if (_trainChk && _trainSignBtn) {
+      _trainChk.addEventListener('change', () => {
+        _trainSignBtn.disabled = !_trainChk.checked;
+        _trainSignBtn.style.opacity = _trainChk.checked ? '' : '0.4';
+        _trainSignBtn.style.cursor = _trainChk.checked ? 'pointer' : 'not-allowed';
+      });
+      _trainSignBtn.addEventListener('click', async () => {
+        if (!_trainChk.checked) return;
+        const _tDocId = (d.getElementById('train-modal-docid') as HTMLElement)?.textContent || '';
+        const _tEmpId = this.context.pageContext.user.email || this.context.pageContext.user.displayName;
+        const _tEmpName = this.context.pageContext.user.displayName || _tEmpId;
+        const _tBase = this.context.pageContext.web.absoluteUrl;
+        const _tSigId = 'TC-' + _tEmpId.split('@')[0].toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+        const _tDate = new Date().toISOString();
+        if (w.qpToast) w.qpToast('Recording training completion for ' + _tDocId + '...');
+        try {
+          await this.context.spHttpClient.post(
+            _tBase + "/_api/web/lists/getbytitle('QMS_TrainingCompletions')/items",
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+              body: JSON.stringify({ Title: _tEmpId + '-' + _tDocId + '-' + Date.now(),
+                TC_EmpID: _tEmpId, TC_DocID: _tDocId, TC_Rev: 'Rev A',
+                TC_Method: 'Self-Service', TC_SignedDate: _tDate, TC_SigID: _tSigId }) }
+          );
+          (d.getElementById('modal-train-self') as HTMLElement)?.classList.remove('open');
+          _trainChk.checked = false;
+          _trainSignBtn.disabled = true;
+          _trainSignBtn.style.opacity = '0.4';
+          _trainSignBtn.style.cursor = 'not-allowed';
+          if (w.qpToast) w.qpToast('Training record signed for ' + _tDocId + ' — Sig ID: ' + _tSigId);
+          setTimeout(() => this._loadAll(), 800);
+        } catch(e) { if (w.qpToast) w.qpToast('Failed to record training'); }
+      });
+    }
 
     // Reject + sign buttons
     const rejOpen = d.getElementById('mdco-reject-open');
@@ -1857,17 +2062,30 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           base2 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem2.Id + ")",
           SPHttpClient.configurations.v1,
           { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
-            body: JSON.stringify({ DCO_Phase: 'Draft', DCO_SubmittedDate: null }) }
+            body: JSON.stringify({ DCO_Phase: 'Draft', DCO_SubmittedDate: null, DCO_CancelReason: reason }) }
         );
         dcoItem2.DCO_Phase = 'Draft';
         dcoItem2.DCO_SubmittedDate = null;
+        dcoItem2.DCO_CancelReason = reason;
       }
+      // Delete all QMS_DCOApprovals for this DCO
+      const _cancelApprs = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId);
+      for (const _ca of _cancelApprs) {
+        try {
+          await this.context.spHttpClient.post(
+            base2 + "/_api/web/lists/getbytitle('QMS_DCOApprovals')/items(" + _ca.Id + ")",
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'DELETE'}, body: '' }
+          );
+        } catch(e) {}
+      }
+      if (this._data.approvals) this._data.approvals = this._data.approvals.filter((a: any) => a.Appr_DCOID !== dcoId);
       await this.context.spHttpClient.post(
         base2 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
         SPHttpClient.configurations.v1,
         { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
           body: JSON.stringify({ Title: dcoId + '-CANCEL-' + Date.now(),
-            RH_DCOID: dcoId, RH_EventType: 'stage', RH_Stage: 'Draft',
+            RH_DCOID: dcoId, RH_EventType: 'Cancelled', RH_Stage: 'Draft',
             RH_Actor: user2,
             RH_Note: 'Submission cancelled by ' + user2 + '. Category: ' + cat + '. Reason: ' + reason,
             RH_Reason: reason, RH_Timestamp: ts2 }) }
@@ -2195,10 +2413,16 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           <div class="fg"><div class="fl">CR Link</div><div class="fv" id="fv-crlink-${dcoId}">${dco.DCO_CRLink||'—'}</div></div>
           <div class="fg"><div class="fl">Submitted</div><div class="fv">${this._fmt(dco.DCO_SubmittedDate)}</div></div>
           <div class="fg"><div class="fl">Originator</div><div class="fv" id="fv-orig-${dcoId}">${dco.DCO_Originator||'—'}</div></div>
-          <div class="fg"><div class="fl">Impl. Required</div><div class="fv" id="fv-implreq-${dcoId}">${dco.DCO_ImplActivityRequired ? 'Yes' : 'No'}</div></div>
-          <div class="fg"><div class="fl">Impl. No-Sooner-Than</div><div class="fv" id="fv-implnst-${dcoId}">${dco.DCO_ImplNoSoonerThan ? this._fmt(dco.DCO_ImplNoSoonerThan) : '—'}</div></div>
-          <div class="fg"><div class="fl">Eff. No-Sooner-Than</div><div class="fv" id="fv-effnst-${dcoId}">${dco.DCO_EffNoSoonerThan ? this._fmt(dco.DCO_EffNoSoonerThan) : '—'}</div></div>
-          <div class="fg" style="grid-column:1/-1"><div class="fl">Implementation Plan</div><div class="fv" id="fv-implplan-${dcoId}" style="white-space:pre-wrap;font-size:11px;${!dco.DCO_ImplPlan?'color:var(--s5);font-style:italic':''}">${dco.DCO_ImplPlan||'No plan set'}</div></div>
+          <div class="fg"><div class="fl">Impl. Activity Required</div><div class="fv" id="fv-implreq-${dcoId}">${dco.DCO_ImplActivityRequired ? 'Yes' : 'No'}</div></div>
+          <div class="fg" id="rv-implnst-${dcoId}" style="display:${dco.DCO_ImplActivityRequired?'':'none'}"><div class="fl">Impl. No-Sooner-Than</div><div class="fv" id="fv-implnst-${dcoId}">${dco.DCO_ImplNoSoonerThan ? this._fmt(dco.DCO_ImplNoSoonerThan) : '—'}</div></div>
+          <div class="fg" id="rv-implowner-${dcoId}" style="display:${dco.DCO_ImplActivityRequired?'':'none'}"><div class="fl">Impl. Owner</div><div class="fv" id="fv-implowner-${dcoId}">${dco.DCO_ImplOwner||'—'}</div></div>
+          <div class="fg" style="grid-column:1/-1;display:${dco.DCO_ImplActivityRequired?'':'none'}" id="rv-implplan-${dcoId}"><div class="fl">Implementation Plan</div><div class="fv" id="fv-implplan-${dcoId}" style="white-space:pre-wrap;font-size:11px;${!dco.DCO_ImplPlan?'color:var(--s5);font-style:italic':''}">${dco.DCO_ImplPlan||'No plan set'}</div></div>
+          <div class="fg" style="grid-column:1/-1;display:${dco.DCO_ImplActivityRequired?'':'none'}" id="rv-impldesc-${dcoId}"><div class="fl">Impl. Description</div><div class="fv" id="fv-impldesc-${dcoId}" style="white-space:pre-wrap;font-size:11px">${dco.DCO_ImplDescription||'—'}</div></div>
+          <div class="fg" style="grid-column:1/-1;display:${dco.DCO_ImplActivityRequired?'':'none'}" id="rv-implrisks-${dcoId}"><div class="fl">Impl. Risks</div><div class="fv" id="fv-implrisks-${dcoId}" style="white-space:pre-wrap;font-size:11px">${dco.DCO_ImplRisks||'—'}</div></div>
+          <div class="fg" style="grid-column:1/-1;display:${dco.DCO_ImplActivityRequired?'':'none'}" id="rv-implverif-${dcoId}"><div class="fl">Impl. Verification</div><div class="fv" id="fv-implverif-${dcoId}" style="white-space:pre-wrap;font-size:11px">${dco.DCO_ImplVerification||'—'}</div></div>
+          <div class="fg"><div class="fl">Eff. Delay Required</div><div class="fv" id="fv-effdelay-${dcoId}">${dco.DCO_EffDelayRequired||'No'}</div></div>
+          <div class="fg" id="rv-effnst-${dcoId}" style="display:${dco.DCO_EffDelayRequired==='Yes'?'':'none'}"><div class="fl">Eff. No-Sooner-Than</div><div class="fv" id="fv-effnst-${dcoId}">${dco.DCO_EffNoSoonerThan ? this._fmt(dco.DCO_EffNoSoonerThan) : '—'}</div></div>
+          <div class="fg" style="grid-column:1/-1;display:${dco.DCO_EffDelayRequired==='Yes'?'':'none'}" id="rv-effdlyreason-${dcoId}"><div class="fl">Eff. Delay Reason</div><div class="fv" id="fv-effdlyreason-${dcoId}" style="white-space:pre-wrap;font-size:11px">${dco.DCO_EffDelayReason||'—'}</div></div>
           ${isDraft ? `<div style="grid-column:1/-1;padding-top:2px"><button id="dco-edit-btn-${dcoId}" style="font-size:11px;font-weight:600;padding:5px 14px;border-radius:5px;border:1px solid var(--b);color:var(--b);background:var(--b0);cursor:pointer">✏️ Edit Details</button></div>` : ''}
         </div>
         ${isDraft ? `<div id="dco-edit-form-${dcoId}" style="display:none;border:1px solid var(--b2);border-radius:7px;padding:14px;background:var(--b0);margin-bottom:12px">
@@ -2207,9 +2431,19 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           <div class="fg" style="margin-bottom:8px"><div class="fl">CR Link</div><input id="dco-edit-crlink-${dcoId}" class="finput" type="text" value="${dco.DCO_CRLink||''}" placeholder="CR-XXXX"></div>
           <div class="fg" style="margin-bottom:8px"><div class="fl">Originator</div><input id="dco-edit-orig-${dcoId}" class="finput" type="text" value="${dco.DCO_Originator||''}" placeholder="Name"></div>
           <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. Activity Required</div><select id="dco-edit-implreq-${dcoId}" class="fsel"><option value="0" ${!dco.DCO_ImplActivityRequired?'selected':''}>No</option><option value="1" ${dco.DCO_ImplActivityRequired?'selected':''}>Yes</option></select></div>
-          <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. No-Sooner-Than</div><input id="dco-edit-implnst-${dcoId}" class="finput" type="date" value="${dco.DCO_ImplNoSoonerThan?dco.DCO_ImplNoSoonerThan.substring(0,10):''}"></div>
-          <div class="fg" style="margin-bottom:8px"><div class="fl">Eff. No-Sooner-Than</div><input id="dco-edit-effnst-${dcoId}" class="finput" type="date" value="${dco.DCO_EffNoSoonerThan?dco.DCO_EffNoSoonerThan.substring(0,10):''}"></div>
-          <div class="fg" style="margin-bottom:12px"><div class="fl">Implementation Plan</div><textarea id="dco-edit-implplan-${dcoId}" class="ftxt" rows="3" placeholder="Describe the implementation plan...">${dco.DCO_ImplPlan||''}</textarea></div>
+          <div id="ef-impl-group-${dcoId}" style="display:${dco.DCO_ImplActivityRequired?'':'none'}">
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. No-Sooner-Than</div><input id="dco-edit-implnst-${dcoId}" class="finput" type="date" value="${dco.DCO_ImplNoSoonerThan?dco.DCO_ImplNoSoonerThan.substring(0,10):''}"></div>
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. Owner</div><input id="dco-edit-implowner-${dcoId}" class="finput" type="text" value="${(dco.DCO_ImplOwner||'').replace(/"/g,'&quot;')}" placeholder="Owner name"></div>
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Implementation Plan</div><textarea id="dco-edit-implplan-${dcoId}" class="ftxt" rows="3" placeholder="Describe the implementation plan...">${dco.DCO_ImplPlan||''}</textarea></div>
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. Description</div><textarea id="dco-edit-impldesc-${dcoId}" class="ftxt" rows="3" placeholder="Detailed description of implementation activities...">${dco.DCO_ImplDescription||''}</textarea></div>
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. Risks</div><textarea id="dco-edit-implrisks-${dcoId}" class="ftxt" rows="2" placeholder="Risks and mitigations...">${dco.DCO_ImplRisks||''}</textarea></div>
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. Verification</div><textarea id="dco-edit-implverif-${dcoId}" class="ftxt" rows="2" placeholder="How will implementation be verified?">${dco.DCO_ImplVerification||''}</textarea></div>
+          </div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">Eff. Delay Required</div><select id="dco-edit-effdelay-${dcoId}" class="fsel"><option value="No" ${(dco.DCO_EffDelayRequired||'No')==='No'?'selected':''}>No</option><option value="Yes" ${dco.DCO_EffDelayRequired==='Yes'?'selected':''}>Yes</option></select></div>
+          <div id="ef-effdelay-group-${dcoId}" style="display:${dco.DCO_EffDelayRequired==='Yes'?'':'none'}">
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Eff. No-Sooner-Than</div><input id="dco-edit-effnst-${dcoId}" class="finput" type="date" value="${dco.DCO_EffNoSoonerThan?dco.DCO_EffNoSoonerThan.substring(0,10):''}"></div>
+            <div class="fg" style="margin-bottom:8px"><div class="fl">Eff. Delay Reason</div><textarea id="dco-edit-effdlyreason-${dcoId}" class="ftxt" rows="2" placeholder="Reason for effectiveness delay...">${dco.DCO_EffDelayReason||''}</textarea></div>
+          </div>
           <div style="display:flex;gap:8px"><button id="dco-edit-save-${dcoId}" class="btn-pri btn-sm">Save Changes</button><button id="dco-edit-cancel-${dcoId}" class="btn-sec btn-sm">Cancel</button></div>
         </div>` : ''}
         ${isInReview ? `
@@ -2253,16 +2487,31 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       this._html('mdco-body', body);
 
       // Wire document review buttons directly after modal HTML is injected
+      // Task 8: key session storage by DCO_DocsLastUpdated so re-submitted DCOs force re-reading
+      const _dcoLU8 = (dco.DCO_DocsLastUpdated || '').substring(0, 16) || 'v0';
+      const _ssKey8 = 'docreview_' + dcoId + '_' + _dcoLU8;
       displayDocs.forEach((docId: string, idx2: number) => {
         const rev = docRevMap[docId] || 'Rev A';
         const btn = d.getElementById('drev-btn-' + idx2);
         const mainDiv = d.getElementById('drev-main-' + idx2);
         const handler = () => {
           if (!w._qpDocReviewState) w._qpDocReviewState = {};
-          if (!w._qpDocReviewState[dcoId]) { try { const saved = sessionStorage.getItem('docreview_' + dcoId); w._qpDocReviewState[dcoId] = saved ? JSON.parse(saved) : new Array(displayDocs.length).fill(false); } catch(e) { w._qpDocReviewState[dcoId] = new Array(displayDocs.length).fill(false); } }
+          if (!w._qpDocReviewState[dcoId]) { try { const saved = sessionStorage.getItem(_ssKey8); w._qpDocReviewState[dcoId] = saved ? JSON.parse(saved) : new Array(displayDocs.length).fill(false); } catch(e) { w._qpDocReviewState[dcoId] = new Array(displayDocs.length).fill(false); } }
           if (w._qpDocReviewState[dcoId][idx2]) return;
           w._qpDocReviewState[dcoId][idx2] = true;
-          try { sessionStorage.setItem('docreview_' + dcoId, JSON.stringify(w._qpDocReviewState[dcoId])); } catch(e) {}
+          try { sessionStorage.setItem(_ssKey8, JSON.stringify(w._qpDocReviewState[dcoId])); } catch(e) {}
+          // Task 8: write DocumentOpened event to RoutingHistory (fire-and-forget)
+          (() => {
+            const _b8 = this.context.pageContext.web.absoluteUrl;
+            const _u8 = this.context.pageContext.user.email || this.context.pageContext.user.displayName;
+            this.context.spHttpClient.post(_b8 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+                body: JSON.stringify({ Title: dcoId + '-DOCOPEN-' + docId + '-' + Date.now(),
+                  RH_DCOID: dcoId, RH_EventType: 'DocumentOpened', RH_Stage: dco.DCO_Phase || 'Draft',
+                  RH_Actor: _u8, RH_Note: 'Document opened: ' + docId + ' (Rev: ' + rev + ')',
+                  RH_Timestamp: new Date().toISOString() }) }).catch(() => {});
+          })();
           const ts = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
           const pill = d.getElementById('drev-pill-' + idx2);
           const openBtn = d.getElementById('drev-btn-' + idx2);
@@ -2353,10 +2602,10 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         if (mainDiv) mainDiv.addEventListener('click', handler);
       });
 
-      // Load doc review state from sessionStorage before any UI restore
+      // Load doc review state from sessionStorage before any UI restore (Task 8: use date-keyed key)
       if (!w._qpDocReviewState) w._qpDocReviewState = {};
       if (!w._qpDocReviewState[dcoId]) {
-        try { const saved = sessionStorage.getItem('docreview_' + dcoId); w._qpDocReviewState[dcoId] = saved ? JSON.parse(saved) : new Array(displayDocs.length).fill(false); } catch(e) { w._qpDocReviewState[dcoId] = new Array(displayDocs.length).fill(false); }
+        try { const saved = sessionStorage.getItem(_ssKey8); w._qpDocReviewState[dcoId] = saved ? JSON.parse(saved) : new Array(displayDocs.length).fill(false); } catch(e) { w._qpDocReviewState[dcoId] = new Array(displayDocs.length).fill(false); }
       }
 
       // Wire tab switching
@@ -2693,6 +2942,168 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           }
         }, { capture: false });
       }
+      // ── Task 4: Per-doc Purpose & Justification ──────────────────────────────
+      if (docsPaneEl) {
+        const _docPJ: Record<string, {purpose: string, justification: string}> = (() => {
+          try { return dco.DCO_DocPurposes ? JSON.parse(dco.DCO_DocPurposes) : {}; } catch(e) { return {}; }
+        })();
+        const _pjWrap = d.createElement('div');
+        _pjWrap.style.cssText = 'margin-top:14px;border:1px solid var(--s2);border-radius:7px;overflow:hidden';
+        _pjWrap.innerHTML = `<div style="padding:8px 12px;background:var(--s0);border-bottom:1px solid var(--s2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s5)">Purpose &amp; Justification — Per Document</div>`;
+        displayDocs.forEach((pjDocId: string) => {
+          const pjd = _docPJ[pjDocId] || { purpose: '', justification: '' };
+          const pjName = docNameMap[pjDocId] || pjDocId;
+          const pjRow = d.createElement('div');
+          pjRow.style.cssText = 'padding:10px 12px;border-bottom:1px solid var(--s1)';
+          pjRow.innerHTML = isDraft
+            ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${pjDocId}</span> <span style="font-size:11px;color:var(--s5)">${pjName}</span></div>
+                <button class="btn-sec btn-sm pj-ai-btn" data-docid="${pjDocId}" style="font-size:10px">✨ AI Generate</button>
+               </div>
+               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                 <div><div class="fl" style="font-size:10px">Purpose</div><textarea class="ftxt pj-purpose" data-docid="${pjDocId}" rows="2" style="font-size:11px">${pjd.purpose || ''}</textarea></div>
+                 <div><div class="fl" style="font-size:10px">Justification</div><textarea class="ftxt pj-justification" data-docid="${pjDocId}" rows="2" style="font-size:11px">${pjd.justification || ''}</textarea></div>
+               </div>`
+            : `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${pjDocId}</span><span style="font-size:11px;color:var(--s5)">${pjName}</span></div>
+               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                 <div><div class="fl" style="font-size:10px">Purpose</div><div style="font-size:11px;color:${pjd.purpose?'var(--s7)':'var(--s5)'};font-style:${pjd.purpose?'':'italic'}">${pjd.purpose || 'Not set'}</div></div>
+                 <div><div class="fl" style="font-size:10px">Justification</div><div style="font-size:11px;color:${pjd.justification?'var(--s7)':'var(--s5)'};font-style:${pjd.justification?'':'italic'}">${pjd.justification || 'Not set'}</div></div>
+               </div>`;
+          _pjWrap.appendChild(pjRow);
+        });
+        if (isDraft) {
+          const _pjFooter = d.createElement('div');
+          _pjFooter.style.cssText = 'padding:8px 12px;display:flex;justify-content:flex-end;background:var(--s0)';
+          _pjFooter.innerHTML = `<button id="pj-save-all-${dcoId}" class="btn-pri btn-sm">💾 Save All P&amp;J</button>`;
+          _pjWrap.appendChild(_pjFooter);
+        }
+        docsPaneEl.appendChild(_pjWrap);
+        if (isDraft) {
+          const _apiKey4 = this._config.anthropicApiKey || '';
+          _pjWrap.querySelectorAll('.pj-ai-btn').forEach((btn4: Element) => {
+            btn4.addEventListener('click', async () => {
+              const _did4 = (btn4 as HTMLElement).getAttribute('data-docid') || '';
+              if (!_apiKey4) { if (w.qpToast) w.qpToast('Anthropic API key not set in Config tab'); return; }
+              if (w.qpToast) w.qpToast('Generating P&J for ' + _did4 + '...');
+              (btn4 as HTMLElement).textContent = '⏳...';
+              (btn4 as HTMLButtonElement).disabled = true;
+              try {
+                const _aiResp = await fetch('https://api.anthropic.com/v1/messages', {
+                  method: 'POST',
+                  headers: { 'x-api-key': _apiKey4, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+                  body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 500,
+                    messages: [{ role: 'user', content: `For pharmaceutical QMS DCO "${dcoId}", write a concise purpose and justification for document ${_did4} ("${docNameMap[_did4] || _did4}"). Respond with JSON only: {"purpose":"...","justification":"..."}` }] })
+                });
+                const _aiData = await _aiResp.json();
+                const _aiText = _aiData?.content?.[0]?.text || '';
+                let _aiPJ: any = {};
+                try { _aiPJ = JSON.parse((_aiText.match(/\{[\s\S]*\}/) || ['{}'])[0]); } catch(e) {}
+                const _purpEl = _pjWrap.querySelector('.pj-purpose[data-docid="' + _did4 + '"]') as HTMLTextAreaElement;
+                const _justEl = _pjWrap.querySelector('.pj-justification[data-docid="' + _did4 + '"]') as HTMLTextAreaElement;
+                if (_purpEl && _aiPJ.purpose) _purpEl.value = _aiPJ.purpose;
+                if (_justEl && _aiPJ.justification) _justEl.value = _aiPJ.justification;
+                if (w.qpToast) w.qpToast('Generated P&J for ' + _did4);
+              } catch(e4) { if (w.qpToast) w.qpToast('AI generation failed'); }
+              (btn4 as HTMLElement).textContent = '✨ AI Generate';
+              (btn4 as HTMLButtonElement).disabled = false;
+            });
+          });
+          const _pjSaveBtn4 = d.getElementById('pj-save-all-' + dcoId);
+          if (_pjSaveBtn4) {
+            _pjSaveBtn4.addEventListener('click', async () => {
+              const _newPJ: Record<string, {purpose: string, justification: string}> = { ..._docPJ };
+              displayDocs.forEach((pd4: string) => {
+                const _pe4 = _pjWrap.querySelector('.pj-purpose[data-docid="' + pd4 + '"]') as HTMLTextAreaElement;
+                const _je4 = _pjWrap.querySelector('.pj-justification[data-docid="' + pd4 + '"]') as HTMLTextAreaElement;
+                if (_pe4 || _je4) _newPJ[pd4] = { purpose: _pe4?.value || '', justification: _je4?.value || '' };
+              });
+              const _pjDcoItem = (this._data.dcos || []).find((x: any) => x.Title === dcoId);
+              if (!_pjDcoItem?.Id) return;
+              const _pjStr = JSON.stringify(_newPJ);
+              await this.context.spHttpClient.post(
+                this.context.pageContext.web.absoluteUrl + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + _pjDcoItem.Id + ")",
+                SPHttpClient.configurations.v1,
+                { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'}, body: JSON.stringify({ DCO_DocPurposes: _pjStr }) }
+              );
+              _pjDcoItem.DCO_DocPurposes = _pjStr;
+              if (w.qpToast) w.qpToast('P&J saved');
+            });
+          }
+        }
+      }
+
+      // ── Task 5: Training role assignment per document (Draft only) ──────────
+      if (isDraft && docsPaneEl) {
+        const _roles5 = this._data.roles || [];
+        const _matrix5 = this._data.matrix || [];
+        const _tr5Wrap = d.createElement('div');
+        _tr5Wrap.style.cssText = 'margin-top:14px;border:1px solid var(--s2);border-radius:7px;overflow:hidden';
+        _tr5Wrap.innerHTML = `<div style="padding:8px 12px;background:var(--s0);border-bottom:1px solid var(--s2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s5)">Training Role Assignments — Per Document</div>`;
+        displayDocs.forEach((trDocId: string) => {
+          const matrixRoles = new Set(_matrix5.filter((m: any) => m.TM_DocID === trDocId).map((m: any) => m.TM_RoleID));
+          const trDocRow = d.createElement('div');
+          trDocRow.style.cssText = 'padding:10px 12px;border-bottom:1px solid var(--s1)';
+          const roleChecks = _roles5.map((role: any) => {
+            const checked = matrixRoles.has(role.Title) ? 'checked' : '';
+            return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-right:12px"><input type="checkbox" class="tr5-role-chk" data-docid="${trDocId}" data-roleid="${role.Title}" ${checked} style="cursor:pointer"> ${role.Title}</label>`;
+          }).join('');
+          trDocRow.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${trDocId}</span><span style="font-size:11px;color:var(--s5)">${docNameMap[trDocId] || trDocId}</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">${roleChecks || '<span style="font-size:11px;color:var(--s5)">No roles defined</span>'}</div>`;
+          _tr5Wrap.appendChild(trDocRow);
+        });
+        const _tr5Footer = d.createElement('div');
+        _tr5Footer.style.cssText = 'padding:8px 12px;display:flex;align-items:center;gap:8px;background:var(--s0)';
+        _tr5Footer.innerHTML = `<span id="tr5-changed-${dcoId}" style="font-size:11px;color:var(--a);font-weight:600;display:none">⚠ Training matrix changed — save to apply</span><button id="tr5-save-${dcoId}" class="btn-pri btn-sm" style="margin-left:auto">💾 Save Training Roles</button>`;
+        _tr5Wrap.appendChild(_tr5Footer);
+        docsPaneEl.appendChild(_tr5Wrap);
+        // Track changes
+        _tr5Wrap.querySelectorAll('.tr5-role-chk').forEach((chk: Element) => {
+          chk.addEventListener('change', () => {
+            const changed5 = d.getElementById('tr5-changed-' + dcoId);
+            if (changed5) changed5.style.display = '';
+          });
+        });
+        // Save training roles
+        const _tr5SaveBtn = d.getElementById('tr5-save-' + dcoId);
+        if (_tr5SaveBtn) {
+          _tr5SaveBtn.addEventListener('click', async () => {
+            if (w.qpToast) w.qpToast('Saving training role assignments...');
+            const _base5 = this.context.pageContext.web.absoluteUrl;
+            for (const trDocId5 of displayDocs) {
+              const _checked5 = Array.from(_tr5Wrap.querySelectorAll('.tr5-role-chk[data-docid="' + trDocId5 + '"]:checked')).map((c: Element) => (c as HTMLInputElement).getAttribute('data-roleid') || '');
+              const _unchecked5 = Array.from(_tr5Wrap.querySelectorAll('.tr5-role-chk[data-docid="' + trDocId5 + '"]:not(:checked)')).map((c: Element) => (c as HTMLInputElement).getAttribute('data-roleid') || '');
+              // Add missing matrix entries
+              for (const roleId5 of _checked5) {
+                const exists5 = _matrix5.some((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
+                if (!exists5) {
+                  await this.context.spHttpClient.post(
+                    _base5 + "/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items",
+                    SPHttpClient.configurations.v1,
+                    { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+                      body: JSON.stringify({ Title: trDocId5 + '-' + roleId5, TM_DocID: trDocId5, TM_RoleID: roleId5, TM_Required: true }) }
+                  ).catch(() => {});
+                }
+              }
+              // Remove unchecked matrix entries
+              for (const roleId5 of _unchecked5) {
+                const existing5 = _matrix5.find((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
+                if (existing5?.Id) {
+                  await this.context.spHttpClient.post(
+                    _base5 + "/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items(" + existing5.Id + ")",
+                    SPHttpClient.configurations.v1,
+                    { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'DELETE'}, body: '' }
+                  ).catch(() => {});
+                }
+              }
+            }
+            const changed5 = d.getElementById('tr5-changed-' + dcoId);
+            if (changed5) changed5.style.display = 'none';
+            if (w.qpToast) w.qpToast('Training role assignments saved');
+            setTimeout(() => this._loadAll(), 800);
+          });
+        }
+      }
+
       // Sync gate state after DOM is fully assembled
       const savedState = w._qpDocReviewState[dcoId] || [];
       const savedOpened = savedState.filter((v: boolean) => v).length;
@@ -2726,16 +3137,29 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const actionBtn = d.getElementById('mdco-action-btn') as HTMLElement;
       const rejectBtn = d.getElementById('mdco-reject-btn') as HTMLElement;
 
-      // ── Edit form toggle + save (Task 4) ────────────────────────────────────
+      // ── Edit form toggle + save (Tasks 1/2/3) ────────────────────────────────────
       const _editBtn = d.getElementById('dco-edit-btn-' + dcoId);
+      const _readView = d.getElementById('dco-meta-read-' + dcoId);
       const _editForm = d.getElementById('dco-edit-form-' + dcoId);
       const _editCancelBtn = d.getElementById('dco-edit-cancel-' + dcoId);
       const _editSaveBtn = d.getElementById('dco-edit-save-' + dcoId);
-      if (_editBtn && _editForm) {
-        _editBtn.addEventListener('click', () => { _editForm.style.display = _editForm.style.display === 'none' ? '' : 'none'; });
+      if (_editBtn && _editForm && _readView) {
+        _editBtn.addEventListener('click', () => { _readView.style.display = 'none'; _editForm.style.display = ''; });
       }
-      if (_editCancelBtn && _editForm) {
-        _editCancelBtn.addEventListener('click', () => { _editForm.style.display = 'none'; });
+      if (_editCancelBtn && _editForm && _readView) {
+        _editCancelBtn.addEventListener('click', () => { _editForm.style.display = 'none'; _readView.style.display = 'grid'; });
+      }
+      // Dynamic show/hide impl group in edit form
+      const _implReqSel = d.getElementById('dco-edit-implreq-' + dcoId) as HTMLSelectElement;
+      const _efImplGrp = d.getElementById('ef-impl-group-' + dcoId);
+      if (_implReqSel && _efImplGrp) {
+        _implReqSel.addEventListener('change', () => { _efImplGrp.style.display = _implReqSel.value === '1' ? '' : 'none'; });
+      }
+      // Dynamic show/hide eff delay group in edit form
+      const _effDelaySel = d.getElementById('dco-edit-effdelay-' + dcoId) as HTMLSelectElement;
+      const _efEffDlyGrp = d.getElementById('ef-effdelay-group-' + dcoId);
+      if (_effDelaySel && _efEffDlyGrp) {
+        _effDelaySel.addEventListener('change', () => { _efEffDlyGrp.style.display = _effDelaySel.value === 'Yes' ? '' : 'none'; });
       }
       if (_editSaveBtn) {
         _editSaveBtn.addEventListener('click', async () => {
@@ -2744,31 +3168,71 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           const _orig = (d.getElementById('dco-edit-orig-' + dcoId) as HTMLInputElement)?.value || '';
           const _implReq = (d.getElementById('dco-edit-implreq-' + dcoId) as HTMLSelectElement)?.value === '1';
           const _implNst = (d.getElementById('dco-edit-implnst-' + dcoId) as HTMLInputElement)?.value || '';
-          const _effNst = (d.getElementById('dco-edit-effnst-' + dcoId) as HTMLInputElement)?.value || '';
+          const _implOwner = (d.getElementById('dco-edit-implowner-' + dcoId) as HTMLInputElement)?.value || '';
           const _implPlan = (d.getElementById('dco-edit-implplan-' + dcoId) as HTMLTextAreaElement)?.value || '';
+          const _implDesc = (d.getElementById('dco-edit-impldesc-' + dcoId) as HTMLTextAreaElement)?.value || '';
+          const _implRisks = (d.getElementById('dco-edit-implrisks-' + dcoId) as HTMLTextAreaElement)?.value || '';
+          const _implVerif = (d.getElementById('dco-edit-implverif-' + dcoId) as HTMLTextAreaElement)?.value || '';
+          const _effDelay = (d.getElementById('dco-edit-effdelay-' + dcoId) as HTMLSelectElement)?.value || 'No';
+          const _effNst = (d.getElementById('dco-edit-effnst-' + dcoId) as HTMLInputElement)?.value || '';
+          const _effDlyReason = (d.getElementById('dco-edit-effdlyreason-' + dcoId) as HTMLTextAreaElement)?.value || '';
           const _dcoItem3 = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
           if (!_dcoItem3?.Id) return;
           const _base3 = this.context.pageContext.web.absoluteUrl;
-          const _patch: any = { DCO_Title: _title, DCO_CRLink: _crlink, DCO_Originator: _orig, DCO_ImplActivityRequired: _implReq, DCO_ImplPlan: _implPlan };
+          const _patch: any = {
+            DCO_Title: _title, DCO_CRLink: _crlink, DCO_Originator: _orig,
+            DCO_ImplActivityRequired: _implReq, DCO_ImplPlan: _implPlan,
+            DCO_ImplOwner: _implOwner, DCO_ImplDescription: _implDesc,
+            DCO_ImplRisks: _implRisks, DCO_ImplVerification: _implVerif,
+            DCO_EffDelayRequired: _effDelay, DCO_EffDelayReason: _effDlyReason
+          };
           if (_implNst) _patch.DCO_ImplNoSoonerThan = _implNst + 'T00:00:00Z';
-          if (_effNst) _patch.DCO_EffNoSoonerThan = _effNst + 'T00:00:00Z';
+          else _patch.DCO_ImplNoSoonerThan = null;
+          if (_effNst && _effDelay === 'Yes') _patch.DCO_EffNoSoonerThan = _effNst + 'T00:00:00Z';
+          else _patch.DCO_EffNoSoonerThan = null;
           await this.context.spHttpClient.post(
             _base3 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + _dcoItem3.Id + ")",
             SPHttpClient.configurations.v1,
             { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
               body: JSON.stringify(_patch) }
           );
-          Object.assign(_dcoItem3, { DCO_Title: _title, DCO_CRLink: _crlink, DCO_Originator: _orig, DCO_ImplActivityRequired: _implReq, DCO_ImplPlan: _implPlan });
-          if (_implNst) _dcoItem3.DCO_ImplNoSoonerThan = _implNst + 'T00:00:00Z';
-          if (_effNst) _dcoItem3.DCO_EffNoSoonerThan = _effNst + 'T00:00:00Z';
+          Object.assign(_dcoItem3, {
+            DCO_Title: _title, DCO_CRLink: _crlink, DCO_Originator: _orig,
+            DCO_ImplActivityRequired: _implReq, DCO_ImplPlan: _implPlan,
+            DCO_ImplOwner: _implOwner, DCO_ImplDescription: _implDesc,
+            DCO_ImplRisks: _implRisks, DCO_ImplVerification: _implVerif,
+            DCO_EffDelayRequired: _effDelay, DCO_EffDelayReason: _effDlyReason
+          });
+          _dcoItem3.DCO_ImplNoSoonerThan = _implNst ? _implNst + 'T00:00:00Z' : null;
+          _dcoItem3.DCO_EffNoSoonerThan = (_effNst && _effDelay === 'Yes') ? _effNst + 'T00:00:00Z' : null;
           this._set('mdco-sub', _title);
-          const _fvCr = d.getElementById('fv-crlink-' + dcoId); if (_fvCr) _fvCr.textContent = _crlink || '—';
-          const _fvOr = d.getElementById('fv-orig-' + dcoId); if (_fvOr) _fvOr.textContent = _orig || '—';
-          const _fvIr = d.getElementById('fv-implreq-' + dcoId); if (_fvIr) _fvIr.textContent = _implReq ? 'Yes' : 'No';
-          const _fvIn = d.getElementById('fv-implnst-' + dcoId); if (_fvIn) _fvIn.textContent = _implNst ? this._fmt(_implNst + 'T00:00:00Z') : '—';
-          const _fvEn = d.getElementById('fv-effnst-' + dcoId); if (_fvEn) _fvEn.textContent = _effNst ? this._fmt(_effNst + 'T00:00:00Z') : '—';
+          // Update read view
+          const _upd = (id: string, val: string) => { const el = d.getElementById(id); if (el) el.textContent = val; };
+          _upd('fv-crlink-' + dcoId, _crlink || '—');
+          _upd('fv-orig-' + dcoId, _orig || '—');
+          _upd('fv-implreq-' + dcoId, _implReq ? 'Yes' : 'No');
+          _upd('fv-implnst-' + dcoId, _implNst ? this._fmt(_implNst + 'T00:00:00Z') : '—');
+          _upd('fv-implowner-' + dcoId, _implOwner || '—');
           const _fvIp = d.getElementById('fv-implplan-' + dcoId); if (_fvIp) { _fvIp.textContent = _implPlan || 'No plan set'; (_fvIp as HTMLElement).style.fontStyle = _implPlan ? '' : 'italic'; (_fvIp as HTMLElement).style.color = _implPlan ? '' : 'var(--s5)'; }
+          _upd('fv-impldesc-' + dcoId, _implDesc || '—');
+          _upd('fv-implrisks-' + dcoId, _implRisks || '—');
+          _upd('fv-implverif-' + dcoId, _implVerif || '—');
+          _upd('fv-effdelay-' + dcoId, _effDelay);
+          _upd('fv-effnst-' + dcoId, (_effNst && _effDelay === 'Yes') ? this._fmt(_effNst + 'T00:00:00Z') : '—');
+          _upd('fv-effdlyreason-' + dcoId, _effDlyReason || '—');
+          // Toggle conditional rows in read view
+          const _show = (id: string, v: boolean) => { const el = d.getElementById(id); if (el) el.style.display = v ? '' : 'none'; };
+          _show('rv-implnst-' + dcoId, _implReq);
+          _show('rv-implowner-' + dcoId, _implReq);
+          _show('rv-implplan-' + dcoId, _implReq);
+          _show('rv-impldesc-' + dcoId, _implReq);
+          _show('rv-implrisks-' + dcoId, _implReq);
+          _show('rv-implverif-' + dcoId, _implReq);
+          _show('rv-effnst-' + dcoId, _effDelay === 'Yes');
+          _show('rv-effdlyreason-' + dcoId, _effDelay === 'Yes');
+          // Switch back to read view
           if (_editForm) _editForm.style.display = 'none';
+          if (_readView) _readView.style.display = 'grid';
           if (w.qpToast) w.qpToast('DCO details saved');
         });
       }
@@ -2857,21 +3321,41 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             const _vFIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-008','FM-025','FM-027','FM-030'];
             const _vQMIDS = ['QM-001'];
             const missing: string[] = [];
+            const draftOnly: string[] = [];
+            const _vDraftFolders = ['Shared Documents/QMS/Documents/Drafts', 'Shared Documents/QMS/Forms/Drafts'];
             for (const _vId of _vDocs) {
               const _vFn = _vFM[_vId] || (_vId + '_DRAFT_.docx');
               const _vFolder = _vFIDS.includes(_vId) ? 'Published/QMS/Forms' : _vQMIDS.includes(_vId) ? 'Published/QMS/Quality Manual' : 'Published/QMS/Documents';
               const _vPath = "/sites/IMP9177/Shared Documents/" + _vFolder + "/" + _vFn;
               try {
                 const _vResp = await this.context.spHttpClient.get(
-                  base2 + "/_api/web/GetFileByServerRelativeUrl('" + _vPath + "')",
+                  base2 + "/_api/web/GetFileByServerRelativeUrl('" + encodeURIComponent(_vPath).replace(/%2F/g, '/') + "')",
                   SPHttpClient.configurations.v1
                 );
-                if (!_vResp.ok) missing.push(_vId);
+                if (!_vResp.ok) {
+                  // Not in Published — check if it's in Drafts
+                  let foundInDraft = false;
+                  for (const _df of _vDraftFolders) {
+                    const _dPath = "/sites/IMP9177/" + _df + "/" + _vFn;
+                    try {
+                      const _dResp = await this.context.spHttpClient.get(
+                        base2 + "/_api/web/GetFileByServerRelativeUrl('" + encodeURIComponent(_dPath).replace(/%2F/g, '/') + "')",
+                        SPHttpClient.configurations.v1
+                      );
+                      if (_dResp.ok) { foundInDraft = true; break; }
+                    } catch(e2) {}
+                  }
+                  if (foundInDraft) draftOnly.push(_vId);
+                  else missing.push(_vId);
+                }
               } catch(e) { missing.push(_vId); }
             }
             if (missing.length > 0) {
-              if (w.qpToast) w.qpToast('Submit blocked — files not found in Published zone: ' + missing.join(', '));
+              if (w.qpToast) w.qpToast('Submit blocked — files not found anywhere: ' + missing.join(', '));
               return;
+            }
+            if (draftOnly.length > 0) {
+              if (!confirm('⚠ Warning: ' + draftOnly.join(', ') + ' not yet in Published zone (still in Drafts). Submit anyway?')) return;
             }
             if (w.qpToast) w.qpToast('Submitting DCO for approval...');
             if (dcoItem2?.Id) {
@@ -2879,10 +3363,11 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                 base2 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dcoItem2.Id + ")",
                 SPHttpClient.configurations.v1,
                 { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
-                  body: JSON.stringify({ DCO_Phase: 'Submitted', DCO_SubmittedDate: ts2 }) }
+                  body: JSON.stringify({ DCO_Phase: 'Submitted', DCO_SubmittedDate: ts2, DCO_DocsLastUpdated: ts2 }) }
               );
               dcoItem2.DCO_Phase = 'Submitted';
               dcoItem2.DCO_SubmittedDate = ts2;
+              dcoItem2.DCO_DocsLastUpdated = ts2;
             }
             await this.context.spHttpClient.post(
               base2 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
@@ -2893,6 +3378,31 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                   RH_Note: 'DCO submitted for approval by ' + user2 + '. Routing to reviewers.',
                   RH_Timestamp: ts2 }) }
             );
+            // Task 12: Auto-populate signers based on doc types
+            const _vDocTypes = new Set<string>();
+            _vDocs.forEach((vid: string) => {
+              if (vid.startsWith('QM-')) _vDocTypes.add('QM');
+              else if (vid.startsWith('SOP-')) _vDocTypes.add('SOP');
+              else if (vid.startsWith('FM-')) _vDocTypes.add('FM');
+              else if (vid.startsWith('FPS-')) _vDocTypes.add('FPS');
+            });
+            try {
+              const _autoApprs = await this.spGet('QMS_Approvers', 'Id,Title,Appr_Name,Approver_Email,Appr_DocType,Appr_Role,Appr_Active', 'Appr_Active eq 1');
+              const _existApprs = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId).map((a: any) => (a.Appr_Name || '').toLowerCase());
+              for (const _aa of _autoApprs) {
+                if (!_vDocTypes.has(_aa.Appr_DocType)) continue;
+                if (_existApprs.some((n: string) => n === (_aa.Appr_Name || '').toLowerCase())) continue;
+                await this.context.spHttpClient.post(
+                  base2 + "/_api/web/lists/getbytitle('QMS_DCOApprovals')/items",
+                  SPHttpClient.configurations.v1,
+                  { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+                    body: JSON.stringify({ Title: dcoId + '-' + _aa.Appr_Name + '-AUTO', Appr_DCOID: dcoId,
+                      Appr_Name: _aa.Appr_Name, Appr_Email: _aa.Approver_Email,
+                      Appr_Role: _aa.Appr_Role || _aa.Appr_DocType + ' Approver',
+                      Appr_Type: 'Required', Appr_Status: 'Waiting' }) }
+                ).catch(() => {});
+              }
+            } catch(e12) {}
             if (w.qpToast) w.qpToast(dcoId + ' submitted — routed for approval');
             setTimeout(() => this._loadAll(), 1000);
           };
