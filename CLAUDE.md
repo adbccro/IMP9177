@@ -40,3 +40,5 @@ Project context for this session:
 
 \- Read the relevant section of the file before making any change
 
+\- Read STATE.md and ISSUES.md at the start of every session
+
