@@ -1546,21 +1546,30 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       btn.addEventListener('click', () => this._openTrainModal((btn as HTMLElement).getAttribute('data-docid') || '', (btn as HTMLElement).getAttribute('data-docname') || ''));
     });
 
-    // Matrix
-    const docIdsMap: Record<string, boolean> = {}; matrix.forEach((m: any) => { docIdsMap[m.TM_DocID] = true; });
-    const roleIdsMap: Record<string, boolean> = {}; matrix.forEach((m: any) => { roleIdsMap[m.TM_RoleID] = true; });
-    const docIds = Object.keys(docIdsMap);
-    const roleIds = Object.keys(roleIdsMap);
-    if (docIds.length && roleIds.length) {
-      const hdr = `<tr><th class="role-hdr">Document</th>${roleIds.map(r => `<th>${r}</th>`).join('')}</tr>`;
-      const rows2 = docIds.map(docId => {
-        const cells = roleIds.map(roleId => {
-          const req = matrix.find(m => m.TM_DocID === docId && m.TM_RoleID === roleId);
-          return `<td>${req ? '<span class="tm-check">✅</span>' : '<span class="tm-dash">—</span>'}</td>`;
-        }).join('');
-        return `<tr><td style="text-align:left;font-family:var(--mono);font-size:11px;color:var(--b)">${docId}</td>${cells}</tr>`;
+    // Matrix — grouped by document, roles as rows
+    const matrixDocIds = Array.from(new Set<string>(matrix.map((m: any) => m.TM_DocID as string))).sort();
+    if (matrixDocIds.length === 0) {
+      this._html('tr-matrix-wrap', '<div style="padding:24px;text-align:center;color:var(--s5);font-size:12px">No training matrix data configured. Run setup_training_matrix.ps1 to seed initial data.</div>');
+    } else {
+      const matrixHtml = matrixDocIds.map(docId => {
+        const docRows = matrix.filter((m: any) => m.TM_DocID === docId);
+        const docTitle = (docRows[0]?.TM_DocTitle as string) || (this._drmT as any)?.[docId] || docId;
+        const reqCount = docRows.filter((m: any) => m.TM_Required).length;
+        return `<div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px;padding:5px 0 5px 0;border-bottom:2px solid var(--b0);margin-bottom:2px">
+            <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${docId}</span>
+            ${docTitle !== docId ? `<span style="font-size:12px;color:var(--s7)">${docTitle}</span>` : ''}
+            <span style="margin-left:auto;font-size:11px;color:var(--s5)">${reqCount} role${reqCount !== 1 ? 's' : ''} required</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <tbody>${docRows.map((r: any) => `<tr style="border-bottom:1px solid var(--s1)">
+              <td style="padding:4px 8px;color:var(--s7)">${r.TM_RoleName || r.TM_RoleID}</td>
+              <td style="padding:4px 8px;text-align:right"><span style="color:${r.TM_Required ? 'var(--g)' : 'var(--s5)'};font-weight:600">${r.TM_Required ? '✓ Required' : '—'}</span></td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
       }).join('');
-      this._html('tr-matrix-wrap', `<div class="tm-grid"><table class="tm-table"><thead>${hdr}</thead><tbody>${rows2}</tbody></table></div>`);
+      this._html('tr-matrix-wrap', matrixHtml);
     }
 
     // Employees
