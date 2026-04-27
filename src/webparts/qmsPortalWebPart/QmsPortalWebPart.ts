@@ -55,6 +55,7 @@ body{font-family:var(--sans);background:var(--s0);color:var(--s7);font-size:14px
 /* ── alert bar ── */
 .qp-alert{margin:14px 24px 0;padding:10px 16px;border-radius:7px;border-left:4px solid var(--r);background:var(--r1);color:var(--r);font-size:12px;font-weight:500;display:none;align-items:center;gap:8px}
 .qp-alert.show{display:flex}
+.qp-user-banner{margin:10px 24px 0;padding:10px 16px;border-radius:7px;border-left:4px solid var(--a);background:var(--a1);color:var(--a);font-size:12px;font-weight:500;display:none;align-items:center;gap:8px}
 
 /* ── main content ── */
 .qp-main{padding:18px 24px 32px}
@@ -619,6 +620,7 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <button class="qp-tab" data-screen="config">⚙️ Config</button>
 </div>
 <div class="qp-alert" id="qp-alert"><span>⚠️</span><span id="qp-alert-txt"></span></div>
+<div class="qp-user-banner" id="qp-user-banner"><span>⚠️</span><span id="qp-user-banner-txt"></span></div>
 <div class="qp-main">
   <div class="qp-screen on" id="sc-dashboard">${SHELL_DASHBOARD}</div>
   <div class="qp-screen" id="sc-dco">${SHELL_DCO}</div>
@@ -777,6 +779,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   private _iframe: HTMLIFrameElement | null = null;
   private _data: Record<string, any[]> = {};
   private _config: any = {};
+  private _currentUser: { id: number; name: string; email: string; role: string; dept: string } | null = null;
 
   // ── SharePoint REST helper ──
   private spGet(list: string, select = '', filter = '', top = 500): Promise<any[]> {
@@ -810,26 +813,70 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   // ── Fetch all QMS lists ──
   private async _loadAll(): Promise<void> {
     try {
-      const [dcos, crs, approvals, history, records, employees, roles, matrix, completions, config] =
+      const [dcos, crs, approvals, history, records, employees, roles, matrix, completions, config, approvers] =
         await Promise.all([
           this.spGet('QMS_DCOs', 'Id,Title,DCO_Phase,DCO_Title,DCO_CRLink,DCO_SubmittedDate,DCO_Originator,DCO_Docs,DCO_LateDays,DCO_TrainingGate,DCO_CA,DCO_ImplActivityRequired,DCO_ImplPlan,DCO_ImplNoSoonerThan,DCO_EffNoSoonerThan,DCO_EffDelayRequired,DCO_EffDelayReason,DCO_ImplOwner,DCO_ImplDescription,DCO_ImplRisks,DCO_ImplVerification,DCO_CancelReason,DCO_DocsLastUpdated,DCO_DocPurposes'),
           this.spGet('QMS_ChangeRequests', 'Id,Title,CR_Title,CR_Status,CR_Priority,CR_Originator,CR_LinkedDCOs,CR_Description,CR_CreatedDate'),
-          this.spGet('QMS_DCOApprovals', 'Id,Title,Appr_DCOID,Appr_Name,Appr_Role,Appr_Type,Appr_Status,Appr_SignedDate,Appr_SigID'),
+          this.spGet('QMS_DCOApprovals', 'Id,Title,Appr_DCOID,Appr_Name,Appr_Email,Appr_Role,Appr_Type,Appr_Status,Appr_SignedDate,Appr_SigID'),
           this.spGet('QMS_RoutingHistory', 'Id,Title,RH_DCOID,RH_EventType,RH_Stage,RH_Actor,RH_Note,RH_Reason,RH_Timestamp'),
           this.spGet('QMS_Records', 'Id,Title,Rec_Type,Rec_Title,Rec_Status,Rec_Originator,Rec_Reviewer,Rec_CreatedDate,Rec_SigID'),
-          this.spGet('QMS_Employees', 'Id,Title,Emp_Email,Emp_Title,Emp_Dept,Emp_Roles'),
+          this.spGet('QMS_Employees', 'Id,Title,Emp_Email,Emp_Title,Emp_Dept,Emp_Roles,Emp_PortalRole,Emp_Status'),
           this.spGet('QMS_Roles', 'Id,Title,Role_Desc,Role_RequiredDocs'),
-          this.spGet('QMS_TrainingMatrix', 'Id,Title,TM_RoleID,TM_DocID,TM_Required'),
+          this.spGet('QMS_TrainingMatrix', 'Id,Title,TM_EmpID,TM_RoleID,TM_DocID,TM_Required'),
           this.spGet('QMS_TrainingCompletions', 'Id,Title,TC_EmpID,TC_DocID,TC_Rev,TC_Method,TC_SignedDate,TC_SigID'),
-          this.spGet('QMS_Config', 'Id,Title,Cfg_Value', '', 10),
+          this.spGet('QMS_Config', 'Id,Title,Cfg_Value', '', 20),
+          this.spGet('QMS_Approvers', 'Id,Title,Appr_Name,Approver_Email,Appr_DocType,Appr_Active'),
         ]);
-      this._data = { dcos, crs, approvals, history, records, employees, roles, matrix, completions };
+      this._data = { dcos, crs, approvals, history, records, employees, roles, matrix, completions, approvers };
       this._config = this._parseConfig(config);
     } catch (e) {
       console.error('QMS Portal: load failed', e);
     }
+
+    // Resolve current user against QMS_Employees
+    const userEmail = this.context.pageContext.user.email || '';
+    const empMatch = (this._data.employees || []).find((e: any) =>
+      (e.Emp_Email || '').toLowerCase() === userEmail.toLowerCase()
+    );
+    if (empMatch) {
+      this._currentUser = {
+        id: empMatch.Id,
+        name: empMatch.Emp_FullName || empMatch.Title || userEmail,
+        email: userEmail,
+        role: empMatch.Emp_PortalRole || 'Observer',
+        dept: empMatch.Emp_Dept || ''
+      };
+    } else {
+      this._currentUser = null;
+    }
+    this._applyPermissions();
+
     this._renderAll();
     this._setTs();
+
+    // Show amber banner if user is not in QMS_Employees
+    const _userBanner = document?.getElementById('qp-user-banner');
+    if (_userBanner) {
+      if (!this._currentUser) {
+        _userBanner.style.display = 'flex';
+        const _bannerTxt = document?.getElementById('qp-user-banner-txt');
+        if (_bannerTxt) _bannerTxt.textContent = `Your account (${this.context.pageContext.user.email || 'unknown'}) is not registered in the QMS system. Contact your administrator.`;
+      } else {
+        _userBanner.style.display = 'none';
+      }
+    }
+  }
+
+  // ── Apply tab visibility based on portal role ──
+  private _applyPermissions(): void {
+    const role = this._currentUser?.role || 'Observer';
+    const isPrivileged = role === 'PM' || role === 'ADB User';
+    const d = document;
+    if (!d) return;
+    ['publish', 'administration', 'config'].forEach((screen: string) => {
+      const tab = d.querySelector(`[data-screen="${screen}"]`) as HTMLElement;
+      if (tab) tab.style.display = isPrivileged ? '' : 'none';
+    });
   }
 
   private _parseConfig(rows: any[]): any {
@@ -944,8 +991,10 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   // ── Dashboard ──
   private _renderDashboard(): void {
     const { dcos = [], crs = [], approvals = [], matrix = [], completions = [], employees = [] } = this._data;
-    const activeDCOs = dcos.filter(d => !(['Effective'].indexOf(d.DCO_Phase || '') !== -1));
-    const openCRs = crs.filter(c => ['Closed'].indexOf(c.CR_Status || '') === -1);
+    const draftDCOs = dcos.filter((d: any) => d.DCO_Phase === 'Draft');
+    const activeDCOs = dcos.filter((d: any) => !['Effective', 'Draft', 'Cancelled'].includes(d.DCO_Phase || ''));
+    const openCRs = crs.filter((c: any) => ['Closed'].indexOf(c.CR_Status || '') === -1);
+    void draftDCOs; // used for reference
     const pendingSig = approvals.filter(a => (a.Appr_Status || '') === 'Waiting');
     const trainingPending = this._computePendingTraining();
     const overdueTraining = trainingPending.filter(t => t.status === 'Overdue');
@@ -957,14 +1006,27 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     this._set('db-k4', String(openCRs.length));
     this._set('db-k5', String(overdueTraining.length + dueSoon.length));
 
-    this._set('db-bc1', String(activeDCOs.length));
+    // db-bc1: DCOs I'm involved with (all non-Effective where I'm originator or approver)
+    const _myEmail9 = this._currentUser?.email || this.context.pageContext.user.email || '';
+    const _myDCOs9 = dcos.filter((d: any) => {
+      if (['Effective', 'Cancelled'].includes(d.DCO_Phase || '')) return false;
+      const isOrig = (d.DCO_Originator || '').toLowerCase().includes(_myEmail9.toLowerCase().split('@')[0]);
+      const isAppr = approvals.some((a: any) =>
+        a.Appr_DCOID === d.Title &&
+        ((a.Appr_Email || '').toLowerCase() === _myEmail9.toLowerCase() ||
+         (a.Appr_Name || '').toLowerCase().includes(_myEmail9.toLowerCase().split('@')[0]))
+      );
+      return isOrig || isAppr || !_myEmail9; // if no email resolved, show all
+    });
+
+    this._set('db-bc1', String(_myDCOs9.length));
     this._set('db-bc2', String(openCRs.length));
     this._set('db-bc3', String(pendingSig.length));
     this._set('db-bc4', String(dcos.length));
     this._set('db-bc5', String(trainingPending.length));
     this._set('db-bc6', '0'); // publish queue from doc library
 
-    const dcoItems = activeDCOs.slice(0, 3).map(d =>
+    const dcoItems = _myDCOs9.slice(0, 3).map((d: any) =>
       `<div class="bucket-item"><span style="font-family:var(--mono);font-size:10px;color:var(--b)">${d.Title}</span>${this._pill(d.DCO_Phase)}</div>`).join('');
     this._html('db-bi1', dcoItems || '<div style="padding:6px 0;font-size:11px;color:var(--s5)">No active DCOs</div>');
 
@@ -1084,8 +1146,21 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   // ── Administration screen (Employees / Approvers / Roles sub-tabs) ──
   private async _renderAdministration(): Promise<void> {
     const base = this.context.pageContext.web.absoluteUrl;
-    const { employees: cachedEmps = [] } = this._data;
+    const { employees: cachedEmps = [], approvers: cachedApprs = [] } = this._data;
     const activeEmps = cachedEmps.filter((e: any) => (e.Emp_Status || '').toLowerCase() !== 'inactive');
+
+    // Helpers for approver type display
+    const _getApproverTypes4 = (email: string): string => {
+      const types = cachedApprs
+        .filter((a: any) => (a.Approver_Email || '').toLowerCase() === (email || '').toLowerCase() && a.Appr_Active !== false && a.Appr_DocType)
+        .map((a: any) => a.Appr_DocType);
+      return types.length ? types.join(', ') : 'None';
+    };
+    const _hasApprType4 = (email: string, type: string): boolean =>
+      cachedApprs.some((a: any) =>
+        (a.Approver_Email || '').toLowerCase() === (email || '').toLowerCase() &&
+        a.Appr_Active !== false && a.Appr_DocType === type
+      );
 
     const empRows = activeEmps.map((e: any) => `
       <div style="border:1px solid var(--s2);border-radius:7px;padding:10px 12px;margin-bottom:8px;background:var(--w)">
@@ -1098,6 +1173,18 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             <button class="btn-sec btn-sm adm-emp-edit-btn" data-id="${e.Id}">Edit</button>
             <button class="btn-sec btn-sm adm-emp-deact-btn" data-id="${e.Id}" data-name="${e.Title || ''}" style="color:var(--r)">Deactivate</button>
           </div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--s5)">
+          Approver for: <span id="appr-for-${e.Id}" style="font-weight:600;color:var(--s7)">${_getApproverTypes4(e.Emp_Email)}</span>
+          <button class="btn-sec btn-sm" data-appr-edit="${e.Id}" style="margin-left:6px">Edit</button>
+        </div>
+        <div id="appr-for-edit-${e.Id}" style="display:none;margin-top:6px;padding:8px;background:var(--s0);border-radius:5px;border:1px solid var(--s2)">
+          ${['QM','SOP','FM','FPS','ALL'].map((t: string) =>
+            `<label style="margin-right:12px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+              <input type="checkbox" class="appr-type-chk" data-empid="${e.Id}" data-email="${e.Emp_Email}" data-type="${t}" ${_hasApprType4(e.Emp_Email, t) ? 'checked' : ''}> ${t}
+            </label>`
+          ).join('')}
+          <button class="btn-pri btn-sm appr-for-save" data-empid="${e.Id}" data-email="${e.Emp_Email}" style="margin-left:8px">Save</button>
         </div>
         <div id="adm-emp-form-${e.Id}" style="display:none;margin-top:10px;border-top:1px solid var(--s2);padding-top:10px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -1183,6 +1270,70 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         } catch(e) { if (w.qpToast) w.qpToast('Deactivate failed'); console.error(e); }
       });
     });
+    // Wire Approver For edit toggle
+    d.querySelectorAll('[data-appr-edit]').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).getAttribute('data-appr-edit');
+        const editDiv = d.getElementById('appr-for-edit-' + id);
+        if (editDiv) editDiv.style.display = editDiv.style.display === 'none' ? '' : 'none';
+      });
+    });
+    // Wire Approver For save
+    d.querySelectorAll('.appr-for-save').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const empId4 = (btn as HTMLElement).getAttribute('data-empid') || '';
+        const empEmail4 = (btn as HTMLElement).getAttribute('data-email') || '';
+        const chks4 = Array.from(d.querySelectorAll(`.appr-type-chk[data-empid="${empId4}"]`)) as HTMLInputElement[];
+        const checkedTypes4 = chks4.filter((c: HTMLInputElement) => c.checked).map((c: HTMLInputElement) => c.getAttribute('data-type') || '');
+        const uncheckedTypes4 = chks4.filter((c: HTMLInputElement) => !c.checked).map((c: HTMLInputElement) => c.getAttribute('data-type') || '');
+        const approvers4 = this._data.approvers || [];
+        // Add new approver rows
+        for (const type4 of checkedTypes4) {
+          const existing4 = approvers4.find((a: any) =>
+            (a.Approver_Email || '').toLowerCase() === empEmail4.toLowerCase() &&
+            a.Appr_DocType === type4 && a.Appr_Active !== false
+          );
+          if (!existing4) {
+            const emp4 = (this._data.employees || []).find((e: any) => String(e.Id) === String(empId4));
+            await this.context.spHttpClient.post(
+              `${base}/_api/web/lists/getbytitle('QMS_Approvers')/items`,
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+                body: JSON.stringify({ Title: (emp4?.Title || empId4) + '-' + type4, Appr_Name: emp4?.Title || empId4, Approver_Email: empEmail4, Appr_EmpID: empId4, Appr_DocType: type4, Appr_Active: true }) }
+            ).catch(() => {});
+          }
+        }
+        // Deactivate removed types
+        for (const type4 of uncheckedTypes4) {
+          const existing4 = approvers4.find((a: any) =>
+            (a.Approver_Email || '').toLowerCase() === empEmail4.toLowerCase() &&
+            a.Appr_DocType === type4 && a.Appr_Active !== false
+          );
+          if (existing4?.Id) {
+            await this.context.spHttpClient.post(
+              `${base}/_api/web/lists/getbytitle('QMS_Approvers')/items(${existing4.Id})`,
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+                body: JSON.stringify({ Appr_Active: false }) }
+            ).catch(() => {});
+          }
+        }
+        this._auditLog('ApproverTypesUpdated', empId4, JSON.stringify({ email: empEmail4, types: checkedTypes4 }));
+        if (w.qpToast) w.qpToast('Approver types saved for ' + empEmail4);
+        // Reload approvers data
+        this._data.approvers = await this.spGet('QMS_Approvers', 'Id,Title,Appr_Name,Approver_Email,Appr_DocType,Appr_Active');
+        const apprSpan4 = d.getElementById('appr-for-' + empId4);
+        if (apprSpan4) {
+          const types4 = (this._data.approvers || [])
+            .filter((a: any) => (a.Approver_Email || '').toLowerCase() === empEmail4.toLowerCase() && a.Appr_Active !== false && a.Appr_DocType)
+            .map((a: any) => a.Appr_DocType);
+          apprSpan4.textContent = types4.length ? types4.join(', ') : 'None';
+        }
+        const editDiv4 = d.getElementById('appr-for-edit-' + empId4);
+        if (editDiv4) editDiv4.style.display = 'none';
+      });
+    });
+
     const addEmpBtn = d.getElementById('adm-add-emp-btn');
     const addEmpArea = d.getElementById('adm-add-emp-area');
     if (addEmpBtn && addEmpArea) addEmpBtn.addEventListener('click', () => { addEmpArea.style.display = 'block'; addEmpBtn.style.display = 'none'; });
@@ -2723,7 +2874,15 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         ${isDraft ? `<div id="dco-edit-form-${dcoId}" style="display:none;border:1px solid var(--b2);border-radius:7px;padding:14px;background:var(--b0);margin-bottom:12px">
           <div style="font-size:11px;font-weight:700;color:var(--b);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Edit DCO Details</div>
           <div class="fg" style="margin-bottom:8px"><div class="fl">Title</div><input id="dco-edit-title-${dcoId}" class="finput" type="text" value="${(dco.DCO_Title||'').replace(/"/g,'&quot;')}" placeholder="DCO title..."></div>
-          <div class="fg" style="margin-bottom:8px"><div class="fl">CR Link</div><input id="dco-edit-crlink-${dcoId}" class="finput" type="text" value="${dco.DCO_CRLink||''}" placeholder="CR-XXXX"></div>
+          <div class="fg" style="margin-bottom:8px"><div class="fl">CR Link</div>${(() => {
+            const _existingLinks6 = dco.DCO_CRLink || '';
+            const _crOptions6 = (this._data.crs || []).map((cr: any) =>
+              `<option value="${cr.Title}" ${_existingLinks6.split(',').map((s: string) => s.trim()).includes(cr.Title) ? 'selected' : ''}>${cr.Title}${cr.CR_Title ? ' — ' + (cr.CR_Title||'').substring(0,45) : ''}</option>`
+            ).join('');
+            return _crOptions6
+              ? `<select class="fsel" id="dco-edit-crlink-${dcoId}" multiple size="3" style="width:100%">${_crOptions6}</select><div style="font-size:11px;color:var(--s5);margin-top:3px">Hold Ctrl/Cmd to select multiple</div>`
+              : `<input id="dco-edit-crlink-${dcoId}" class="finput" type="text" value="${dco.DCO_CRLink||''}" placeholder="CR-XXXX"><div style="font-size:11px;color:var(--s5);margin-top:3px">No change requests found — create a CR first</div>`;
+          })()}</div>
           <div class="fg" style="margin-bottom:8px"><div class="fl">Originator</div><input id="dco-edit-orig-${dcoId}" class="finput" type="text" value="${dco.DCO_Originator||''}" placeholder="Name"></div>
           <div class="fg" style="margin-bottom:8px"><div class="fl">Impl. Activity Required</div><select id="dco-edit-implreq-${dcoId}" class="fsel"><option value="0" ${!dco.DCO_ImplActivityRequired?'selected':''}>No</option><option value="1" ${dco.DCO_ImplActivityRequired?'selected':''}>Yes</option></select></div>
           <div id="ef-impl-group-${dcoId}" style="display:${dco.DCO_ImplActivityRequired?'':'none'}">
@@ -2762,6 +2921,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           <button class="mdco-tab on" data-pane="docs-${dcoId}">Documents</button>
           <button class="mdco-tab" data-pane="apprs-${dcoId}">Approvers</button>
           <button class="mdco-tab" data-pane="hist-${dcoId}">Routing History</button>
+          <button class="mdco-tab" data-pane="training-${dcoId}">🎓 Training</button>
         </div>
         <div class="mdco-pane on" id="mdco-pane-docs-${dcoId}"></div>
         <div class="mdco-pane" id="mdco-pane-apprs-${dcoId}">
@@ -2776,7 +2936,8 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             </div>
           </div>` : ''}
         </div>
-        <div class="mdco-pane" id="mdco-pane-hist-${dcoId}"><div id="dhist-${dcoId}">${histHtml||'<div style="color:var(--s5);font-size:12px;padding:8px 0">No history recorded yet</div>'}</div></div>`;
+        <div class="mdco-pane" id="mdco-pane-hist-${dcoId}"><div id="dhist-${dcoId}">${histHtml||'<div style="color:var(--s5);font-size:12px;padding:8px 0">No history recorded yet</div>'}</div></div>
+        <div class="mdco-pane" id="mdco-pane-training-${dcoId}"><div id="mdco-training-content-${dcoId}" style="padding:8px 0;font-size:12px;color:var(--s5)">Loading training records…</div></div>`;
       this._set('mdco-title', dcoId);
       this._set('mdco-sub', dco.DCO_Title||'');
       this._html('mdco-body', body);
@@ -2795,18 +2956,6 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           if (w._qpDocReviewState[dcoId][idx2]) return;
           w._qpDocReviewState[dcoId][idx2] = true;
           try { sessionStorage.setItem(_ssKey8, JSON.stringify(w._qpDocReviewState[dcoId])); } catch(e) {}
-          // Task 8: write DocumentOpened event to RoutingHistory (fire-and-forget)
-          (() => {
-            const _b8 = this.context.pageContext.web.absoluteUrl;
-            const _u8 = this.context.pageContext.user.email || this.context.pageContext.user.displayName;
-            this.context.spHttpClient.post(_b8 + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
-              SPHttpClient.configurations.v1,
-              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
-                body: JSON.stringify({ Title: dcoId + '-DOCOPEN-' + docId + '-' + Date.now(),
-                  RH_DCOID: dcoId, RH_EventType: 'DocumentOpened', RH_Stage: dco.DCO_Phase || 'Draft',
-                  RH_Actor: _u8, RH_Note: 'Document opened: ' + docId + ' (Rev: ' + rev + ')',
-                  RH_Timestamp: new Date().toISOString() }) }).catch(() => {});
-          })();
           const ts = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
           const pill = d.getElementById('drev-pill-' + idx2);
           const openBtn = d.getElementById('drev-btn-' + idx2);
@@ -2849,6 +2998,14 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           const docFileName = _pubFM[docId] || (docId + '_DRAFT_.docx');
           const _pubFolder = _pubFMIDS.includes(docId) ? 'Published/QMS/Forms' : _pubQMIDS.includes(docId) ? 'Published/QMS/Quality Manual' : 'Published/QMS/Documents';
           const docUrl = siteUrl + '/_layouts/15/Doc.aspx?sourcedoc=' + encodeURIComponent('/sites/IMP9177/Shared Documents/' + _pubFolder + '/' + docFileName) + '&action=view';
+          // Task 8: write DocumentOpened event via _auditLog (fire-and-forget, after _pubFM is declared)
+          this._auditLog('DocumentOpened', dcoId, JSON.stringify({
+            docId: docId,
+            fileName: docFileName,
+            userEmail: this._currentUser?.email || this.context.pageContext.user.email,
+            phase: dco.DCO_Phase || 'Draft',
+            rev: rev
+          }));
           // document open deferred to end of handler
           const state = w._qpDocReviewState[dcoId];
           const opened = state.filter((v: boolean) => v).length;
@@ -2910,10 +3067,96 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           tab.addEventListener('click', () => {
             tabBar.querySelectorAll('.mdco-tab').forEach((t: Element) => t.classList.remove('on'));
             tab.classList.add('on');
-            const paneId = 'mdco-pane-' + (tab as HTMLElement).getAttribute('data-pane');
+            const _paneKey11 = (tab as HTMLElement).getAttribute('data-pane') || '';
+            const paneId = 'mdco-pane-' + _paneKey11;
             d.querySelectorAll('.mdco-pane').forEach((p: Element) => p.classList.remove('on'));
             const pane = d.getElementById(paneId);
             if (pane) pane.classList.add('on');
+            // Task 11: lazy-load training tab
+            if (_paneKey11 === 'training-' + dcoId) {
+              const _tContent11 = d.getElementById('mdco-training-content-' + dcoId);
+              if (_tContent11 && !(_tContent11 as HTMLElement).dataset.loaded) {
+                (_tContent11 as HTMLElement).dataset.loaded = '1';
+                const _base11 = this.context.pageContext.web.absoluteUrl;
+                // Fetch all documents in this DCO
+                const _dcoDocIds11: string[] = ((dco.DCO_DocumentIDs || '').split(',').map((s: string) => s.trim()).filter(Boolean)) as string[];
+                if (_dcoDocIds11.length === 0) {
+                  _tContent11.innerHTML = '<div style="color:var(--s5);font-size:12px">No documents associated with this DCO.</div>';
+                  return;
+                }
+                // Build filter: TM_DocID in the DCO's documents
+                const _docFilter11 = _dcoDocIds11.map((id: string) => `TM_DocID eq '${id}'`).join(' or ');
+                Promise.all([
+                  this.context.spHttpClient.get(
+                    `${_base11}/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items?$select=Id,TM_EmpID,TM_DocID,TM_Required&$filter=${encodeURIComponent(_docFilter11)}&$top=500`,
+                    SPHttpClient.configurations.v1
+                  ).then((r: any) => r.json()),
+                  this.context.spHttpClient.get(
+                    `${_base11}/_api/web/lists/getbytitle('QMS_TrainingCompletions')/items?$select=Id,TC_EmpID,TC_DocID,TC_CompletedDate,TC_Score,TC_Status&$filter=${encodeURIComponent(_docFilter11)}&$top=500`,
+                    SPHttpClient.configurations.v1
+                  ).then((r: any) => r.json())
+                ]).then(([_tmRes11, _tcRes11]: [any, any]) => {
+                  const _matrix11: any[] = _tmRes11?.value || [];
+                  const _completions11: any[] = _tcRes11?.value || [];
+                  // Build lookup: empId+docId → completion
+                  const _compMap11: Record<string, any> = {};
+                  _completions11.forEach((c: any) => { _compMap11[`${c.TC_EmpID}|${c.TC_DocID}`] = c; });
+                  // Group by document
+                  const _byDoc11: Record<string, any[]> = {};
+                  _matrix11.forEach((row: any) => {
+                    if (!_byDoc11[row.TM_DocID]) _byDoc11[row.TM_DocID] = [];
+                    _byDoc11[row.TM_DocID].push(row);
+                  });
+                  if (Object.keys(_byDoc11).length === 0) {
+                    _tContent11.innerHTML = '<div style="color:var(--s5);font-size:12px">No training records found for this DCO\'s documents.</div>';
+                    return;
+                  }
+                  let _html11 = '';
+                  Object.keys(_byDoc11).sort().forEach((docId11: string) => {
+                    const _rows11 = _byDoc11[docId11];
+                    const _total11 = _rows11.length;
+                    const _done11 = _rows11.filter((r: any) => {
+                      const c = _compMap11[`${r.TM_EmpID}|${r.TM_DocID}`];
+                      return c && c.TC_Status === 'Complete';
+                    }).length;
+                    const _pct11 = _total11 > 0 ? Math.round((_done11 / _total11) * 100) : 0;
+                    const _docTitle11 = this._drmT?.[docId11] || docId11;
+                    _html11 += `<div style="margin-bottom:14px">
+                      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                        <span style="font-weight:700;font-size:12px;color:var(--n)">${docId11}</span>
+                        <span style="font-size:11px;color:var(--s5)">${_docTitle11 !== docId11 ? _docTitle11 : ''}</span>
+                        <span style="margin-left:auto;font-size:11px;font-weight:600;color:${_pct11===100?'var(--g)':'var(--a)'}">${_done11}/${_total11} complete (${_pct11}%)</span>
+                      </div>
+                      <div style="background:var(--s2);border-radius:4px;height:6px;margin-bottom:8px"><div style="background:${_pct11===100?'var(--g)':'var(--b)'};height:6px;border-radius:4px;width:${_pct11}%"></div></div>
+                      <table style="width:100%;border-collapse:collapse;font-size:11px">
+                        <thead><tr style="color:var(--s5);border-bottom:1px solid var(--s2)">
+                          <th style="text-align:left;padding:3px 6px;font-weight:600">Employee</th>
+                          <th style="text-align:center;padding:3px 6px;font-weight:600">Status</th>
+                          <th style="text-align:center;padding:3px 6px;font-weight:600">Completed</th>
+                          <th style="text-align:center;padding:3px 6px;font-weight:600">Score</th>
+                        </tr></thead>
+                        <tbody>${_rows11.map((r: any) => {
+                          const _c11 = _compMap11[`${r.TM_EmpID}|${r.TM_DocID}`];
+                          const _status11 = _c11?.TC_Status || 'Pending';
+                          const _date11 = _c11?.TC_CompletedDate ? new Date(_c11.TC_CompletedDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+                          const _score11 = _c11?.TC_Score != null ? _c11.TC_Score + '%' : '—';
+                          const _sColor11 = _status11 === 'Complete' ? 'var(--g)' : _status11 === 'Failed' ? 'var(--r)' : 'var(--a)';
+                          return `<tr style="border-bottom:1px solid var(--s1)">
+                            <td style="padding:4px 6px">${r.TM_EmpID}</td>
+                            <td style="padding:4px 6px;text-align:center"><span style="color:${_sColor11};font-weight:600">${_status11}</span></td>
+                            <td style="padding:4px 6px;text-align:center">${_date11}</td>
+                            <td style="padding:4px 6px;text-align:center">${_score11}</td>
+                          </tr>`;
+                        }).join('')}</tbody>
+                      </table>
+                    </div>`;
+                  });
+                  _tContent11.innerHTML = _html11;
+                }).catch(() => {
+                  _tContent11.innerHTML = '<div style="color:var(--r);font-size:12px">Failed to load training records.</div>';
+                });
+              }
+            }
           });
         });
       }
@@ -3277,32 +3520,68 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         }
         docsPaneEl.appendChild(_pjWrap);
         if (isDraft) {
-          const _apiKey4 = this._config.anthropicApiKey || '';
           _pjWrap.querySelectorAll('.pj-ai-btn').forEach((btn4: Element) => {
             btn4.addEventListener('click', async () => {
               const _did4 = (btn4 as HTMLElement).getAttribute('data-docid') || '';
-              if (!_apiKey4) { if (w.qpToast) w.qpToast('Anthropic API key not set in Config tab'); return; }
+
+              // Read API key from QMS_Config (live read in case it changed since load)
+              let _apiKey4 = this._config.anthropicApiKey || '';
+              if (!_apiKey4) {
+                // Try fetching live from config list
+                try {
+                  const _cfgBase4 = this.context.pageContext.web.absoluteUrl;
+                  const _cfgResp4 = await this.context.spHttpClient.get(
+                    `${_cfgBase4}/_api/web/lists/getbytitle('QMS_Config')/items?$filter=Title eq 'anthropicApiKey'&$select=Title,Cfg_Value&$top=1`,
+                    SPHttpClient.configurations.v1
+                  );
+                  if (_cfgResp4.ok) {
+                    const _cfgData4 = await _cfgResp4.json();
+                    _apiKey4 = (_cfgData4.value || [])[0]?.Cfg_Value || '';
+                    if (_apiKey4) this._config.anthropicApiKey = _apiKey4;
+                  }
+                } catch(_e4cfg) {}
+              }
+
+              if (!_apiKey4) {
+                if (w.qpToast) w.qpToast('Anthropic API key not configured. Go to Config tab to add it.');
+                return;
+              }
               if (w.qpToast) w.qpToast('Generating P&J for ' + _did4 + '...');
               (btn4 as HTMLElement).textContent = '⏳...';
               (btn4 as HTMLButtonElement).disabled = true;
               try {
+                const _prompt4 = `You are a pharmaceutical QMS change control specialist. Generate a concise Purpose (2-3 sentences) and Justification (2-3 sentences) for document ${_did4} ("${docNameMap[_did4] || _did4}") in DCO "${dcoId}" titled "${dco.DCO_Title || 'Document update'}". Format your response as JSON only: {"purpose":"...","justification":"..."}`;
                 const _aiResp = await fetch('https://api.anthropic.com/v1/messages', {
                   method: 'POST',
-                  headers: { 'x-api-key': _apiKey4, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-                  body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 500,
-                    messages: [{ role: 'user', content: `For pharmaceutical QMS DCO "${dcoId}", write a concise purpose and justification for document ${_did4} ("${docNameMap[_did4] || _did4}"). Respond with JSON only: {"purpose":"...","justification":"..."}` }] })
+                  headers: {
+                    'x-api-key': _apiKey4,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                  },
+                  body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 512,
+                    messages: [{ role: 'user', content: _prompt4 }]
+                  })
                 });
+                if (!_aiResp.ok) {
+                  if (w.qpToast) w.qpToast(`AI generation failed (HTTP ${_aiResp.status}) — check API key in Config`);
+                  (btn4 as HTMLElement).textContent = '✨ AI';
+                  (btn4 as HTMLButtonElement).disabled = false;
+                  return;
+                }
                 const _aiData = await _aiResp.json();
                 const _aiText = _aiData?.content?.[0]?.text || '';
                 let _aiPJ: any = {};
-                try { _aiPJ = JSON.parse((_aiText.match(/\{[\s\S]*\}/) || ['{}'])[0]); } catch(e) {}
-                const _purpEl = _pjWrap.querySelector('.pj-purpose[data-docid="' + _did4 + '"]') as HTMLTextAreaElement;
-                const _justEl = _pjWrap.querySelector('.pj-justification[data-docid="' + _did4 + '"]') as HTMLTextAreaElement;
+                try { _aiPJ = JSON.parse((_aiText.match(/\{[\s\S]*\}/) || ['{}'])[0]); } catch(_ep) {}
+                const _purpEl = _pjWrap.querySelector('.pj-purpose[data-docid="' + _did4 + '"]') as HTMLInputElement;
+                const _justEl = _pjWrap.querySelector('.pj-justification[data-docid="' + _did4 + '"]') as HTMLInputElement;
                 if (_purpEl && _aiPJ.purpose) _purpEl.value = _aiPJ.purpose;
                 if (_justEl && _aiPJ.justification) _justEl.value = _aiPJ.justification;
                 if (w.qpToast) w.qpToast('Generated P&J for ' + _did4);
-              } catch(e4) { if (w.qpToast) w.qpToast('AI generation failed'); }
-              (btn4 as HTMLElement).textContent = '✨ AI Generate';
+              } catch(e4) { if (w.qpToast) w.qpToast('AI generation failed — check console'); console.error('AI P&J failed:', e4); }
+              (btn4 as HTMLElement).textContent = '✨ AI';
               (btn4 as HTMLButtonElement).disabled = false;
             });
           });
@@ -3462,7 +3741,13 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       if (_editSaveBtn) {
         _editSaveBtn.addEventListener('click', async () => {
           const _title = (d.getElementById('dco-edit-title-' + dcoId) as HTMLInputElement)?.value || '';
-          const _crlink = (d.getElementById('dco-edit-crlink-' + dcoId) as HTMLInputElement)?.value || '';
+          const _crlinkEl6 = d.getElementById('dco-edit-crlink-' + dcoId);
+          let _crlink = '';
+          if (_crlinkEl6 && _crlinkEl6.tagName === 'SELECT') {
+            _crlink = Array.from((_crlinkEl6 as HTMLSelectElement).selectedOptions).map((o: HTMLOptionElement) => o.value).join(',');
+          } else if (_crlinkEl6) {
+            _crlink = (_crlinkEl6 as HTMLInputElement).value || '';
+          }
           const _orig = (d.getElementById('dco-edit-orig-' + dcoId) as HTMLInputElement)?.value || '';
           const _implReq = (d.getElementById('dco-edit-implreq-' + dcoId) as HTMLSelectElement)?.value === '1';
           const _implNst = (d.getElementById('dco-edit-implnst-' + dcoId) as HTMLInputElement)?.value || '';
@@ -3676,33 +3961,84 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                   RH_Note: 'DCO submitted for approval by ' + user2 + '. Routing to reviewers.',
                   RH_Timestamp: ts2 }) }
             );
-            // Task 12: Auto-populate signers based on doc types
-            const _vDocTypes = new Set<string>();
-            _vDocs.forEach((vid: string) => {
-              if (vid.startsWith('QM-')) _vDocTypes.add('QM');
-              else if (vid.startsWith('SOP-')) _vDocTypes.add('SOP');
-              else if (vid.startsWith('FM-')) _vDocTypes.add('FM');
-              else if (vid.startsWith('FPS-')) _vDocTypes.add('FPS');
+            // Auto-assign approvers based on doc types
+            const _docIds3 = (dcoItem2?.DCO_Docs || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+            const _docTypesArr3: string[] = Array.from(new Set<string>(_docIds3.map((id: string): string => {
+              if (id.startsWith('QM-')) return 'QM';
+              if (id.startsWith('SOP-')) return 'SOP';
+              if (id.startsWith('FM-')) return 'FM';
+              if (id.startsWith('FPS-')) return 'FPS';
+              return 'OTHER';
+            })));
+
+            const _existingApprs3 = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId);
+            const _existingEmails3 = new Set(_existingApprs3.map((a: any) => (a.Appr_Email || '').toLowerCase()));
+
+            const _matchingApprovers3 = (this._data.approvers || []).filter((a: any) =>
+              a.Appr_Active !== false && _docTypesArr3.includes(a.Appr_DocType)
+            );
+
+            // Deduplicate by email
+            const _seenEmails3 = new Set<string>();
+            const _uniqueApprovers3 = _matchingApprovers3.filter((a: any) => {
+              const em = (a.Approver_Email || '').toLowerCase();
+              if (!em || _seenEmails3.has(em)) return false;
+              _seenEmails3.add(em);
+              return true;
             });
-            try {
-              const _autoApprs = await this.spGet('QMS_Approvers', 'Id,Title,Appr_Name,Approver_Email,Appr_DocType,Appr_Role,Appr_Active', 'Appr_Active eq 1');
-              const _existApprs = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId).map((a: any) => (a.Appr_Name || '').toLowerCase());
-              for (const _aa of _autoApprs) {
-                if (!_vDocTypes.has(_aa.Appr_DocType)) continue;
-                if (_existApprs.some((n: string) => n === (_aa.Appr_Name || '').toLowerCase())) continue;
+
+            // Block if no approvers
+            if (_uniqueApprovers3.length === 0 && _existingApprs3.length === 0) {
+              if (w.qpToast) w.qpToast('No approvers assigned. Add at least one approver in Administration before submitting.');
+              return;
+            }
+
+            // Create approval rows for new approvers
+            for (const _appr3 of _uniqueApprovers3) {
+              const _email3 = (_appr3.Approver_Email || '').toLowerCase();
+              if (_existingEmails3.has(_email3)) continue;
+              try {
                 await this.context.spHttpClient.post(
-                  base2 + "/_api/web/lists/getbytitle('QMS_DCOApprovals')/items",
+                  `${base2}/_api/web/lists/getbytitle('QMS_DCOApprovals')/items`,
                   SPHttpClient.configurations.v1,
-                  { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
-                    body: JSON.stringify({ Title: dcoId + '-' + _aa.Appr_Name + '-AUTO', Appr_DCOID: dcoId,
-                      Appr_Name: _aa.Appr_Name, Appr_Email: _aa.Approver_Email,
-                      Appr_Role: _aa.Appr_Role || _aa.Appr_DocType + ' Approver',
-                      Appr_Type: 'Required', Appr_Status: 'Waiting' }) }
-                ).catch(() => {});
-              }
-            } catch(e12) {}
-            if (w.qpToast) w.qpToast(dcoId + ' submitted — routed for approval');
-            setTimeout(() => this._loadAll(), 1000);
+                  {
+                    headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+                    body: JSON.stringify({
+                      Title: `${dcoId}-${(_appr3.Approver_Email||'').split('@')[0].toUpperCase()}-AUTO`,
+                      Appr_DCOID: dcoId,
+                      Appr_Name: _appr3.Appr_Name || _appr3.Title,
+                      Appr_Email: _appr3.Approver_Email,
+                      Appr_Role: _appr3.Appr_DocType + ' Approver',
+                      Appr_Type: 'Required',
+                      Appr_Status: 'Pending'
+                    })
+                  }
+                );
+                _existingEmails3.add(_email3);
+              } catch (_e3) {}
+            }
+            if (w.qpToast) w.qpToast(dcoId + ' submitted for approval');
+
+            // Optimistic update
+            const _dcoLocal7 = (this._data.dcos || []).find((x: any) => x.Title === dcoId);
+            if (_dcoLocal7) _dcoLocal7.DCO_Phase = 'Submitted';
+
+            // Update submit button
+            const actionBtn7 = d.getElementById('mdco-action-btn') as HTMLButtonElement;
+            if (actionBtn7) {
+              actionBtn7.textContent = 'Submitted';
+              actionBtn7.style.background = 'var(--g)';
+              actionBtn7.disabled = true;
+            }
+
+            // Re-render DCO table
+            this._renderDCO();
+
+            // Close modal after 1.5s
+            setTimeout(() => {
+              (d.getElementById('modal-dco-detail') as HTMLElement)?.classList.remove('open');
+              this._loadAll();
+            }, 1500);
           };
         } else if (phase === 'Submitted' || phase === 'In Review') {
           const _ue12 = this.context.pageContext.user.email || '';
