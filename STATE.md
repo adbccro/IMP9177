@@ -1,5 +1,5 @@
 # IMP9177 QMS Portal — Project State
-Last updated: 2026-04-27 (session5)
+Last updated: 2026-04-27 (session6)
 
 ## Deployment
 - SP site: https://adbccro.sharepoint.com/sites/IMP9177
@@ -51,12 +51,17 @@ Last updated: 2026-04-27 (session5)
 - [x] `scripts/cleanup_session4.ps1` — reset DCO-0001 to Draft, delete approvals/history, deduplicate employees
 - [x] `scripts/setup_training_matrix.ps1` — seed QMS_TrainingMatrix per active employee x 26 documents
 
+## One-time Admin Commands
+```powershell
+# Clear AI P&J test data from DCO-0001 (run after Connect-PnPOnline):
+Set-PnPListItem -List "QMS_DCOs" -Identity 1 -Values @{ DCO_DocPurposes = "" } | Out-Null
+```
+
 ## Known Limitations / Not Yet Implemented
-- Training tab shows employees by `TM_EmpID` (Title field value from QMS_TrainingMatrix). Full names require joining with QMS_Employees.
 - `_drmT` (doc ID → title map) used in training tab but may be sparse — falls back to doc ID if no title found.
 - `DCO_DocumentIDs` field used in training tab filter; must be populated for training to load. If only `DCO_Docs` is populated, training tab shows "No documents associated."
-- Separate "Approver Assignments" panel in Administration > Approvers sub-tab still exists alongside the new inline section.
-- PDF download in Effective DCOs still uses a direct inline SP REST call (not `_auditLog`) for the download audit event.
+- Separate "Approver Assignments" panel in Administration > Approvers sub-tab still exists alongside the new inline section (ISSUE-003).
+- PDF download in Effective DCOs still uses a direct inline SP REST call (not `_auditLog`) for the download audit event (ISSUE-006).
 
 ## Build System
 - Toolchain: heft 0.x, TypeScript 5.8.3, Webpack 5, SPFx 1.18

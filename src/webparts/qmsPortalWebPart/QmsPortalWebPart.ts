@@ -3607,7 +3607,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         _tr5Wrap.style.cssText = 'margin-top:14px;border:1px solid var(--s2);border-radius:7px;overflow:hidden';
         _tr5Wrap.innerHTML = `<div style="padding:8px 12px;background:var(--s0);border-bottom:1px solid var(--s2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s5)">Training Role Assignments — Per Document</div>`;
         displayDocs.forEach((trDocId: string) => {
-          const matrixRoles = new Set(_matrix5.filter((m: any) => m.TM_DocID === trDocId).map((m: any) => m.TM_RoleID));
+          const matrixRoles = new Set(_matrix5.filter((m: any) => m.TM_DocID === trDocId && m.TM_Required).map((m: any) => m.TM_RoleID));
           const trDocRow = d.createElement('div');
           trDocRow.style.cssText = 'padding:10px 12px;border-bottom:1px solid var(--s1)';
           const roleChecks = _roles5.map((role: any) => {
@@ -3636,33 +3636,50 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           _tr5SaveBtn.addEventListener('click', async () => {
             if (w.qpToast) w.qpToast('Saving training role assignments...');
             const _base5 = this.context.pageContext.web.absoluteUrl;
+            const _proposed5: Record<string, string[]> = {};
             for (const trDocId5 of displayDocs) {
               const _checked5 = Array.from(_tr5Wrap.querySelectorAll('.tr5-role-chk[data-docid="' + trDocId5 + '"]:checked')).map((c: Element) => (c as HTMLInputElement).getAttribute('data-roleid') || '');
               const _unchecked5 = Array.from(_tr5Wrap.querySelectorAll('.tr5-role-chk[data-docid="' + trDocId5 + '"]:not(:checked)')).map((c: Element) => (c as HTMLInputElement).getAttribute('data-roleid') || '');
-              // Add missing matrix entries
+              _proposed5[trDocId5] = _checked5.filter(Boolean);
+              // Checked roles: create new row or enable existing disabled row
               for (const roleId5 of _checked5) {
-                const exists5 = _matrix5.some((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
-                if (!exists5) {
+                const existing5 = _matrix5.find((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
+                if (!existing5) {
                   await this.context.spHttpClient.post(
                     _base5 + "/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items",
                     SPHttpClient.configurations.v1,
                     { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
                       body: JSON.stringify({ Title: trDocId5 + '-' + roleId5, TM_DocID: trDocId5, TM_RoleID: roleId5, TM_Required: true }) }
                   ).catch(() => {});
-                }
-              }
-              // Remove unchecked matrix entries
-              for (const roleId5 of _unchecked5) {
-                const existing5 = _matrix5.find((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
-                if (existing5?.Id) {
+                } else if (!existing5.TM_Required) {
                   await this.context.spHttpClient.post(
                     _base5 + "/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items(" + existing5.Id + ")",
                     SPHttpClient.configurations.v1,
-                    { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'DELETE'}, body: '' }
+                    { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+                      body: JSON.stringify({ TM_Required: true }) }
+                  ).catch(() => {});
+                }
+              }
+              // Unchecked roles: soft-disable (MERGE TM_Required=false, do not DELETE)
+              for (const roleId5 of _unchecked5) {
+                const existing5 = _matrix5.find((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
+                if (existing5?.Id && existing5.TM_Required) {
+                  await this.context.spHttpClient.post(
+                    _base5 + "/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items(" + existing5.Id + ")",
+                    SPHttpClient.configurations.v1,
+                    { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+                      body: JSON.stringify({ TM_Required: false }) }
                   ).catch(() => {});
                 }
               }
             }
+            // Write proposed training changes to DCO record
+            await this.context.spHttpClient.post(
+              _base5 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dco.Id + ")",
+              SPHttpClient.configurations.v1,
+              { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+                body: JSON.stringify({ DCO_ProposedTrainingChanges: JSON.stringify(_proposed5) }) }
+            ).catch(() => {});
             const changed5 = d.getElementById('tr5-changed-' + dcoId);
             if (changed5) changed5.style.display = 'none';
             if (w.qpToast) w.qpToast('Training role assignments saved');
