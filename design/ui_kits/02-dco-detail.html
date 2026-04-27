@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>DCO-0001 — W1 sign-off package · 3H QMS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap">
+<style>
+:root {
+  --n:  #0a3259; --b:  #0f4c81; --b2: #1a6bb5; --b1: #e3f2fd; --b0: #f0f7ff;
+  --r:  #c62828; --r1: #fde8e8; --a:  #e65100; --a1: #fff3e0; --g:  #2e7d32; --g1: #e8f5e9;
+  --p:  #7b1fa2; --p1: #f3e5f5;
+  --s0: #fafbfc; --s1: #f0f4f8; --s2: #e0e6ed; --s4: #8b97a8; --s5: #5a6a7e; --s7: #1a2332; --w: #fff;
+  --serif:'Libre Baskerville', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--s0); color: var(--s7); font-family: var(--sans); -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.55; }
+
+/* ─── HEADER ─── */
+.hdr { background: var(--w); border-bottom: 1px solid var(--s2); padding: 22px 56px 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+.hdr-l { display: flex; align-items: center; gap: 18px; }
+.qms { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 2.4px; color: var(--b); padding: 8px 14px; border: 1px solid var(--b1); border-radius: 999px; background: var(--b0); }
+.hdr h1 { font-family: var(--serif); font-weight: 700; font-size: 26px; letter-spacing: -.4px; color: var(--n); line-height: 1.15; }
+.hdr .sub { font-size: 13px; color: var(--s5); margin-top: 4px; line-height: 1.5; }
+.hdr-r { display: flex; gap: 10px; align-items: center; }
+.hchip { font-family: var(--mono); font-size: 11px; padding: 6px 13px; border-radius: 999px; background: var(--w); border: 1px solid var(--s2); color: var(--s5); letter-spacing: .3px; }
+.hchip.warn { color: var(--a); border-color: #f8d8b0; background: #fffaf3; }
+.hchip.late { color: var(--r); border-color: #f3c2c2; background: #fef5f5; }
+
+.nav { background: var(--w); border-bottom: 1px solid var(--s2); padding: 0 56px; display: flex; gap: 4px; overflow-x: auto; }
+.nav a { text-decoration: none; color: var(--s5); font-size: 13.5px; font-weight: 500; padding: 16px 16px 14px; border-bottom: 2px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 7px; transition: all .15s; }
+.nav a:hover { color: var(--b); }
+.nav a.on { color: var(--n); border-bottom-color: var(--b); }
+
+/* ─── BREADCRUMB ─── */
+.crumb { padding: 18px 56px 0; max-width: 1480px; margin: 0 auto; font-family: var(--mono); font-size: 11px; letter-spacing: .8px; color: var(--s5); text-transform: uppercase; }
+.crumb a { color: var(--s5); text-decoration: none; }
+.crumb a:hover { color: var(--b); }
+.crumb span { color: var(--s2); margin: 0 10px; }
+.crumb b { color: var(--n); font-weight: 500; }
+
+/* ─── DOC HEADER ─── */
+main { padding: 24px 56px 96px; max-width: 1480px; margin: 0 auto; }
+
+.doc-head { padding: 24px 0 32px; border-bottom: 1px solid var(--s2); display: flex; gap: 40px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
+.dh-l { flex: 1; min-width: 0; }
+.dh-id { font-family: var(--mono); font-size: 13px; color: var(--b); letter-spacing: .5px; margin-bottom: 8px; }
+.dh-title { font-family: var(--serif); font-weight: 700; font-size: 36px; color: var(--n); letter-spacing: -.6px; line-height: 1.15; max-width: 820px; }
+.dh-meta { display: flex; gap: 32px; margin-top: 18px; flex-wrap: wrap; }
+.dh-meta div { font-size: 13px; }
+.dh-meta .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--s5); margin-bottom: 4px; }
+.dh-meta .val { font-size: 14px; color: var(--n); font-weight: 500; }
+
+.dh-r { display: flex; flex-direction: column; gap: 14px; align-items: flex-end; }
+.status-pill { font-family: var(--mono); font-size: 11px; padding: 7px 14px; border-radius: 999px; letter-spacing: .8px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.status-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status-pill.pdue { background: var(--r1); color: var(--r); border: 1px solid #f3c2c2; }
+.status-pill.pdue::before { animation: pulse 1.6s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+.cta-row { display: flex; gap: 10px; }
+.btn { font-family: var(--sans); font-size: 13.5px; font-weight: 500; padding: 11px 22px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; transition: all .15s; letter-spacing: .1px; }
+.btn-primary { background: var(--n); color: var(--w); border-color: var(--n); }
+.btn-primary:hover { background: var(--b); border-color: var(--b); }
+.btn-danger { background: var(--w); color: var(--r); border-color: #e8c7c7; }
+.btn-danger:hover { background: var(--r1); border-color: var(--r); }
+.btn-ghost { background: var(--w); color: var(--s5); border-color: var(--s2); }
+.btn-ghost:hover { color: var(--n); border-color: var(--n); }
+
+/* ─── PROGRESS CALLOUT ─── */
+.callout { background: var(--w); border: 1px solid var(--s2); border-left: 3px solid var(--r); border-radius: 4px; padding: 22px 26px; margin: 28px 0 0; display: flex; gap: 28px; align-items: center; }
+.callout-icon { font-family: var(--mono); font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--r); }
+.callout-text { flex: 1; font-size: 14px; color: var(--n); line-height: 1.5; }
+.callout-text strong { color: var(--n); font-weight: 600; }
+
+/* ─── 2-COL LAYOUT ─── */
+.layout { display: grid; grid-template-columns: 1fr 360px; gap: 48px; margin-top: 40px; }
+@media (max-width: 1100px) { .layout { grid-template-columns: 1fr; gap: 32px; } }
+
+/* ─── SECTIONS ─── */
+.sect { margin-bottom: 48px; }
+.sect h3 { font-family: var(--serif); font-weight: 700; font-size: 19px; color: var(--n); letter-spacing: -.2px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--s2); display: flex; justify-content: space-between; align-items: baseline; }
+.sect h3 .meta { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--s5); font-weight: 500; }
+
+/* ─── SUMMARY ─── */
+.summary { font-family: var(--serif); font-size: 18px; line-height: 1.55; color: var(--n); max-width: 760px; }
+.summary p + p { margin-top: 14px; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 40px; margin-top: 28px; }
+.field .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--s5); margin-bottom: 6px; }
+.field .val { font-size: 14px; color: var(--n); line-height: 1.5; }
+.field .val.code { font-family: var(--mono); font-size: 13px; }
+
+/* ─── X/Y BAR ─── */
+.xy { background: var(--w); border: 1px solid var(--s2); border-radius: 4px; padding: 20px 24px; margin-bottom: 28px; }
+.xy-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.xy-head .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--s5); }
+.xy-head .ct { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--n); letter-spacing: -.3px; }
+.xy-head .ct b { color: var(--n); }
+.xy-head .ct span { color: var(--s4); font-weight: 400; }
+.xy-bar { height: 6px; background: var(--s1); border-radius: 3px; overflow: hidden; }
+.xy-bar > i { display: block; height: 100%; background: var(--a); border-radius: 3px; }
+.xy-bar.g > i { background: var(--g); }
+.xy-foot { font-family: var(--mono); font-size: 11px; color: var(--s5); margin-top: 10px; letter-spacing: .3px; display: flex; justify-content: space-between; }
+
+/* ─── DOC LIST (drafts in package) ─── */
+.docs { border-top: 1px solid var(--s1); }
+.doc-row { display: grid; grid-template-columns: 90px 1fr 100px 100px 120px; gap: 24px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--s1); }
+.doc-row:last-child { border-bottom: none; }
+.doc-row .id { font-family: var(--mono); font-size: 12px; color: var(--b); }
+.doc-row .ttl { font-family: var(--serif); font-size: 15px; color: var(--n); line-height: 1.35; }
+.doc-row .ttl small { display: block; font-family: var(--sans); font-size: 12px; color: var(--s5); margin-top: 4px; }
+.doc-row .rev { font-family: var(--mono); font-size: 12px; color: var(--s5); letter-spacing: .3px; }
+.doc-row .sigs { font-family: var(--mono); font-size: 12px; color: var(--s5); }
+.doc-row .sigs b { color: var(--n); }
+.doc-row .open { font-size: 12.5px; color: var(--b); cursor: pointer; text-decoration: none; }
+.doc-row .open:hover { text-decoration: underline; }
+.doc-row.active { background: var(--b0); border-left: 3px solid var(--b); padding-left: 14px; margin-left: -14px; }
+
+/* ─── PREVIEW ─── */
+.preview { background: var(--w); border: 1px solid var(--s2); border-radius: 4px; margin-top: 18px; }
+.preview-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--s2); background: var(--s1); border-radius: 4px 4px 0 0; }
+.preview-bar .pl { font-family: var(--mono); font-size: 11px; letter-spacing: .5px; color: var(--s5); }
+.preview-bar .pl b { color: var(--n); }
+.preview-bar .pr { display: flex; gap: 6px; }
+.preview-bar button { font-family: var(--mono); font-size: 10.5px; letter-spacing: .8px; padding: 5px 10px; border: 1px solid var(--s2); background: var(--w); color: var(--s5); border-radius: 3px; cursor: pointer; }
+.preview-bar button.on { background: var(--n); color: var(--w); border-color: var(--n); }
+.preview-body { padding: 36px 48px; min-height: 420px; max-height: 560px; overflow-y: auto; font-family: 'Times New Roman', serif; font-size: 13.5px; line-height: 1.6; color: #2a2a2a; }
+.preview-body h4 { font-family: 'Times New Roman', serif; font-size: 16px; font-weight: 700; color: #000; margin: 22px 0 10px; }
+.preview-body h4:first-child { margin-top: 0; }
+.preview-body .doc-banner { border: 2px solid #000; padding: 12px 16px; display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 12px; }
+.preview-body .doc-banner b { font-weight: 700; }
+.preview-body p { margin-bottom: 10px; }
+.preview-body .red { background: #fde8e8; text-decoration: line-through; padding: 0 3px; color: #888; }
+.preview-body .ins { background: #d4edda; padding: 0 3px; color: #1e4620; font-weight: 500; }
+.preview-body table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+.preview-body th, .preview-body td { border: 1px solid #999; padding: 6px 10px; text-align: left; }
+.preview-body th { background: #f0f0f0; font-weight: 700; }
+
+/* ─── ROUTING (log style) ─── */
+.log { padding: 8px 0; }
+.log-row { display: grid; grid-template-columns: 110px 1fr; gap: 22px; padding: 14px 0; border-bottom: 1px dashed var(--s2); }
+.log-row:last-child { border-bottom: none; }
+.log-row .when { font-family: var(--mono); font-size: 11px; color: var(--s4); letter-spacing: .3px; padding-top: 2px; }
+.log-row .what { font-size: 13.5px; line-height: 1.5; color: var(--n); }
+.log-row .what b { font-weight: 600; }
+.log-row .what em { font-style: normal; color: var(--s5); }
+.log-row .what .actor { font-family: var(--mono); font-size: 11.5px; color: var(--b); margin-right: 4px; }
+.log-row .what .verb { font-weight: 600; }
+.log-row .what .verb.sign { color: var(--g); }
+.log-row .what .verb.rej  { color: var(--r); }
+.log-row .what .verb.sub  { color: var(--b); }
+.log-row .what .verb.ret  { color: var(--a); }
+.log-row .what .verb.trn  { color: var(--p); }
+.log-row .what .quote { display: block; margin-top: 6px; padding: 8px 12px; border-left: 2px solid var(--s2); font-family: var(--serif); font-style: italic; color: var(--s5); font-size: 13px; }
+.log-row .what .meta { display: block; margin-top: 4px; font-family: var(--mono); font-size: 10.5px; color: var(--s4); letter-spacing: .2px; }
+
+/* ─── SIDEBAR ─── */
+aside .card { background: var(--w); border: 1px solid var(--s2); border-radius: 4px; padding: 22px 24px; margin-bottom: 18px; }
+aside h4 { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--s5); margin-bottom: 14px; font-weight: 500; }
+aside .person { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--s1); }
+aside .person:last-child { border-bottom: none; padding-bottom: 0; }
+aside .person:first-child { padding-top: 0; }
+aside .av { width: 32px; height: 32px; border-radius: 50%; background: var(--b1); color: var(--b); font-family: var(--mono); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex: none; letter-spacing: .3px; }
+aside .av.done { background: var(--g1); color: var(--g); }
+aside .av.pdue { background: var(--r1); color: var(--r); }
+aside .av.pend { background: var(--s1); color: var(--s5); }
+aside .pn { font-size: 13.5px; color: var(--n); font-weight: 500; line-height: 1.3; }
+aside .pr { font-family: var(--mono); font-size: 10.5px; color: var(--s5); letter-spacing: .3px; margin-top: 2px; }
+aside .ps { font-family: var(--mono); font-size: 10.5px; letter-spacing: .3px; margin-left: auto; flex: none; text-align: right; line-height: 1.3; }
+aside .ps.done { color: var(--g); } aside .ps.pdue { color: var(--r); } aside .ps.pend { color: var(--s4); }
+
+aside .kv-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--s1); font-size: 13px; }
+aside .kv-row:last-child { border-bottom: none; }
+aside .kv-row .k { color: var(--s5); }
+aside .kv-row .v { color: var(--n); font-weight: 500; }
+aside .kv-row .v.code { font-family: var(--mono); font-size: 12px; color: var(--b); }
+
+/* ─── MODALS ─── */
+.modal-bg { position: fixed; inset: 0; background: rgba(10, 50, 89, .55); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+.modal-bg.show { display: flex; }
+.modal { background: var(--w); border-radius: 6px; max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 80px rgba(0,0,0,.35); }
+.modal-h { padding: 26px 32px 18px; border-bottom: 1px solid var(--s2); }
+.modal-h .eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--s5); margin-bottom: 6px; }
+.modal-h h2 { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--n); letter-spacing: -.3px; }
+.modal-b { padding: 24px 32px; }
+.modal-b p { font-size: 13.5px; color: var(--s7); line-height: 1.6; margin-bottom: 14px; }
+.modal-b p strong { color: var(--n); }
+
+.attest { background: var(--s1); border-left: 3px solid var(--n); padding: 18px 22px; margin: 18px 0 22px; font-family: var(--serif); font-size: 13.5px; color: var(--n); line-height: 1.55; font-style: italic; }
+.attest strong { font-style: normal; font-weight: 700; display: block; font-family: var(--sans); font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--s5); margin-bottom: 8px; font-style: normal; }
+
+.f-grp { margin-bottom: 16px; }
+.f-grp label { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--s5); margin-bottom: 7px; }
+.f-grp .req { color: var(--r); }
+.f-grp input, .f-grp textarea, .f-grp select { width: 100%; font-family: var(--sans); font-size: 14px; padding: 11px 14px; border: 1px solid var(--s2); border-radius: 4px; background: var(--w); color: var(--n); outline: none; transition: border-color .15s; }
+.f-grp input:focus, .f-grp textarea:focus, .f-grp select:focus { border-color: var(--b); }
+.f-grp textarea { resize: vertical; min-height: 80px; font-family: var(--sans); }
+.f-grp .hint { font-size: 12px; color: var(--s5); margin-top: 5px; }
+.f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.modal-f { padding: 18px 32px 26px; border-top: 1px solid var(--s2); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.modal-f .meta { font-family: var(--mono); font-size: 10.5px; color: var(--s5); letter-spacing: .3px; }
+.modal-f .actions { display: flex; gap: 10px; }
+
+footer { padding: 26px 56px; border-top: 1px solid var(--s2); font-family: var(--mono); font-size: 11px; color: var(--s5); text-align: center; background: var(--w); letter-spacing: .3px; }
+footer span { color: var(--n); }
+</style>
+</head>
+<body data-screen-label="DCO Detail — DCO-0001">
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="qms">QMS</div>
+    <div>
+      <h1>IMP9177 — QMS Portal</h1>
+      <div class="sub">3H Pharmaceuticals LLC · 21 CFR Part 111 / FSMA · Document Control &amp; DCO Routing</div>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <span class="hchip">Phase 2A</span>
+    <span class="hchip warn">3 past due</span>
+    <span class="hchip late">1 blocking</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <a>🏠 Dashboard</a>
+  <a class="on">📋 Change Orders</a>
+  <a>🔄 Change Requests</a>
+  <a>📁 Records</a>
+  <a>🎓 Training</a>
+  <a>🚀 PM Publish</a>
+  <a>📄 Documents</a>
+  <a>🏛 Admin</a>
+  <a>⚙️ Config</a>
+</nav>
+
+<div class="crumb">
+  <a href="#">Change Orders</a> <span>›</span> <a href="#">Open</a> <span>›</span> <b>DCO-0001</b>
+</div>
+
+<main>
+
+  <!-- DOC HEADER -->
+  <div class="doc-head">
+    <div class="dh-l">
+      <div class="dh-id">DCO-0001 · linked to CR-0001</div>
+      <h1 class="dh-title">W1 sign-off package — labelling spec update</h1>
+      <div class="dh-meta">
+        <div><div class="lbl">Type</div><div class="val">SOP package · 4 documents</div></div>
+        <div><div class="lbl">Originator</div><div class="val">Tina Qin · 3H QA</div></div>
+        <div><div class="lbl">Submitted</div><div class="val">Mar 28, 2026</div></div>
+        <div><div class="lbl">Target effective</div><div class="val" style="color:var(--r)">Apr 5, 2026 · 4 days late</div></div>
+      </div>
+    </div>
+    <div class="dh-r">
+      <span class="status-pill pdue">Past due · awaiting your signature</span>
+      <div class="cta-row">
+        <button class="btn btn-danger" onclick="openModal('reject')">Reject &amp; return</button>
+        <button class="btn btn-primary" onclick="openModal('sign')">Sign &amp; approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOCKING CALLOUT -->
+  <div class="callout">
+    <div class="callout-icon">Blocking</div>
+    <div class="callout-text">This DCO is on the critical path for <strong>Milestone 1 — Phase 2A complete</strong>. M-1 closes in 11 days. Two of three required signatures are still outstanding (Liu Hong, Andre Butler). Reach out to Liu Hong directly if needed; Tina Qin is travelling Apr 13–17.</div>
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- LEFT (main column) -->
+    <div>
+
+      <!-- SUMMARY -->
+      <section class="sect">
+        <h3>Change summary <span class="meta">CR-0001 reference</span></h3>
+        <div class="summary">
+          <p>Update labelling specifications across the W1 sign-off package to align with the FSMA traceability rule and the corrected Master Manufacturing Record format. Adds a lot-traceability field to FM-014 (Batch Record), revises the receiving-inspection SOP to require CoA verification at intake, and re-issues the Quality Manual section on change control.</p>
+          <p>Effective date is the date all signatures are captured and required training is complete (Andre Butler, Tina Qin, Liu Hong). Supersedes prior revisions immediately on effective.</p>
+        </div>
+        <div class="field-grid">
+          <div class="field"><div class="lbl">Justification</div><div class="val">FSMA §117.130 traceability + 21 CFR §111.260(j) lot identification on master record. Closes audit finding 2025-Q4-03.</div></div>
+          <div class="field"><div class="lbl">Risk classification</div><div class="val">Moderate · directly affects intake QC and finished-product release.</div></div>
+          <div class="field"><div class="lbl">Supersedes</div><div class="val code">SOP-PM-021 r3 · FM-014 r2 · QM-001 §4.2 r6</div></div>
+          <div class="field"><div class="lbl">Effective on</div><div class="val">All sign-offs captured AND training certifications received for 7/7 affected staff.</div></div>
+        </div>
+      </section>
+
+      <!-- TRAINING + DOCS -->
+      <section class="sect">
+        <h3>Documents in this package <span class="meta">4 drafts · click to preview</span></h3>
+
+        <!-- Training X/Y bar -->
+        <div class="xy">
+          <div class="xy-head">
+            <span class="lbl">Training certifications received</span>
+            <span class="ct"><b>4</b><span> / 7</span></span>
+          </div>
+          <div class="xy-bar"><i style="width:57%"></i></div>
+          <div class="xy-foot"><span>3 outstanding · S. Patel, R. Mendoza, K. Walsh</span><span>Required before effective</span></div>
+        </div>
+
+        <div class="docs">
+          <div class="doc-row active">
+            <span class="id">SOP-PM-021</span>
+            <div class="ttl">Receiving inspection<small>Adds CoA verification at intake; clarifies sampling plan</small></div>
+            <span class="rev">r3 → r4</span>
+            <span class="sigs"><b>3</b> / 3 signed</span>
+            <a class="open" href="#preview">Previewing ↓</a>
+          </div>
+          <div class="doc-row">
+            <span class="id">FM-014</span>
+            <div class="ttl">Batch record<small>Adds lot-traceability field; reformats lot-history table</small></div>
+            <span class="rev">r2 → r3</span>
+            <span class="sigs"><b>1</b> / 3 signed</span>
+            <a class="open" href="#">Open preview</a>
+          </div>
+          <div class="doc-row">
+            <span class="id">QM-001</span>
+            <div class="ttl">Quality Manual §4.2<small>Change-control language re-issued; aligns with DCO routing</small></div>
+            <span class="rev">r6 → r7</span>
+            <span class="sigs"><b>2</b> / 3 signed</span>
+            <a class="open" href="#">Open preview</a>
+          </div>
+          <div class="doc-row">
+            <span class="id">FM-014a</span>
+            <div class="ttl">Batch record — appendix<small>Lot-history continuation sheet</small></div>
+            <span class="rev">new</span>
+            <span class="sigs"><b>0</b> / 3 signed</span>
+            <a class="open" href="#">Open preview</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- PREVIEW -->
+      <section class="sect" id="preview">
+        <h3>Draft preview <span class="meta">SOP-PM-021 r4 · redline view</span></h3>
+        <div class="preview">
+          <div class="preview-bar">
+            <div class="pl"><b>SOP-PM-021 r4</b> · Receiving inspection · 8 pages</div>
+            <div class="pr">
+              <button class="on">Redline</button>
+              <button>Clean</button>
+              <button>Side-by-side</button>
+              <button>Download PDF</button>
+            </div>
+          </div>
+          <div class="preview-body">
+            <div class="doc-banner">
+              <div><b>3H PHARMACEUTICALS LLC</b><br>Receiving Inspection · SOP-PM-021</div>
+              <div style="text-align:right">Rev <b>4</b> · Effective <span class="ins">[on signoff]</span><br>Page 1 of 8</div>
+            </div>
+            <h4>1. Purpose</h4>
+            <p>This SOP establishes the procedure for receiving inspection of incoming raw materials, components, and finished goods at the 3H Pharmaceuticals LLC facility. It implements the requirements of 21 CFR Part 111 Subpart E and FSMA §117.130 for supply-chain traceability.</p>
+            <h4>2. Scope</h4>
+            <p>This procedure applies to all materials received at the facility loading dock, with the exception of <span class="red">office supplies and non-product materials</span> <span class="ins">non-product materials, R&amp;D-only Amazon-sourced ingredients (per DEC-035), and office supplies</span>.</p>
+            <h4>3. Responsibilities</h4>
+            <p>The <span class="red">Receiving Clerk</span> <span class="ins">QA-trained Receiving Operator</span> shall perform initial inspection on all incoming shipments. The QA Approver shall review and release each lot before storage.</p>
+            <h4>4. Procedure</h4>
+            <p><b>4.1 Pre-arrival</b> — verify the PO number, expected vendor, and lot manifest in the SharePoint Receiving list.</p>
+            <p><b>4.2 Physical inspection</b> — visually check packaging integrity, count, and labeling against the PO.</p>
+            <p><b>4.3 CoA verification <span class="ins">(NEW)</span></b> — <span class="ins">For each lot received, confirm the Certificate of Analysis is on file in the Vendor Documents library before tagging "Received." If no CoA is present, place lot on Quarantine and notify the QA Approver. CoA must match the lot identifier on the package.</span></p>
+            <table>
+              <thead><tr><th>Field</th><th>Source</th><th>Required</th></tr></thead>
+              <tbody>
+                <tr><td>Lot ID</td><td>Vendor CoA</td><td>Yes</td></tr>
+                <tr><td>Manufacture date</td><td>Vendor CoA</td><td>Yes</td></tr>
+                <tr><td><span class="ins">Traceability source</span></td><td><span class="ins">Vendor CoA</span></td><td><span class="ins">Yes (FSMA)</span></td></tr>
+                <tr><td>Quantity received</td><td>Receiving</td><td>Yes</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ROUTING / ACTIVITY LOG -->
+      <section class="sect">
+        <h3>Routing &amp; activity log <span class="meta">12 events · most recent first</span></h3>
+        <div class="log">
+          <div class="log-row">
+            <span class="when">Apr 11<br>09:14</span>
+            <span class="what"><span class="actor">A. Butler</span> <span class="verb">commented</span> on the routing thread.<span class="quote">"Following up with Liu Hong directly. CoA verification language in SOP-PM-021 §4.3 is final per DEC-035."</span><span class="meta">192.168.4.221 · ADB Consulting Edge</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Apr 09<br>16:42</span>
+            <span class="what"><span class="actor">A. Butler</span> <span class="verb sign">signed</span> SOP-PM-021 r4 (1 of 3 required) with Part 11 attestation.<span class="meta">Sig hash 7c14...d9f1 · 192.168.4.221 · session 28m</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Apr 08<br>11:03</span>
+            <span class="what"><span class="actor">QD Yang</span> <span class="verb sign">signed</span> SOP-PM-021 r4 (2 of 3 required) with Part 11 attestation.<span class="meta">Sig hash 4b22...e801 · 10.0.18.42 · session 12m</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Apr 06<br>15:18</span>
+            <span class="what"><span class="actor">QD Yang</span> <span class="verb">added</span> training assignments for affected staff (7 people).<span class="meta">Auto-notification queued · TRN-0184</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Apr 05<br>17:00</span>
+            <span class="what"><span class="actor">System</span> flagged DCO as <em>past target effective date</em>; escalation notice queued to PM.<span class="meta">SLA breach · severity moderate</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Apr 03<br>10:51</span>
+            <span class="what"><span class="actor">L. Hong</span> <span class="verb ret">returned</span> FM-014 r3 to originator with comments.<span class="quote">"Lot-history table needs a column for traceability source per FSMA. Otherwise looks good — please re-route once added."</span><span class="meta">2 comments on FM-014 §3.1, §4.2</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Apr 02<br>09:14</span>
+            <span class="what"><span class="actor">T. Qin</span> <span class="verb sub">submitted</span> the package for review (4 documents).<span class="meta">DCO-0001 created · 4 documents linked</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Apr 01<br>14:22</span>
+            <span class="what"><span class="actor">T. Qin</span> linked CR-0001 → DCO-0001 (Phase 2A scope freeze).<span class="meta">Per MM-003 / DEC-031</span></span>
+          </div>
+          <div class="log-row">
+            <span class="when">Mar 28<br>16:08</span>
+            <span class="what"><span class="actor">T. Qin</span> created CR-0001 — Change Request.<span class="meta">Source · audit finding 2025-Q4-03</span></span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside>
+
+      <div class="card">
+        <h4>Required signatories</h4>
+        <div class="person">
+          <div class="av done">AB</div>
+          <div><div class="pn">Andre Butler</div><div class="pr">Project Manager · ADB</div></div>
+          <div class="ps done">Signed<br>Apr 9 · 16:42</div>
+        </div>
+        <div class="person">
+          <div class="av done">QY</div>
+          <div><div class="pn">QD Yang</div><div class="pr">QA Operations · 3H</div></div>
+          <div class="ps done">Signed<br>Apr 8 · 11:03</div>
+        </div>
+        <div class="person">
+          <div class="av pdue">LH</div>
+          <div><div class="pn">Liu Hong</div><div class="pr">Production · 3H</div></div>
+          <div class="ps pdue">Past due<br>4 days</div>
+        </div>
+        <div class="person">
+          <div class="av pdue">TQ</div>
+          <div><div class="pn">Tina Qin</div><div class="pr">QA Approver · 3H</div></div>
+          <div class="ps pdue">Past due<br>4 days · travel</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Audit metadata</h4>
+        <div class="kv-row"><span class="k">DCO ID</span><span class="v code">DCO-0001</span></div>
+        <div class="kv-row"><span class="k">Linked CR</span><span class="v code">CR-0001</span></div>
+        <div class="kv-row"><span class="k">Linked issues</span><span class="v code">ISS-007</span></div>
+        <div class="kv-row"><span class="k">Phase</span><span class="v">2A</span></div>
+        <div class="kv-row"><span class="k">Milestone</span><span class="v">M-1 (Apr 22)</span></div>
+        <div class="kv-row"><span class="k">SP list</span><span class="v code">/ChangeOrders</span></div>
+        <div class="kv-row"><span class="k">Created</span><span class="v">Apr 2, 2026</span></div>
+        <div class="kv-row"><span class="k">Last activity</span><span class="v">Apr 11 · 09:14</span></div>
+      </div>
+
+      <div class="card">
+        <h4>Predicate references</h4>
+        <div class="kv-row"><span class="k">21 CFR Part 11</span><span class="v">§11.50, §11.70, §11.200</span></div>
+        <div class="kv-row"><span class="k">21 CFR Part 111</span><span class="v">§111.260(j)</span></div>
+        <div class="kv-row"><span class="k">FSMA</span><span class="v">§117.130</span></div>
+        <div class="kv-row"><span class="k">Internal QM</span><span class="v">§4.2 · §6.1</span></div>
+      </div>
+
+      <div class="card" style="background:var(--b0); border-color:var(--b1)">
+        <h4 style="color:var(--b)">Need to delegate?</h4>
+        <p style="font-size:13px; color:var(--n); line-height:1.55; margin-bottom:14px">If you are unable to sign within 24 hours, you may delegate to your alternate. Delegations are logged with full Part 11 attestation.</p>
+        <button class="btn btn-ghost" style="width:100%">Delegate signature →</button>
+      </div>
+
+    </aside>
+
+  </div>
+</main>
+
+<footer>IMP9177 QMS Portal · <span>ADB Consulting &amp; CRO Inc.</span> · Read-only view · All actions logged per 21 CFR Part 11</footer>
+
+<!-- ════════ SIGN MODAL ════════ -->
+<div class="modal-bg" id="m-sign" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-h">
+      <div class="eyebrow">Electronic signature · 21 CFR Part 11</div>
+      <h2>Sign &amp; approve DCO-0001</h2>
+    </div>
+    <div class="modal-b">
+      <p>You are about to sign <strong>SOP-PM-021 r4 · Receiving inspection</strong> as part of <strong>DCO-0001</strong>. This signature is the legal equivalent of a handwritten signature and will be permanently recorded in the Part 11 audit trail.</p>
+
+      <div class="attest">
+        <strong>Attestation</strong>
+        I, the undersigned, certify that I have reviewed the document(s) listed in this Change Order and approve them for release. I understand that this electronic signature is the legally binding equivalent of my handwritten signature, and that all actions taken under my credentials are recorded in the validated audit trail per 21 CFR Part 11.50, 11.70, and 11.200.
+      </div>
+
+      <div class="f-grp">
+        <label>Reason for signature <span class="req">*</span></label>
+        <select>
+          <option>Approval — document released for use</option>
+          <option>Review — content verified, routed onward</option>
+          <option>Authorship — I authored this revision</option>
+          <option>Responsibility — I take ownership of this content</option>
+        </select>
+      </div>
+
+      <div class="f-grp">
+        <label>Comment (optional, attached to signature record)</label>
+        <textarea placeholder="e.g. CoA verification language confirmed per DEC-035..."></textarea>
+      </div>
+
+      <div class="f-row">
+        <div class="f-grp">
+          <label>Username <span class="req">*</span></label>
+          <input value="andre.butler@adbccro.com" readonly style="background:var(--s1); color:var(--s5)">
+        </div>
+        <div class="f-grp">
+          <label>Password <span class="req">*</span></label>
+          <input type="password" placeholder="Re-enter your password">
+          <div class="hint">Re-authentication required per Part 11 §11.200(a)(1)(ii)</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <span class="meta">Sig captured · Apr 11, 2026 · 14:03 UTC-5</span>
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary">Sign now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ REJECT MODAL ════════ -->
+<div class="modal-bg" id="m-reject" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-h">
+      <div class="eyebrow">Reject &amp; return to originator · 21 CFR Part 11</div>
+      <h2>Reject DCO-0001</h2>
+    </div>
+    <div class="modal-b">
+      <p>Returning <strong>DCO-0001</strong> to the originator (<strong>Tina Qin</strong>) will revert the package status to <em>Draft</em>, void any signatures already captured on this revision, and require resubmission. All actions are recorded in the Part 11 audit trail.</p>
+
+      <div class="attest">
+        <strong>Attestation</strong>
+        I, the undersigned, certify that I have reviewed the document(s) in this Change Order and am returning them to the originator with the reasons stated below. I understand that this electronic action is permanently recorded and is the legal equivalent of a handwritten rejection.
+      </div>
+
+      <div class="f-grp">
+        <label>Reason category <span class="req">*</span></label>
+        <select>
+          <option>Content error — technical correction needed</option>
+          <option>Scope — outside the linked Change Request</option>
+          <option>Reference — predicate or cross-reference incorrect</option>
+          <option>Format — does not meet QM document standard</option>
+          <option>Other (explain in comment)</option>
+        </select>
+      </div>
+
+      <div class="f-grp">
+        <label>Detailed comment <span class="req">* required</span></label>
+        <textarea placeholder="Specify exactly what must be corrected before resubmission. Cite section numbers and quote the language where possible." style="min-height:110px"></textarea>
+        <div class="hint">Minimum 20 characters. Returned to originator immediately on submit.</div>
+      </div>
+
+      <div class="f-row">
+        <div class="f-grp">
+          <label>Username <span class="req">*</span></label>
+          <input value="andre.butler@adbccro.com" readonly style="background:var(--s1); color:var(--s5)">
+        </div>
+        <div class="f-grp">
+          <label>Password <span class="req">*</span></label>
+          <input type="password" placeholder="Re-enter your password">
+        </div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <span class="meta">Action recorded · returns to T. Qin</span>
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger">Reject &amp; return</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal(kind) {
+  document.getElementById('m-' + kind).classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show'));
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+</script>
+
+</body></html>

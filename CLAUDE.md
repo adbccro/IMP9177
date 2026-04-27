@@ -42,3 +42,9 @@ Project context for this session:
 
 \- Read STATE.md and ISSUES.md at the start of every session
 
+## Jira Workflow
+After every deploy, update IMP9177 Jira tickets (adbccro.atlassian.net):
+\- Mark completed work as Done
+\- Create new tickets for bugs found during the session
+\- Add 'Needs Testing' label to any ticket marked Done so the user knows to verify in the portal before closing
+

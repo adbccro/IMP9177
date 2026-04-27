@@ -392,10 +392,18 @@ const SHELL_CR = `
   <div class="pip-stage"><div class="pip-n" id="cr-n-linked">—</div><div class="pip-l">Linked to DCO</div></div>
   <div class="pip-stage"><div class="pip-n g" id="cr-n-closed">—</div><div class="pip-l">Closed</div></div>
 </div>
+<div class="fbar">
+  <button class="fbtn on" data-crf="all" onclick="qpCRFilter(this,'all')">All</button>
+  <button class="fbtn" data-crf="Draft" onclick="qpCRFilter(this,'Draft')">Draft</button>
+  <button class="fbtn" data-crf="In Review" onclick="qpCRFilter(this,'In Review')">In Review</button>
+  <button class="fbtn g" data-crf="Approved" onclick="qpCRFilter(this,'Approved')">Approved</button>
+  <button class="fbtn" data-crf="Linked to DCO" onclick="qpCRFilter(this,'Linked to DCO')">Linked</button>
+  <input class="fsearch" id="cr-search" placeholder="Search CRs..." oninput="qpRenderCR()">
+</div>
 <div class="tcard">
   <table><thead><tr>
     <th>CR #</th><th>Title</th><th>Status</th><th>Priority</th>
-    <th>Originator</th><th>Linked DCOs</th><th>Date</th>
+    <th>Requestor</th><th>Linked DCOs</th><th>Submitted</th>
   </tr></thead>
   <tbody id="cr-tbody"><tr><td colspan="7" class="loading"><span class="spin"></span>Loading...</td></tr></tbody></table>
 </div>
@@ -658,7 +666,14 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
       <button class="modal-x" data-close="modal-cr-detail">×</button>
     </div>
     <div class="modal-body" id="mcr-body"></div>
-    <div class="modal-ft"><button class="btn-sec" data-close="modal-cr-detail">Close</button></div>
+    <div class="modal-ft">
+      <button class="btn-sec" data-close="modal-cr-detail">Close</button>
+      <button class="btn-pri" id="mcr-submit-btn" style="display:none">Submit for Review</button>
+      <button class="btn-pri" id="mcr-approve-btn" style="display:none">✓ Approve</button>
+      <button class="btn-pri btn-r" id="mcr-reject-btn" style="display:none">✗ Reject</button>
+      <button class="btn-pri" id="mcr-link-btn" style="display:none">🔗 Link to DCO</button>
+      <button class="btn-pri" id="mcr-close-btn" style="display:none">✓ Close CR</button>
+    </div>
   </div>
 </div>
 
@@ -816,7 +831,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const [dcos, crs, approvals, history, records, employees, roles, matrix, completions, config, approvers] =
         await Promise.all([
           this.spGet('QMS_DCOs', 'Id,Title,DCO_Phase,DCO_Title,DCO_CRLink,DCO_SubmittedDate,DCO_Originator,DCO_Docs,DCO_LateDays,DCO_TrainingGate,DCO_CA,DCO_ImplActivityRequired,DCO_ImplPlan,DCO_ImplNoSoonerThan,DCO_EffNoSoonerThan,DCO_EffDelayRequired,DCO_EffDelayReason,DCO_ImplOwner,DCO_ImplDescription,DCO_ImplRisks,DCO_ImplVerification,DCO_CancelReason,DCO_DocsLastUpdated,DCO_DocPurposes'),
-          this.spGet('QMS_ChangeRequests', 'Id,Title,CR_Title,CR_Status,CR_Priority,CR_Originator,CR_LinkedDCOs,CR_Description,CR_CreatedDate'),
+          this.spGet('QMS_ChangeRequests', 'Id,Title,CR_Title,CR_Status,CR_Priority,CR_Originator,CR_LinkedDCOs,CR_Description,CR_CreatedDate,CR_Requestor,CR_Category,CR_AffectedDocs,CR_SubmittedDate,CR_ApprovedDate,CR_RejectedDate,CR_RejectionReason'),
           this.spGet('QMS_DCOApprovals', 'Id,Title,Appr_DCOID,Appr_Name,Sig_ApproverEmail,Appr_Role,Appr_Type,Appr_Status,Appr_SignedDate,Appr_SigID'),
           this.spGet('QMS_RoutingHistory', 'Id,Title,RH_DCOID,RH_EventType,RH_Stage,RH_Actor,RH_Note,RH_Reason,RH_Timestamp'),
           this.spGet('QMS_Records', 'Id,Title,Rec_Type,Rec_Title,Rec_Status,Rec_Originator,Rec_Reviewer,Rec_CreatedDate,Rec_SigID'),
@@ -1407,20 +1422,313 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   // ── CR screen ──
   private _renderCR(): void {
     const { crs = [] } = this._data;
+    const d = document;
+    const q = ((d.getElementById('cr-search') as HTMLInputElement)?.value || '').toLowerCase();
+    const activeBtn = d.querySelector('#sc-cr .fbar .fbtn.on') as HTMLElement;
+    const statusFilter = activeBtn?.getAttribute('data-crf') || 'all';
     ['Draft', 'In Review', 'Approved', 'Linked to DCO', 'Closed'].forEach((ph, i) => {
       const ids = ['cr-n-draft', 'cr-n-review', 'cr-n-approved', 'cr-n-linked', 'cr-n-closed'];
-      this._set(ids[i], String(crs.filter(c => c.CR_Status === ph).length));
+      this._set(ids[i], String(crs.filter((c: any) => c.CR_Status === ph).length));
     });
-    const rows = crs.map(c => `<tr data-crid="${c.Title}">
-      <td><span class="cid">${c.Title}</span></td>
-      <td style="font-size:12px">${(c.CR_Title || '').substring(0, 50)}</td>
-      <td>${this._pill(c.CR_Status)}</td>
-      <td>${this._pill(c.CR_Priority)}</td>
-      <td><span class="cmut">${c.CR_Originator || '—'}</span></td>
-      <td><span class="cmut" style="font-family:var(--mono);font-size:11px">${c.CR_LinkedDCOs || '—'}</span></td>
-      <td><span class="cdate">${this._fmt(c.CR_CreatedDate)}</span></td>
-    </tr>`).join('');
+    const filtered = crs.filter((c: any) => {
+      if (statusFilter !== 'all' && c.CR_Status !== statusFilter) return false;
+      if (q && !((c.Title || '').toLowerCase().includes(q) ||
+        (c.CR_Title || '').toLowerCase().includes(q) ||
+        (c.CR_Requestor || c.CR_Originator || '').toLowerCase().includes(q) ||
+        (c.CR_Category || '').toLowerCase().includes(q))) return false;
+      return true;
+    });
+    const rows = filtered.map((c: any) =>
+      '<tr data-crid="' + c.Title + '" style="cursor:pointer">' +
+      '<td><span class="cid">' + c.Title + '</span></td>' +
+      '<td style="font-size:12px">' + (c.CR_Title || '').substring(0, 50) + '</td>' +
+      '<td>' + this._pill(c.CR_Status) + '</td>' +
+      '<td>' + this._pill(c.CR_Priority) + '</td>' +
+      '<td><span class="cmut">' + (c.CR_Requestor || c.CR_Originator || '—') + '</span></td>' +
+      '<td><span class="cmut" style="font-family:var(--mono);font-size:11px">' + (c.CR_LinkedDCOs || '—') + '</span></td>' +
+      '<td><span class="cdate">' + this._fmt(c.CR_SubmittedDate || c.CR_CreatedDate) + '</span></td>' +
+      '</tr>'
+    ).join('');
     this._html('cr-tbody', rows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s5)">No CRs found</td></tr>');
+  }
+
+  private _openCRModal(crId: string): void {
+    const d = document;
+    const w = window as any;
+    const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
+    if (!cr) return;
+    const userEmail = (this._currentUser?.email || this.context.pageContext.user.email || '').toLowerCase();
+    const role = this._currentUser?.role || 'Observer';
+    const isPrivileged = role === 'PM' || role === 'ADB User';
+    const isQAApprover = (this._data.approvers || []).some((a: any) =>
+      (a.Approver_Email || '').toLowerCase() === userEmail && a.Appr_Active !== false);
+    const isOriginator = (cr.CR_Originator || '').toLowerCase() === userEmail ||
+      (cr.CR_Requestor || '').toLowerCase() === userEmail;
+    const statuses = ['Draft', 'In Review', 'Approved', 'Linked to DCO', 'Closed'];
+    const curIdx = statuses.indexOf(cr.CR_Status);
+    const isRejected = cr.CR_Status === 'Rejected';
+    const stepperHtml = isRejected
+      ? '<div style="margin-bottom:14px;padding:10px 14px;background:#fff0f0;border:1px solid #dc2626;border-radius:6px;color:#dc2626;font-size:13px">' +
+        '&#x2717; This CR was rejected' + (cr.CR_RejectionReason ? ' &#x2014; ' + (cr.CR_RejectionReason || '') : '') + '</div>'
+      : '<div style="display:flex;gap:0;margin-bottom:14px;border:1px solid var(--s2);border-radius:8px;overflow:hidden">' +
+        statuses.map((s: string, i: number) => {
+          const done = curIdx > i; const active = curIdx === i;
+          const bg = done ? '#16a34a' : active ? '#1d4ed8' : '#f8fafc';
+          const fg = (done || active) ? '#fff' : '#64748b';
+          return '<div style="flex:1;padding:6px 4px;text-align:center;background:' + bg + ';border-right:1px solid var(--s2)">' +
+            '<div style="font-size:11px;font-weight:600;color:' + fg + '">' + (done ? '&#x2713;' : s) + '</div></div>';
+        }).join('') + '</div>';
+    const affectedDocs = (cr.CR_AffectedDocs || '').split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+    const docsHtml = affectedDocs.length
+      ? affectedDocs.map((id: string) => '<span class="cid" style="margin:2px">' + id + '</span>').join(' ')
+      : '<span style="color:var(--s5)">—</span>';
+    const linkedDCOs = (cr.CR_LinkedDCOs || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+    const dcoHtml = linkedDCOs.length
+      ? linkedDCOs.map((dId: string) => {
+          const dco = (this._data.dcos || []).find((dx: any) => dx.Title === dId);
+          return '<span class="cid" style="margin:2px">' + dId + (dco ? ' <span style="font-size:10px;color:var(--s5)">[' + dco.DCO_Phase + ']</span>' : '') + '</span>';
+        }).join(' ')
+      : '<span style="color:var(--s5)">None yet</span>';
+    this._set('mcr-title', crId);
+    this._set('mcr-sub', cr.CR_Title || '');
+    this._html('mcr-body',
+      stepperHtml +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
+        '<div class="fg"><div class="fl">Status</div><div class="fv">' + this._pill(cr.CR_Status) + '</div></div>' +
+        '<div class="fg"><div class="fl">Priority</div><div class="fv">' + this._pill(cr.CR_Priority) + '</div></div>' +
+        '<div class="fg"><div class="fl">Category</div><div class="fv">' + (cr.CR_Category || '—') + '</div></div>' +
+        '<div class="fg"><div class="fl">Requestor</div><div class="fv">' + (cr.CR_Requestor || cr.CR_Originator || '—') + '</div></div>' +
+        '<div class="fg"><div class="fl">Submitted</div><div class="fv">' + this._fmt(cr.CR_SubmittedDate || cr.CR_CreatedDate) + '</div></div>' +
+        '<div class="fg"><div class="fl">Created</div><div class="fv">' + this._fmt(cr.CR_CreatedDate) + '</div></div>' +
+      '</div>' +
+      '<div class="fg" style="margin-bottom:10px"><div class="fl">Description</div><div class="fv" style="white-space:pre-wrap">' + (cr.CR_Description || '—') + '</div></div>' +
+      '<div class="fg" style="margin-bottom:10px"><div class="fl">Affected Documents</div><div class="fv">' + docsHtml + '</div></div>' +
+      '<div class="fg" style="margin-bottom:10px"><div class="fl">Linked DCOs</div><div class="fv">' + dcoHtml + '</div></div>' +
+      (cr.CR_ApprovedDate ? '<div class="fg" style="margin-bottom:6px"><div class="fl">Approved</div><div class="fv">' + this._fmt(cr.CR_ApprovedDate) + '</div></div>' : '') +
+      (cr.CR_RejectedDate ? '<div class="fg" style="margin-bottom:6px"><div class="fl">Rejected</div><div class="fv">' + this._fmt(cr.CR_RejectedDate) + '</div></div>' : '') +
+      '<div id="mcr-reject-panel" style="display:none;margin-top:12px;padding:12px;background:#f8fafc;border:1px solid var(--s2);border-radius:6px">' +
+        '<div class="fl" style="margin-bottom:6px">Rejection Reason (required)</div>' +
+        '<textarea class="ftxt" id="mcr-reject-reason" rows="3" placeholder="Enter reason..."></textarea>' +
+        '<div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">' +
+          '<button class="btn-sec btn-sm" id="mcr-reject-cancel">Cancel</button>' +
+          '<button class="btn-pri btn-r btn-sm" id="mcr-reject-confirm">Confirm Rejection</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="mcr-link-panel" style="display:none;margin-top:12px;padding:12px;background:#f8fafc;border:1px solid var(--s2);border-radius:6px">' +
+        '<div class="fl" style="margin-bottom:6px">DCO ID to Link (e.g. DCO-0003)</div>' +
+        '<input type="text" id="mcr-link-dcoid" placeholder="DCO-XXXX" style="width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid var(--s3,#cbd5e1);border-radius:4px;font-size:13px">' +
+        '<div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">' +
+          '<button class="btn-sec btn-sm" id="mcr-link-cancel">Cancel</button>' +
+          '<button class="btn-pri btn-sm" id="mcr-link-confirm">Link to DCO</button>' +
+        '</div>' +
+      '</div>'
+    );
+    const showBtn = (id: string, show: boolean) => { const btn = d.getElementById(id) as HTMLElement; if (btn) btn.style.display = show ? '' : 'none'; };
+    showBtn('mcr-submit-btn', cr.CR_Status === 'Draft' && (isPrivileged || isOriginator));
+    showBtn('mcr-approve-btn', cr.CR_Status === 'In Review' && (isPrivileged || isQAApprover));
+    showBtn('mcr-reject-btn', cr.CR_Status === 'In Review' && (isPrivileged || isQAApprover));
+    showBtn('mcr-link-btn', cr.CR_Status === 'Approved' && isPrivileged);
+    showBtn('mcr-close-btn', cr.CR_Status === 'Linked to DCO' && isPrivileged);
+    const closeModal = () => (d.getElementById('modal-cr-detail') as HTMLElement)?.classList.remove('open');
+    const submitBtn = d.getElementById('mcr-submit-btn') as HTMLButtonElement;
+    if (submitBtn) submitBtn.onclick = async () => { submitBtn.disabled = true; await this._submitCR(crId); closeModal(); };
+    const approveBtn = d.getElementById('mcr-approve-btn') as HTMLButtonElement;
+    if (approveBtn) approveBtn.onclick = async () => { approveBtn.disabled = true; await this._approveCR(crId); closeModal(); };
+    const rejectBtn = d.getElementById('mcr-reject-btn') as HTMLButtonElement;
+    if (rejectBtn) rejectBtn.onclick = () => { const p = d.getElementById('mcr-reject-panel'); if (p) p.style.display = p.style.display === 'none' ? '' : 'none'; };
+    const linkBtn = d.getElementById('mcr-link-btn') as HTMLButtonElement;
+    if (linkBtn) linkBtn.onclick = () => { const p = d.getElementById('mcr-link-panel'); if (p) p.style.display = p.style.display === 'none' ? '' : 'none'; };
+    const closeCRBtn = d.getElementById('mcr-close-btn') as HTMLButtonElement;
+    if (closeCRBtn) closeCRBtn.onclick = async () => { closeCRBtn.disabled = true; await this._closeCR(crId); closeModal(); };
+    const rejectCancel = d.getElementById('mcr-reject-cancel');
+    if (rejectCancel) rejectCancel.onclick = () => { const p = d.getElementById('mcr-reject-panel'); if (p) p.style.display = 'none'; };
+    const rejectConfirm = d.getElementById('mcr-reject-confirm') as HTMLButtonElement;
+    if (rejectConfirm) rejectConfirm.onclick = async () => {
+      const reason = (d.getElementById('mcr-reject-reason') as HTMLTextAreaElement)?.value || '';
+      if (!reason.trim()) { if (w.qpToast) w.qpToast('Rejection reason required'); return; }
+      rejectConfirm.disabled = true; await this._rejectCR(crId, reason.trim()); closeModal();
+    };
+    const linkCancel = d.getElementById('mcr-link-cancel');
+    if (linkCancel) linkCancel.onclick = () => { const p = d.getElementById('mcr-link-panel'); if (p) p.style.display = 'none'; };
+    const linkConfirm = d.getElementById('mcr-link-confirm') as HTMLButtonElement;
+    if (linkConfirm) linkConfirm.onclick = async () => {
+      const dcoVal = (d.getElementById('mcr-link-dcoid') as HTMLInputElement)?.value || '';
+      if (!dcoVal.trim()) { if (w.qpToast) w.qpToast('Enter a DCO ID'); return; }
+      linkConfirm.disabled = true; await this._linkCRtoDCO(crId, dcoVal.trim().toUpperCase()); closeModal();
+    };
+    (d.getElementById('modal-cr-detail') as HTMLElement)?.classList.add('open');
+  }
+
+  private async _submitCR(crId: string): Promise<void> {
+    const w = window as any;
+    const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
+    if (!cr) return;
+    const base = this.context.pageContext.web.absoluteUrl;
+    const now = new Date().toISOString();
+    try {
+      await this.context.spHttpClient.post(
+        base + "/_api/web/lists/getbytitle('QMS_ChangeRequests')/items(" + cr.Id + ")",
+        SPHttpClient.configurations.v1,
+        { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+          body: JSON.stringify({ CR_Status: 'In Review', CR_SubmittedDate: now }) }
+      );
+      cr.CR_Status = 'In Review'; cr.CR_SubmittedDate = now;
+      await this._auditLog('CR_SUBMITTED', crId, 'Submitted for review by ' + (this._currentUser?.email || ''));
+      await this._sendCRNotification(crId, 'submitted');
+      if (w.qpToast) w.qpToast(crId + ' submitted for review');
+      this._renderCR();
+    } catch (err: any) {
+      if (w.qpToast) w.qpToast('Error submitting CR — check console');
+      console.error('[QP] _submitCR:', err);
+    }
+  }
+
+  private async _approveCR(crId: string): Promise<void> {
+    const w = window as any;
+    const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
+    if (!cr) return;
+    const base = this.context.pageContext.web.absoluteUrl;
+    const now = new Date().toISOString();
+    try {
+      await this.context.spHttpClient.post(
+        base + "/_api/web/lists/getbytitle('QMS_ChangeRequests')/items(" + cr.Id + ")",
+        SPHttpClient.configurations.v1,
+        { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+          body: JSON.stringify({ CR_Status: 'Approved', CR_ApprovedDate: now }) }
+      );
+      cr.CR_Status = 'Approved'; cr.CR_ApprovedDate = now;
+      await this._auditLog('CR_APPROVED', crId, 'Approved by ' + (this._currentUser?.email || ''));
+      await this._sendCRNotification(crId, 'approved');
+      if (w.qpToast) w.qpToast(crId + ' approved');
+      this._renderCR();
+    } catch (err: any) {
+      if (w.qpToast) w.qpToast('Error approving CR — check console');
+      console.error('[QP] _approveCR:', err);
+    }
+  }
+
+  private async _rejectCR(crId: string, reason: string): Promise<void> {
+    const w = window as any;
+    const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
+    if (!cr) return;
+    const base = this.context.pageContext.web.absoluteUrl;
+    const now = new Date().toISOString();
+    try {
+      await this.context.spHttpClient.post(
+        base + "/_api/web/lists/getbytitle('QMS_ChangeRequests')/items(" + cr.Id + ")",
+        SPHttpClient.configurations.v1,
+        { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+          body: JSON.stringify({ CR_Status: 'Rejected', CR_RejectedDate: now, CR_RejectionReason: reason }) }
+      );
+      cr.CR_Status = 'Rejected'; cr.CR_RejectedDate = now; cr.CR_RejectionReason = reason;
+      await this._auditLog('CR_REJECTED', crId, 'Rejected — ' + reason);
+      await this._sendCRNotification(crId, 'rejected');
+      if (w.qpToast) w.qpToast(crId + ' rejected');
+      this._renderCR();
+    } catch (err: any) {
+      if (w.qpToast) w.qpToast('Error rejecting CR — check console');
+      console.error('[QP] _rejectCR:', err);
+    }
+  }
+
+  private async _linkCRtoDCO(crId: string, dcoId: string): Promise<void> {
+    const w = window as any;
+    const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
+    if (!cr) return;
+    const base = this.context.pageContext.web.absoluteUrl;
+    const existingLinks = (cr.CR_LinkedDCOs || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+    if (!existingLinks.includes(dcoId)) existingLinks.push(dcoId);
+    const linkedStr = existingLinks.join(', ');
+    try {
+      await this.context.spHttpClient.post(
+        base + "/_api/web/lists/getbytitle('QMS_ChangeRequests')/items(" + cr.Id + ")",
+        SPHttpClient.configurations.v1,
+        { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+          body: JSON.stringify({ CR_Status: 'Linked to DCO', CR_LinkedDCOs: linkedStr }) }
+      );
+      cr.CR_Status = 'Linked to DCO'; cr.CR_LinkedDCOs = linkedStr;
+      const dco = (this._data.dcos || []).find((x: any) => x.Title === dcoId);
+      if (dco) {
+        const existingCRLinks = (dco.DCO_CRLink || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        if (!existingCRLinks.includes(crId)) existingCRLinks.push(crId);
+        const crLinkStr = existingCRLinks.join(', ');
+        await this.context.spHttpClient.post(
+          base + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dco.Id + ")",
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+            body: JSON.stringify({ DCO_CRLink: crLinkStr }) }
+        );
+        dco.DCO_CRLink = crLinkStr;
+      }
+      await this._auditLog('CR_LINKED', crId, 'Linked to ' + dcoId + ' by ' + (this._currentUser?.email || ''));
+      await this._sendCRNotification(crId, 'linked');
+      if (w.qpToast) w.qpToast(crId + ' linked to ' + dcoId);
+      this._renderCR();
+    } catch (err: any) {
+      if (w.qpToast) w.qpToast('Error linking CR to DCO — check console');
+      console.error('[QP] _linkCRtoDCO:', err);
+    }
+  }
+
+  private async _closeCR(crId: string): Promise<void> {
+    const w = window as any;
+    const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
+    if (!cr) return;
+    const base = this.context.pageContext.web.absoluteUrl;
+    try {
+      await this.context.spHttpClient.post(
+        base + "/_api/web/lists/getbytitle('QMS_ChangeRequests')/items(" + cr.Id + ")",
+        SPHttpClient.configurations.v1,
+        { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+          body: JSON.stringify({ CR_Status: 'Closed' }) }
+      );
+      cr.CR_Status = 'Closed';
+      await this._auditLog('CR_CLOSED', crId, 'CR closed by ' + (this._currentUser?.email || ''));
+      if (w.qpToast) w.qpToast(crId + ' closed');
+      this._renderCR();
+    } catch (err: any) {
+      if (w.qpToast) w.qpToast('Error closing CR — check console');
+      console.error('[QP] _closeCR:', err);
+    }
+  }
+
+  private async _sendCRNotification(crId: string, eventType: string): Promise<void> {
+    const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
+    if (!cr) return;
+    const base = this.context.pageContext.web.absoluteUrl;
+    const toList: string[] = [];
+    if (eventType === 'submitted') {
+      (this._data.approvers || []).filter((a: any) => a.Appr_Active !== false)
+        .forEach((a: any) => { if (a.Approver_Email) toList.push(a.Approver_Email); });
+    }
+    if (eventType === 'approved' || eventType === 'rejected') {
+      if (cr.CR_Originator) toList.push(cr.CR_Originator);
+      if (cr.CR_Requestor && cr.CR_Requestor !== cr.CR_Originator) toList.push(cr.CR_Requestor);
+    }
+    if (!toList.length) return;
+    const subjMap: Record<string, string> = {
+      submitted: '[IMP9177] CR ' + crId + ' submitted for review',
+      approved:  '[IMP9177] CR ' + crId + ' approved',
+      rejected:  '[IMP9177] CR ' + crId + ' rejected',
+      linked:    '[IMP9177] CR ' + crId + ' linked to DCO',
+    };
+    const bodyHtml = '<p><strong>' + crId + ':</strong> ' + (cr.CR_Title || '') + '</p><p>Status: ' + cr.CR_Status + '</p>' +
+      (cr.CR_RejectionReason ? '<p>Reason: ' + cr.CR_RejectionReason + '</p>' : '');
+    try {
+      await this.context.spHttpClient.post(
+        base + '/_api/SP.Utilities.Utility.SendEmail',
+        SPHttpClient.configurations.v1,
+        { headers: { 'Content-Type': 'application/json;odata=verbose', 'Accept': 'application/json;odata=verbose' },
+          body: JSON.stringify({ properties: {
+            __metadata: { type: 'SP.Utilities.EmailProperties' },
+            To: { results: toList },
+            Subject: subjMap[eventType] || '[IMP9177] CR ' + crId + ' update',
+            Body: bodyHtml,
+          } }) }
+      );
+    } catch (err) {
+      console.warn('[QP] CR notification failed:', err);
+    }
   }
 
   // ── Docs screen ──
@@ -4239,19 +4547,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     };
 
     const openCRInline = (crId: string) => {
-      const cr = (this._data.crs || []).find((c: any) => c.Title === crId);
-      if (!cr) return;
-      this._set('mcr-title', crId);
-      this._set('mcr-sub', cr.CR_Title||'');
-      this._html('mcr-body', `
-        <div class="fg"><div class="fl">Title</div><div class="fv">${cr.CR_Title||'—'}</div></div>
-        <div class="fg"><div class="fl">Status</div><div class="fv">${this._pill(cr.CR_Status)}</div></div>
-        <div class="fg"><div class="fl">Priority</div><div class="fv">${this._pill(cr.CR_Priority)}</div></div>
-        <div class="fg"><div class="fl">Originator</div><div class="fv">${cr.CR_Originator||'—'}</div></div>
-        <div class="fg"><div class="fl">Linked DCOs</div><div class="fv" style="font-family:var(--mono)">${cr.CR_LinkedDCOs||'None yet'}</div></div>
-        <div class="fg"><div class="fl">Description</div><div class="fv">${cr.CR_Description||'—'}</div></div>
-        <div class="fg"><div class="fl">Created</div><div class="fv">${this._fmt(cr.CR_CreatedDate)}</div></div>`);
-      (d.getElementById('modal-cr-detail') as HTMLElement)?.classList.add('open');
+      this._openCRModal(crId);
     };
 
     d.body.addEventListener('click', (e: Event) => {
@@ -4344,6 +4640,14 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const q = ((d.getElementById('dco-search') as HTMLInputElement)?.value || '').toLowerCase();
       this._dcoTableRender((this._data.dcos || []).filter((dco: any) =>
         !q || (dco.Title || '').toLowerCase().includes(q) || (dco.DCO_Title || '').toLowerCase().includes(q)));
+    };
+
+    w.qpRenderCR = () => { this._renderCR(); };
+    w._qpRenderCR = () => { this._renderCR(); };
+    w.qpCRFilter = (btn: HTMLElement, filter: string) => {
+      d.querySelectorAll('#sc-cr .fbar .fbtn').forEach((b: Element) => b.classList.remove('on'));
+      btn.classList.add('on');
+      this._renderCR();
     };
 
     w.qpRenderDocs = () => {};

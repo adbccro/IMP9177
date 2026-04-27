@@ -1,0 +1,246 @@
+/* ============================================================================
+   3H Pharmaceuticals QMS Design System — Tokens
+   ============================================================================
+   Two coexisting modes:
+     - Default / "Portal mode"     — qmsPortalWebPart, mrsFormsWebPart, supForms…
+     - [data-mode="dashboard"]     — imp9177Dashboard (PM, MRS, RAID, DOCREPO)
+
+   All values lifted verbatim from the SPFx source. See README.md for usage.
+   ============================================================================ */
+
+/* Fonts: served from Google Fonts CDN, matching the source. The @import is
+   commented because most consumers bring their own <link>; uncomment if you
+   need this stylesheet to be self-bootstrapping. */
+/* @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap'); */
+
+:root {
+  /* ── Portal palette (default) ── */
+  --n:  #0a3259;  /* navy / primary dark */
+  --b:  #0f4c81;  /* blue / primary action */
+  --b2: #1a6bb5;  /* blue 2 / hover */
+  --b1: #e3f2fd;  /* blue 100 / soft info tint */
+  --b0: #f0f7ff;  /* blue 50 / row & header tint */
+
+  --r:  #c62828;  --r1: #fde8e8;   /* red — destructive / late */
+  --a:  #e65100;  --a1: #fff3e0;   /* amber — warning / pending */
+  --g:  #2e7d32;  --g1: #e8f5e9;   /* green — success / signed */
+
+  --s0: #f8fafc;  /* page bg */
+  --s1: #f0f4f8;  /* row separator / chip bg */
+  --s2: #e0e6ed;  /* borders */
+  --s5: #5a6a7e;  /* muted text */
+  --s7: #1a2332;  /* body text */
+  --w:  #ffffff;
+
+  /* Status purple — reserved for "Awaiting Training" */
+  --p:  #7b1fa2;  --p1: #f3e5f5;
+
+  /* SharePoint Fluent links (legacy theme defaults present in the SCSS) */
+  --link:        #03787c;
+  --linkHovered: #014446;
+
+  /* ── Type ── */
+  --font-sans:    'DM Sans', system-ui, -apple-system, Segoe UI, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-display: 'DM Sans', system-ui, sans-serif;       /* Portal: same as sans, weight 700 */
+  --font-serif:   'Libre Baskerville', Georgia, serif;    /* Dashboard display */
+
+  /* ── Recommended spacing scale (additive, not in source) ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+
+  /* ── Radii ── */
+  --radius-sm:  4px;   /* zone badges, type badges */
+  --radius-md:  6px;   /* form inputs, buttons */
+  --radius-lg:  8px;   /* cards, panels, modals */
+  --radius-xl: 12px;   /* pills, KPI containers */
+  --radius-pill: 999px;
+
+  /* ── Elevation ── */
+  --shadow-sm:    0 1px 3px rgba(0, 0, 0, .06);
+  --shadow-row:   0 1px 4px rgba(0, 0, 0, .06);
+  --shadow-hover: 0 4px 14px rgba(15, 76, 129, .12);
+  --shadow-header:0 2px 8px rgba(0, 0, 0, .15);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, .30);
+
+  /* ── Motion ── */
+  --motion-fast: .1s;
+  --motion-base: .15s;
+  --motion-slow: .25s;
+
+  /* ── Brand gradient (the signature visual) ── */
+  --gradient-header: linear-gradient(135deg, #0a3259 0%, #0f4c81 60%, #1a6bb5 100%);
+  --gradient-panel:  linear-gradient(to right, var(--b0), var(--w));
+}
+
+/* ── Dashboard mode override ─────────────────────────────────────────────── */
+[data-mode="dashboard"],
+.dashboard-mode {
+  --n:  #0C2D5E;
+  --b:  #1E56A0;
+  --b2: #3B82D4;
+  --b1: #DBEAFE;
+  --b0: #EFF6FF;
+
+  --r:  #DC2626;
+  --a:  #D97706;
+  --g:  #059669;
+
+  --s0: #F8FAFC;
+  --s1: #F1F5F9;
+  --s2: #E2E8F0;
+  --s5: #64748B;
+  --s7: #334155;
+
+  --font-sans:    'Source Sans 3', system-ui, sans-serif;
+  --font-display: 'Libre Baskerville', Georgia, serif;
+  --font-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --gradient-header: linear-gradient(135deg, #0C2D5E, #1E56A0);
+}
+
+/* ============================================================================
+   Semantic typography
+   ============================================================================ */
+
+body, .body {
+  font-family: var(--font-sans);
+  background:  var(--s0);
+  color:       var(--s7);
+  font-size:   14px;
+  line-height: 1.5;
+}
+
+/* Headings — H1 reserved for product title in the navy header.
+   In-page sections use SECTION HEADER (.h-sec) and PANEL TITLE (.h-panel). */
+
+.h-product {
+  font-family: var(--font-display);
+  font-size:   15px;     /* portal */
+  font-weight: 700;
+  color:       #fff;     /* always sits on the navy gradient */
+  letter-spacing: -0.1px;
+}
+[data-mode="dashboard"] .h-product {
+  font-size: 16px;
+}
+
+.h-product-sub {
+  font-size: 11px;
+  color:     rgba(255,255,255,.6);
+  margin-top: 1px;
+  font-weight: 400;
+}
+
+/* Section eyebrow — uppercase, small, with the blue tick marker (::before) */
+.h-sec {
+  font-family: var(--font-sans);
+  font-size:   12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color:       var(--b);
+  display:     flex;
+  align-items: center;
+  gap: 7px;
+}
+.h-sec::before {
+  content: '';
+  width:  3px;
+  height: 13px;
+  background: var(--b);
+  border-radius: 2px;
+  display: block;
+}
+
+/* Panel title — sits inside .panel-hdr, dark navy, smaller */
+.h-panel {
+  font-size:   12px;
+  font-weight: 700;
+  color:       var(--n);
+}
+
+/* KPI numerals — the showcase numerical type. */
+.h-kpi {
+  font-family: var(--font-mono);   /* Portal: DM Mono */
+  font-size:   28px;
+  font-weight: 700;
+  color:       var(--n);
+  line-height: 1;
+}
+[data-mode="dashboard"] .h-kpi {
+  font-family: var(--font-display); /* Dashboard: Libre Baskerville */
+  font-size:   30px;
+}
+
+/* KPI label — uppercase, tiny, muted */
+.h-kpi-label {
+  font-size:   10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color:       var(--s5);
+  margin-bottom: 5px;
+}
+
+.h-kpi-sub {
+  font-size: 11px;
+  color:     var(--s5);
+  margin-top: 3px;
+}
+
+/* Body & helpers */
+p, .p {
+  font-size:   13px;
+  color:       var(--s7);
+  line-height: 1.5;
+}
+.p-muted { color: var(--s5); }
+.p-small { font-size: 11px; }
+.p-tiny  { font-size: 10px; }
+
+/* Mono — for IDs, timestamps, codes. The signature density type. */
+.mono, code, kbd {
+  font-family: var(--font-mono);
+  font-size:   11px;
+  color:       var(--s5);
+  font-weight: 500;
+}
+.mono-id    { color: var(--b);  font-weight: 500; cursor: pointer; }
+.mono-id:hover { text-decoration: underline; }
+.mono-date  { color: var(--s5); white-space: nowrap; }
+.mono-ts    { color: rgba(255,255,255,.45); font-size: 10px; } /* on header gradient */
+
+/* Table column header style (also used as eyebrow) */
+.h-th {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--s5);
+}
+
+/* Form label — same register as KPI label */
+.h-fl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--s5);
+  margin-bottom: 4px;
+}
+
+/* Eyebrow used at the top of MRS-style page headers (DM Mono caps) */
+.h-eyebrow {
+  font-family: var(--font-mono);
+  font-size:   10px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,.5);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}

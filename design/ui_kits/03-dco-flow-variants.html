@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>DCO Flow Variants · 3H QMS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap">
+<style>
+:root {
+  --n:#0a3259; --b:#0f4c81; --b2:#1a6bb5; --b1:#e3f2fd; --b0:#f0f7ff;
+  --r:#c62828; --r1:#fde8e8; --a:#e65100; --a1:#fff3e0; --g:#2e7d32; --g1:#e8f5e9;
+  --p:#7b1fa2; --p1:#f3e5f5;
+  --s0:#fafbfc; --s1:#f0f4f8; --s2:#e0e6ed; --s4:#8b97a8; --s5:#5a6a7e; --s7:#1a2332; --w:#fff;
+  --serif:'Libre Baskerville',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--s0);color:var(--s7);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.55}
+
+/* index header */
+.idx-hdr{background:var(--n);color:var(--w);padding:36px 56px}
+.idx-hdr .qms{font-family:var(--mono);font-size:11px;letter-spacing:2.4px;color:#a8c4dd;margin-bottom:10px}
+.idx-hdr h1{font-family:var(--serif);font-weight:700;font-size:28px;letter-spacing:-.4px;margin-bottom:8px}
+.idx-hdr p{color:#c8d6e3;max-width:760px;font-size:14px;line-height:1.6}
+.idx-nav{background:var(--w);border-bottom:1px solid var(--s2);padding:14px 56px;display:flex;gap:22px;flex-wrap:wrap}
+.idx-nav a{font-family:var(--mono);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--s5);text-decoration:none;padding:6px 0;border-bottom:1px solid transparent}
+.idx-nav a:hover{color:var(--n);border-bottom-color:var(--n)}
+
+/* variant section */
+.variant{padding:56px 56px 24px;border-bottom:1px solid var(--s2);max-width:1480px;margin:0 auto}
+.v-head{display:flex;align-items:baseline;gap:18px;margin-bottom:8px}
+.v-num{font-family:var(--mono);font-size:11px;letter-spacing:1.6px;color:var(--b);text-transform:uppercase}
+.v-head h2{font-family:var(--serif);font-weight:700;font-size:26px;color:var(--n);letter-spacing:-.4px}
+.v-lede{font-size:14px;color:var(--s5);max-width:780px;line-height:1.6;margin-bottom:32px}
+
+/* mini doc head — reused on each variant for context */
+.mini-hdr{background:var(--w);border:1px solid var(--s2);border-radius:4px;padding:22px 26px;margin-bottom:24px;display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start}
+.mini-hdr-l .id{font-family:var(--mono);font-size:11.5px;color:var(--b);letter-spacing:.4px;margin-bottom:6px}
+.mini-hdr-l .ttl{font-family:var(--serif);font-weight:700;font-size:22px;color:var(--n);letter-spacing:-.3px;line-height:1.2;max-width:680px}
+.mini-hdr-l .ml{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap;font-size:12.5px;color:var(--s5)}
+.mini-hdr-l .ml b{color:var(--n);font-weight:500}
+
+.status-pill{font-family:var(--mono);font-size:11px;padding:7px 14px;border-radius:999px;letter-spacing:.8px;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.status-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.status-pill.draft{background:var(--s1);color:var(--s5)}
+.status-pill.pdue{background:var(--r1);color:var(--r);border:1px solid #f3c2c2}
+.status-pill.eff{background:var(--g1);color:var(--g);border:1px solid #c8e2c8}
+.status-pill.ret{background:var(--a1);color:var(--a);border:1px solid #f8d8b0}
+.status-pill.trn{background:var(--p1);color:var(--p);border:1px solid #d8c0e0}
+.status-pill.viewer{background:var(--w);color:var(--s5);border:1px solid var(--s2)}
+.status-pill.pdue::before{animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* state body — wraps each variation's content */
+.state{background:var(--w);border:1px solid var(--s2);border-radius:4px;padding:36px 40px}
+
+.btn{font-family:var(--sans);font-size:13.5px;font-weight:500;padding:11px 22px;border-radius:4px;border:1px solid transparent;cursor:pointer;transition:all .15s;letter-spacing:.1px}
+.btn-primary{background:var(--n);color:var(--w);border-color:var(--n)}
+.btn-primary:hover{background:var(--b);border-color:var(--b)}
+.btn-primary:disabled{background:var(--s2);border-color:var(--s2);color:var(--s5);cursor:not-allowed}
+.btn-danger{background:var(--w);color:var(--r);border-color:#e8c7c7}
+.btn-danger:hover{background:var(--r1);border-color:var(--r)}
+.btn-ghost{background:var(--w);color:var(--s5);border-color:var(--s2)}
+.btn-ghost:hover{color:var(--n);border-color:var(--n)}
+.btn-quiet{background:none;border:none;color:var(--b);font-family:var(--sans);font-size:13.5px;cursor:pointer;padding:0}
+.btn-quiet:hover{text-decoration:underline}
+
+/* ─── EMPTY STATES ─── */
+.estate{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;text-align:center}
+.estate .ico{font-family:var(--mono);font-size:11px;letter-spacing:1.8px;color:var(--s5);text-transform:uppercase;margin-bottom:18px;padding:8px 16px;border:1px solid var(--s2);border-radius:999px;background:var(--s1)}
+.estate.success .ico{color:var(--g);border-color:#c8e2c8;background:var(--g1)}
+.estate.warn .ico{color:var(--a);border-color:#f8d8b0;background:var(--a1)}
+.estate.danger .ico{color:var(--r);border-color:#f3c2c2;background:var(--r1)}
+.estate.viewer .ico{color:var(--s5)}
+.estate h3{font-family:var(--serif);font-weight:700;font-size:24px;color:var(--n);letter-spacing:-.3px;margin-bottom:10px;max-width:560px;line-height:1.25}
+.estate p{font-size:14px;color:var(--s5);max-width:560px;line-height:1.6;margin-bottom:22px}
+.estate .actions{display:flex;gap:10px}
+.estate .meta{font-family:var(--mono);font-size:11px;color:var(--s4);letter-spacing:.4px;margin-top:18px}
+
+/* ─── ORIGINATOR PROGRESS BAR ─── */
+.steps{display:flex;background:var(--w);border:1px solid var(--s2);border-radius:4px;margin-bottom:32px;overflow:hidden}
+.step{flex:1;padding:18px 22px;border-right:1px solid var(--s2);position:relative}
+.step:last-child{border-right:none}
+.step .sn{font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--s5);margin-bottom:4px}
+.step .st{font-family:var(--serif);font-size:15px;color:var(--n);font-weight:700;letter-spacing:-.2px}
+.step .ss{font-size:12px;color:var(--s5);margin-top:3px;line-height:1.4}
+.step.done .sn{color:var(--g)}
+.step.done::after{content:'✓';position:absolute;top:14px;right:14px;color:var(--g);font-weight:700;font-size:13px}
+.step.now{background:var(--b0)}
+.step.now .sn{color:var(--b)}
+.step.now::after{content:'●';position:absolute;top:14px;right:14px;color:var(--b);font-size:10px}
+.step.todo{opacity:.5}
+.step.todo .st{color:var(--s5);font-weight:400}
+
+/* ─── FORM ─── */
+.form{display:grid;grid-template-columns:1fr 320px;gap:48px}
+@media (max-width:980px){.form{grid-template-columns:1fr}}
+.f-grp{margin-bottom:20px}
+.f-grp label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--s5);margin-bottom:7px}
+.f-grp .req{color:var(--r)}
+.f-grp input,.f-grp textarea,.f-grp select{width:100%;font-family:var(--sans);font-size:14px;padding:11px 14px;border:1px solid var(--s2);border-radius:4px;background:var(--w);color:var(--n);outline:none;transition:border-color .15s}
+.f-grp input:focus,.f-grp textarea:focus,.f-grp select:focus{border-color:var(--b)}
+.f-grp textarea{resize:vertical;min-height:90px}
+.f-grp .hint{font-size:12px;color:var(--s5);margin-top:5px}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+.upload{border:2px dashed var(--s2);border-radius:6px;padding:28px;text-align:center;cursor:pointer;transition:all .15s;margin-top:8px}
+.upload:hover{border-color:var(--b);background:var(--b0)}
+.upload .il{font-family:var(--mono);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--b);margin-bottom:6px}
+.upload p{font-size:13px;color:var(--s5);line-height:1.5}
+.upload p b{color:var(--n);font-weight:500}
+
+.draft-files{margin-top:14px}
+.df{display:grid;grid-template-columns:1fr 90px 90px 24px;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--s2);border-radius:4px;background:var(--w);margin-bottom:8px}
+.df .id{font-family:var(--mono);font-size:11.5px;color:var(--b)}
+.df .nm{font-family:var(--serif);font-size:14px;color:var(--n)}
+.df .nm small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--s5);margin-top:2px;letter-spacing:.3px}
+.df .rv{font-family:var(--mono);font-size:11px;color:var(--s5);text-align:right}
+.df .sz{font-family:var(--mono);font-size:11px;color:var(--s5);text-align:right}
+.df .x{color:var(--s4);cursor:pointer;font-size:18px;text-align:center;font-weight:300}
+.df .x:hover{color:var(--r)}
+
+/* checklist sidebar */
+.checklist{background:var(--s1);border-radius:4px;padding:24px}
+.checklist h4{font-family:var(--mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--s5);margin-bottom:14px;font-weight:500}
+.cl-item{display:flex;gap:12px;padding:9px 0;font-size:13px;line-height:1.5;color:var(--n)}
+.cl-item .b{flex:none;width:18px;height:18px;border-radius:3px;border:1.5px solid var(--s4);background:var(--w);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--w);margin-top:1px}
+.cl-item.ok .b{background:var(--g);border-color:var(--g)}
+.cl-item.ok .b::after{content:'✓'}
+.cl-item.warn .b{background:var(--a);border-color:var(--a);color:var(--w)}
+.cl-item.warn .b::after{content:'!'}
+.cl-item.warn{color:var(--a)}
+.cl-item .x{font-size:11.5px;color:var(--s5);display:block;margin-top:2px}
+
+/* sidebar info */
+.sb-card{background:var(--w);border:1px solid var(--s2);border-radius:4px;padding:20px 22px;margin-bottom:14px}
+.sb-card h5{font-family:var(--mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--s5);margin-bottom:12px;font-weight:500}
+.sb-card .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--s1);font-size:12.5px}
+.sb-card .row:last-child{border-bottom:none}
+.sb-card .row .k{color:var(--s5)}
+.sb-card .row .v{color:var(--n);font-weight:500}
+.sb-card .row .v.code{font-family:var(--mono);font-size:11.5px;color:var(--b)}
+
+/* form-foot row */
+.f-foot{display:flex;justify-content:space-between;align-items:center;padding-top:24px;margin-top:20px;border-top:1px solid var(--s2)}
+.f-foot .sv{font-family:var(--mono);font-size:11px;color:var(--s5);letter-spacing:.3px}
+.f-foot .actions{display:flex;gap:10px}
+
+/* ─── DELEGATE MODAL (inline shown) ─── */
+.modal-frame{background:var(--n);padding:52px 32px;border-radius:8px;display:flex;justify-content:center}
+.modal{background:var(--w);border-radius:6px;max-width:580px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.modal-h{padding:26px 32px 18px;border-bottom:1px solid var(--s2)}
+.modal-h .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--s5);margin-bottom:6px}
+.modal-h h2{font-family:var(--serif);font-weight:700;font-size:22px;color:var(--n);letter-spacing:-.3px}
+.modal-b{padding:24px 32px}
+.modal-b p{font-size:13.5px;color:var(--s7);line-height:1.6;margin-bottom:14px}
+.attest{background:var(--s1);border-left:3px solid var(--n);padding:18px 22px;margin:18px 0 22px;font-family:var(--serif);font-size:13.5px;color:var(--n);line-height:1.55;font-style:italic}
+.attest strong{font-style:normal;font-weight:700;display:block;font-family:var(--sans);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--s5);margin-bottom:8px}
+.modal-f{padding:18px 32px 26px;border-top:1px solid var(--s2);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.modal-f .meta{font-family:var(--mono);font-size:10.5px;color:var(--s5);letter-spacing:.3px;flex:1}
+.modal-f .actions{display:flex;gap:10px}
+
+.scope-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:6px}
+.scope-opt{border:1px solid var(--s2);border-radius:4px;padding:14px 12px;cursor:pointer;transition:all .15s;text-align:center}
+.scope-opt:hover{border-color:var(--b)}
+.scope-opt.on{border-color:var(--n);background:var(--b0)}
+.scope-opt .lt{font-family:var(--mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--s5);margin-bottom:5px}
+.scope-opt.on .lt{color:var(--b)}
+.scope-opt .lv{font-family:var(--serif);font-size:14px;color:var(--n);font-weight:700;line-height:1.3}
+
+.callout-note{background:var(--a1);border-left:3px solid var(--a);padding:14px 18px;margin:18px 0;font-size:13px;color:var(--n);line-height:1.55}
+.callout-note b{color:var(--a);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:1.2px;display:block;margin-bottom:4px;font-family:var(--mono)}
+
+footer{padding:32px 56px;font-family:var(--mono);font-size:11px;color:var(--s5);text-align:center;letter-spacing:.3px;background:var(--w);border-top:1px solid var(--s2)}
+footer span{color:var(--n)}
+</style>
+</head>
+<body data-screen-label="DCO Flow Variants">
+
+<div class="idx-hdr">
+  <div class="qms">QMS · UI Kit v2 · Flow Variants</div>
+  <h1>DCO empty / post-action / originator / delegate</h1>
+  <p>Closing the four design holes flagged for engineering handoff. Each variant is the same DCO record (DCO-0001) under a different state or actor. Header chrome and modal patterns are reused from <code>calm-pair.html</code> and <code>dco-detail.html</code>.</p>
+</div>
+<nav class="idx-nav">
+  <a href="#viewer">01 · Viewer / not a signatory</a>
+  <a href="#signed">02 · Signed (waiting on others)</a>
+  <a href="#training">03 · Training-gated</a>
+  <a href="#returned">04 · Returned to originator</a>
+  <a href="#effective">05 · Effective (post-publish)</a>
+  <a href="#empty">06 · Empty register</a>
+  <a href="#originator">07 · Originator draft → submit</a>
+  <a href="#delegate">08 · Delegate signature modal</a>
+</nav>
+
+<!-- ════════ 01 · VIEWER ════════ -->
+<section class="variant" id="viewer">
+  <div class="v-head"><span class="v-num">Variant 01</span><h2>Viewer — not a signatory</h2></div>
+  <p class="v-lede">When the current user (e.g. a 3H executive or a non-assigned consultant) opens a DCO they have no signing role on. The page renders but the action surface is read-only; the activity log is the primary view.</p>
+
+  <div class="mini-hdr">
+    <div class="mini-hdr-l">
+      <div class="id">DCO-0001 · linked to CR-0001</div>
+      <div class="ttl">W1 sign-off package — labelling spec update</div>
+      <div class="ml"><span>Originator · <b>Tina Qin</b></span><span>Type · <b>SOP package</b></span><span>Phase · <b>2A</b></span><span>Target · <b>Apr 5 (4d late)</b></span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+      <span class="status-pill viewer">Read-only · you have no role on this DCO</span>
+      <button class="btn-quiet">Subscribe to updates →</button>
+    </div>
+  </div>
+
+  <div class="state">
+    <div class="estate viewer">
+      <span class="ico">No action required from you</span>
+      <h3>You're viewing this DCO as a non-signatory.</h3>
+      <p>This Change Order is awaiting signatures from <b style="color:var(--n)">Liu Hong</b> and <b style="color:var(--n)">Tina Qin</b>. You can review the documents and follow the activity log, but you have no signing or rejection authority on this record. All page actions are recorded in the audit trail regardless.</p>
+      <div class="actions">
+        <button class="btn btn-ghost">View documents</button>
+        <button class="btn btn-ghost">View activity log</button>
+        <button class="btn btn-primary">Subscribe to updates</button>
+      </div>
+      <div class="meta">If you believe you should be a signatory, contact the originator (Tina Qin) or the QA Approver.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 02 · YOU SIGNED ════════ -->
+<section class="variant" id="signed">
+  <div class="v-head"><span class="v-num">Variant 02</span><h2>You signed — waiting on others</h2></div>
+  <p class="v-lede">Right after Andre signs. The CTA cluster transforms: no more "Sign" button, but a confirmation banner, the ability to revoke (with attestation) until the DCO transitions, and a "remind signatories" action with a 24-hour cooldown.</p>
+
+  <div class="mini-hdr">
+    <div class="mini-hdr-l">
+      <div class="id">DCO-0001 · linked to CR-0001</div>
+      <div class="ttl">W1 sign-off package — labelling spec update</div>
+      <div class="ml"><span>Originator · <b>Tina Qin</b></span><span>Type · <b>SOP package</b></span><span>Phase · <b>2A</b></span><span>Target · <b>Apr 5 (4d late)</b></span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+      <span class="status-pill pdue">Past due · awaiting Liu Hong &amp; Tina Qin</span>
+    </div>
+  </div>
+
+  <div class="state">
+    <div class="estate success">
+      <span class="ico">✓ You signed · Apr 9 · 16:42</span>
+      <h3>Your signature is recorded.</h3>
+      <p>You are <b style="color:var(--n)">1 of 3</b> required signatures on this DCO. Two remain: <b style="color:var(--n)">Liu Hong</b> and <b style="color:var(--n)">Tina Qin</b>. The package becomes effective once all sigs are captured and the 7/7 training certifications are in.</p>
+      <div class="actions">
+        <button class="btn btn-ghost">Remind signatories</button>
+        <button class="btn btn-ghost">View activity log</button>
+        <button class="btn btn-danger">Revoke my signature</button>
+      </div>
+      <div class="meta">Signature hash · 7c14...d9f1 · Recorded per 21 CFR Part 11 · Revocation window closes when DCO transitions.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 03 · TRAINING GATED ════════ -->
+<section class="variant" id="training">
+  <div class="v-head"><span class="v-num">Variant 03</span><h2>All signatures in — gated on training</h2></div>
+  <p class="v-lede">Sigs cleared. The package can't transition to <em>Effective</em> until 7/7 training certifications are captured. Page makes the gate visible, names who's outstanding, and exposes a single "Send reminders" action.</p>
+
+  <div class="mini-hdr">
+    <div class="mini-hdr-l">
+      <div class="id">DCO-0001 · linked to CR-0001</div>
+      <div class="ttl">W1 sign-off package — labelling spec update</div>
+      <div class="ml"><span>Originator · <b>Tina Qin</b></span><span>3/3 signed · <b style="color:var(--g)">all signatures captured</b></span><span>Phase · <b>2A</b></span></div>
+    </div>
+    <div><span class="status-pill trn">Awaiting training · 4 / 7</span></div>
+  </div>
+
+  <div class="state">
+    <div class="estate warn">
+      <span class="ico">Effective on training completion</span>
+      <h3>Three certifications outstanding before this DCO goes effective.</h3>
+      <p>All required signatures are captured, and effective-date logic is now waiting on training certification from <b style="color:var(--n)">S. Patel</b>, <b style="color:var(--n)">R. Mendoza</b>, and <b style="color:var(--n)">K. Walsh</b>. Each user has been notified twice (Apr 7, Apr 10). Auto-effective on the 7/7 mark.</p>
+      <div class="actions">
+        <button class="btn btn-ghost">View training assignments</button>
+        <button class="btn btn-primary">Send reminders</button>
+        <button class="btn btn-ghost">Request waiver (QA Approver only)</button>
+      </div>
+      <div class="meta">Most recent reminder · Apr 10 · 09:00 · TRN-0184</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 04 · RETURNED ════════ -->
+<section class="variant" id="returned">
+  <div class="v-head"><span class="v-num">Variant 04</span><h2>Rejected — returned to originator</h2></div>
+  <p class="v-lede">After a reject. The DCO is back in the originator's court (Tina), all prior sigs on this rev are voided, and the page shows the rejection reason inline so resubmission addresses it directly.</p>
+
+  <div class="mini-hdr">
+    <div class="mini-hdr-l">
+      <div class="id">DCO-0001 · linked to CR-0001</div>
+      <div class="ttl">W1 sign-off package — labelling spec update</div>
+      <div class="ml"><span>Originator · <b>Tina Qin</b></span><span>Returned by · <b>L. Hong, Apr 3</b></span><span>Rejection count · <b>1</b></span></div>
+    </div>
+    <div><span class="status-pill ret">Returned · 8 days in originator's queue</span></div>
+  </div>
+
+  <div class="state">
+    <div class="estate danger">
+      <span class="ico">Returned by L. Hong · Apr 3 · 14:22</span>
+      <h3>This DCO was returned to the originator with required corrections.</h3>
+      <p style="font-family:var(--serif);font-style:italic;color:var(--s5);max-width:620px">"Lot-history table needs a column for traceability source per FSMA. Otherwise looks good — please re-route once added."</p>
+      <p>All four signatures captured on the prior revision were <b>voided</b> per Part 11. Originator must update the documents and resubmit; the routing chain restarts from the first signatory.</p>
+      <div class="actions">
+        <button class="btn btn-primary">Open in originator view</button>
+        <button class="btn btn-ghost">View full activity log</button>
+      </div>
+      <div class="meta">Category · Content error · 2 inline comments on FM-014 §3.1, §4.2</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 05 · EFFECTIVE ════════ -->
+<section class="variant" id="effective">
+  <div class="v-head"><span class="v-num">Variant 05</span><h2>Effective — post-publish</h2></div>
+  <p class="v-lede">After the DCO transitions to Effective. The header switches to green, the action surface collapses to read-only references to the published documents, and the page becomes a permanent audit record.</p>
+
+  <div class="mini-hdr">
+    <div class="mini-hdr-l">
+      <div class="id">DCO-0001 · linked to CR-0001</div>
+      <div class="ttl">W1 sign-off package — labelling spec update</div>
+      <div class="ml"><span>Originator · <b>Tina Qin</b></span><span>Effective · <b>Apr 18, 2026</b></span><span>Cycle time · <b>22 days</b></span><span>Retention · <b>Until Apr 18, 2033</b></span></div>
+    </div>
+    <div><span class="status-pill eff">Effective · superseded prior revisions</span></div>
+  </div>
+
+  <div class="state">
+    <div class="estate success">
+      <span class="ico">✓ Effective · all 7/7 training certified</span>
+      <h3>This Change Order is closed and immutable.</h3>
+      <p>Four documents transitioned from Draft to Official on Apr 18. Prior revisions (<b style="color:var(--n)">SOP-PM-021 r3</b>, <b style="color:var(--n)">FM-014 r2</b>, <b style="color:var(--n)">QM-001 §4.2 r6</b>) are stamped <em>Superseded</em> and remain accessible in the audit zone. The full signature manifest and activity log are preserved for the retention period.</p>
+      <div class="actions">
+        <button class="btn btn-ghost">Open SOP-PM-021 r4 (Official)</button>
+        <button class="btn btn-ghost">View signature manifest (PDF)</button>
+        <button class="btn btn-ghost">View full activity log</button>
+      </div>
+      <div class="meta">Audit hash chain verified · Apr 18, 2026 · 14:03 UTC-5 · Locked</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 06 · EMPTY REGISTER ════════ -->
+<section class="variant" id="empty">
+  <div class="v-head"><span class="v-num">Variant 06</span><h2>Empty register — first run / filtered to zero</h2></div>
+  <p class="v-lede">First-run state for the DCO register, and the same template for any filtered view that returns zero. Avoids the "is this broken?" feeling by stating the filter explicitly and offering one clear next action.</p>
+
+  <div class="state">
+    <div class="estate viewer">
+      <span class="ico">No DCOs match · "My open" filter</span>
+      <h3>You have no Change Orders awaiting your signature.</h3>
+      <p>You're caught up. The full register has <b style="color:var(--n)">156 DCOs</b> (42 effective, 14 in routing, 100 closed). Switch to <b>All</b> to browse, or to <b>Late</b> to see what's overdue across the team.</p>
+      <div class="actions">
+        <button class="btn btn-ghost">Show all DCOs</button>
+        <button class="btn btn-ghost">Show late items</button>
+        <button class="btn btn-primary">Originate a new DCO</button>
+      </div>
+      <div class="meta">Last sync · Apr 11 · 14:03:11</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 07 · ORIGINATOR DRAFT → SUBMIT ════════ -->
+<section class="variant" id="originator">
+  <div class="v-head"><span class="v-num">Variant 07</span><h2>Originator — draft to submit</h2></div>
+  <p class="v-lede">Tina's view, originating the DCO. A four-step flow with persistent autosave, file uploads keyed to specific document slots, a live readiness checklist, and a submit gate that requires the same Part 11 attestation as a sign event (because submission binds the originator's name to the routing record).</p>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step done"><div class="sn">Step 1</div><div class="st">Link CR</div><div class="ss">CR-0001 · audit finding 2025-Q4-03</div></div>
+    <div class="step done"><div class="sn">Step 2</div><div class="st">Describe the change</div><div class="ss">Summary · risk · justification</div></div>
+    <div class="step now"><div class="sn">Step 3 · current</div><div class="st">Attach drafts &amp; routing</div><div class="ss">4 documents · signatories · training</div></div>
+    <div class="step todo"><div class="sn">Step 4</div><div class="st">Review &amp; submit</div><div class="ss">Part 11 attestation</div></div>
+  </div>
+
+  <div class="state">
+    <div class="form">
+      <!-- LEFT: form -->
+      <div>
+        <div class="f-grp">
+          <label>DCO title <span class="req">*</span></label>
+          <input value="W1 sign-off package — labelling spec update">
+          <div class="hint">Concise, document-package level. Renders as the H1 on the routed record.</div>
+        </div>
+
+        <div class="f-row">
+          <div class="f-grp">
+            <label>Type <span class="req">*</span></label>
+            <select><option>SOP package · multi-doc</option><option>SOP single</option><option>Form</option><option>QM section</option><option>FPS</option></select>
+          </div>
+          <div class="f-grp">
+            <label>Risk class <span class="req">*</span></label>
+            <select><option>Moderate</option><option>Low</option><option>High</option><option>Critical</option></select>
+          </div>
+        </div>
+
+        <div class="f-row">
+          <div class="f-grp">
+            <label>Target effective date <span class="req">*</span></label>
+            <input type="date" value="2026-04-22">
+            <div class="hint">SLA · 21 days from submit for moderate risk.</div>
+          </div>
+          <div class="f-grp">
+            <label>Routing policy <span class="req">*</span></label>
+            <select><option>Parallel — any order</option><option>Sequential — ordered</option><option>Role quorum</option></select>
+          </div>
+        </div>
+
+        <h4 style="font-family:var(--serif);font-size:16px;color:var(--n);margin:28px 0 12px">Draft documents in this package</h4>
+        <div class="upload">
+          <div class="il">+ Upload draft</div>
+          <p>Drag .docx, .pdf, or click to select. Each draft maps to a <b>DocumentId</b> below. Files store in <code style="font-family:var(--mono);font-size:11.5px;color:var(--b)">/Drafts/DCO-0001/</code> and are autosaved.</p>
+        </div>
+        <div class="draft-files">
+          <div class="df"><span class="id">SOP-PM-021</span><span class="nm">Receiving inspection<small>r3 → r4 · 8 pages · uploaded 11:42</small></span><span class="rv">r3 → r4</span><span class="sz">412 KB</span><span class="x">×</span></div>
+          <div class="df"><span class="id">FM-014</span><span class="nm">Batch record<small>r2 → r3 · 4 pages · uploaded 11:44</small></span><span class="rv">r2 → r3</span><span class="sz">88 KB</span><span class="x">×</span></div>
+          <div class="df"><span class="id">QM-001</span><span class="nm">Quality Manual §4.2<small>r6 → r7 · 2 pages · uploaded 11:48</small></span><span class="rv">r6 → r7</span><span class="sz">62 KB</span><span class="x">×</span></div>
+          <div class="df" style="border-style:dashed;background:var(--s0)"><span class="id" style="color:var(--s5)">FM-014a</span><span class="nm" style="color:var(--s5)">Batch record — appendix<small>NEW · awaiting upload</small></span><span class="rv">new</span><span class="sz" style="color:var(--a)">missing</span><span class="x"> </span></div>
+        </div>
+
+        <div class="f-grp" style="margin-top:24px">
+          <label>Required signatories <span class="req">*</span></label>
+          <input value="Andre Butler · QD Yang · Liu Hong · Tina Qin (self)" readonly style="background:var(--s1);color:var(--s5)">
+          <div class="hint">Auto-populated from the Routing Policy + document type. Manual override needs QA Approver authorization.</div>
+        </div>
+
+        <div class="f-grp">
+          <label>Training assignments</label>
+          <input value="7 users · all production-floor staff &amp; QA team" readonly style="background:var(--s1);color:var(--s5)">
+          <div class="hint">Pre-computed from the doc types. Effective date gates on certification — see Variant 03.</div>
+        </div>
+
+        <div class="f-foot">
+          <span class="sv">↻ Autosaved · Apr 11 · 11:51</span>
+          <div class="actions">
+            <button class="btn btn-ghost">← Back</button>
+            <button class="btn btn-ghost">Save &amp; close</button>
+            <button class="btn btn-primary" disabled>Continue → Review</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: checklist + side info -->
+      <div>
+        <div class="checklist">
+          <h4>Readiness checklist</h4>
+          <div class="cl-item ok"><span class="b"></span><span>Linked Change Request<span class="x">CR-0001 · audit finding 2025-Q4-03</span></span></div>
+          <div class="cl-item ok"><span class="b"></span><span>Summary &amp; justification<span class="x">280 / 1000 chars · cites §111.260(j)</span></span></div>
+          <div class="cl-item ok"><span class="b"></span><span>Risk class set<span class="x">Moderate</span></span></div>
+          <div class="cl-item ok"><span class="b"></span><span>Target effective date<span class="x">Apr 22 · within SLA</span></span></div>
+          <div class="cl-item warn"><span class="b"></span><span>All draft documents attached<span class="x">3 of 4 · FM-014a missing</span></span></div>
+          <div class="cl-item ok"><span class="b"></span><span>Signatories resolved<span class="x">4 users from policy</span></span></div>
+          <div class="cl-item ok"><span class="b"></span><span>Training scope computed<span class="x">7 users · auto-derived</span></span></div>
+          <div class="cl-item"><span class="b"></span><span>Submit attestation<span class="x">Required at step 4</span></span></div>
+        </div>
+
+        <div class="sb-card" style="margin-top:14px">
+          <h5>This DCO will</h5>
+          <div class="row"><span class="k">Generate</span><span class="v">DCO-0001</span></div>
+          <div class="row"><span class="k">Affect docs</span><span class="v code">4</span></div>
+          <div class="row"><span class="k">Required sigs</span><span class="v code">3</span></div>
+          <div class="row"><span class="k">Training cohort</span><span class="v code">7 users</span></div>
+          <div class="row"><span class="k">SLA</span><span class="v">21 days</span></div>
+        </div>
+
+        <div class="sb-card">
+          <h5>Help</h5>
+          <p style="font-size:12.5px;color:var(--s5);line-height:1.55">Originating a DCO is a Part 11 binding action. You will be asked to re-authenticate and provide an attestation at step 4. Drafts and metadata are autosaved continuously — you can leave and return anytime before submit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 08 · DELEGATE MODAL ════════ -->
+<section class="variant" id="delegate">
+  <div class="v-head"><span class="v-num">Variant 08</span><h2>Delegate signature — modal</h2></div>
+  <p class="v-lede">Triggered from the "Delegate signature" card on the DCO detail. Authorizes a named alternate to sign on your behalf for a bounded scope and time. The delegation itself is a Part 11 sig event — both creation and revocation generate hashed audit rows. Open-ended delegations are rejected.</p>
+
+  <div class="modal-frame">
+    <div class="modal">
+      <div class="modal-h">
+        <div class="eyebrow">Authorize delegate · 21 CFR Part 11</div>
+        <h2>Delegate your signature on DCO-0001</h2>
+      </div>
+      <div class="modal-b">
+        <p>Delegation authorizes <strong>another user</strong> to sign on your behalf within the scope you set below. The delegate's signature is recorded with both names; you remain the originating authority and the audit trail names you both.</p>
+
+        <div class="f-grp">
+          <label>Delegate to <span class="req">*</span></label>
+          <select>
+            <option>Liu Hong · Production · 3H</option>
+            <option>QD Yang · QA Operations · 3H</option>
+            <option>Andre Butler · PM · ADB</option>
+            <option>Other (search directory)…</option>
+          </select>
+          <div class="hint">Only users with active Part 11 credentials and the required role appear here.</div>
+        </div>
+
+        <div class="f-grp">
+          <label>Scope <span class="req">*</span></label>
+          <div class="scope-grid">
+            <div class="scope-opt on">
+              <div class="lt">Scope 1</div>
+              <div class="lv">This DCO only</div>
+            </div>
+            <div class="scope-opt">
+              <div class="lt">Scope 2</div>
+              <div class="lv">All DCOs until date</div>
+            </div>
+            <div class="scope-opt">
+              <div class="lt">Scope 3</div>
+              <div class="lv">Role-bound period</div>
+            </div>
+          </div>
+          <div class="hint">"This DCO only" auto-revokes when DCO-0001 transitions. Other scopes require a hard date.</div>
+        </div>
+
+        <div class="f-row">
+          <div class="f-grp">
+            <label>Valid from <span class="req">*</span></label>
+            <input type="datetime-local" value="2026-04-11T14:03">
+          </div>
+          <div class="f-grp">
+            <label>Valid until <span class="req">*</span></label>
+            <input type="datetime-local" value="2026-04-22T23:59">
+            <div class="hint">Open-ended delegations rejected.</div>
+          </div>
+        </div>
+
+        <div class="f-grp">
+          <label>Justification <span class="req">*</span></label>
+          <textarea placeholder="State the operational reason for the delegation. Recorded in the audit log and reviewed by QA Approver.">Travel Apr 13–17. Liu Hong authorized to sign DCO-0001 on my behalf within scope.</textarea>
+          <div class="hint">Minimum 20 characters · visible to QA Approver and on the activity log.</div>
+        </div>
+
+        <div class="callout-note">
+          <b>Auto-revoke conditions</b>
+          The delegation revokes automatically if (1) DCO-0001 transitions to Effective, Withdrawn, or Returned; (2) the Valid until timestamp is reached; (3) you, the delegate, or the QA Approver issue a manual revocation. All revocations generate Part 11 audit rows.
+        </div>
+
+        <div class="attest">
+          <strong>Attestation</strong>
+          I authorize the delegate named above to sign on my behalf within the scope and timeframe specified. I understand that signatures captured under this delegation are legally binding on me, are recorded in the validated audit trail per 21 CFR Part 11, and that this delegation may be revoked at any time by me, the delegate, or the QA Approver.
+        </div>
+
+        <div class="f-row">
+          <div class="f-grp">
+            <label>Username <span class="req">*</span></label>
+            <input value="andre.butler@adbccro.com" readonly style="background:var(--s1);color:var(--s5)">
+          </div>
+          <div class="f-grp">
+            <label>Password <span class="req">*</span></label>
+            <input type="password" placeholder="Re-enter your password">
+            <div class="hint">Re-auth required per Part 11 §11.200(a)(1)(ii)</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-f">
+        <span class="meta">Action recorded · DEL-NNNN generated on submit · QA Approver notified</span>
+        <div class="actions">
+          <button class="btn btn-ghost">Cancel</button>
+          <button class="btn btn-primary">Authorize delegate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>IMP9177 QMS Portal · <span>ADB Consulting &amp; CRO Inc.</span> · Flow variants for engineering handoff · All actions logged per 21 CFR Part 11</footer>
+
+</body></html>

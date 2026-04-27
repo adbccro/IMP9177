@@ -36,3 +36,8 @@ obj
 
 # Styles Generated Code
 *.scss.ts
+
+# Secrets / local config — never commit
+CluadeAPI/
+.claude/settings.local.json
+pj_results.json
