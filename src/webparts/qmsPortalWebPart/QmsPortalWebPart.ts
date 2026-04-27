@@ -2798,6 +2798,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
         'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
         'FM-ALG':'FM-ALG_DRAFT_Allergen_Status_Record_TEMPLATE.docx',
+        'FPS-001':'FPS-001_Lychee_VD3_Gummy_Spec_DRAFT.docx',
       };
 
       // ── Download pane HTML (Effective phase only) ──
@@ -3005,6 +3006,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx',
             'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
             'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
+            'FPS-001':'FPS-001_Lychee_VD3_Gummy_Spec_DRAFT.docx',
           };
           const _pubFMIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-008','FM-025','FM-027','FM-030'];
           const _pubQMIDS = ['QM-001'];
@@ -3947,6 +3949,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               'FM-003':'FM-003_Document_Change_Order_DRAFT_.docx','FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx',
               'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx','FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
               'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
+              'FPS-001':'FPS-001_Lychee_VD3_Gummy_Spec_DRAFT.docx',
             };
             const _vFIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-008','FM-025','FM-027','FM-030'];
             const _vQMIDS = ['QM-001'];
@@ -4447,6 +4450,7 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
       'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx',
       'FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
       'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
+      'FPS-001':'FPS-001_Lychee_VD3_Gummy_Spec_DRAFT.docx',
     };
     let promoted = 0; let pdfCount = 0;
     try {
