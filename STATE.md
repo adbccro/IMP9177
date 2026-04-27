@@ -1,11 +1,10 @@
 # IMP9177 QMS Portal — Project State
-Last updated: 2026-04-26 (session4)
+Last updated: 2026-04-27 (session5)
 
 ## Deployment
 - SP site: https://adbccro.sharepoint.com/sites/IMP9177
-- App: imp-9177-spfx.sppkg (built, not yet deployed this session — requires PnP interactive auth)
-- Last deployed build: session3 (Tasks 0-13)
-- Last committed build: session4 (commit 5f7a776)
+- App: imp-9177-spfx.sppkg (built, ready for deploy — requires PnP interactive auth)
+- Last committed build: session5
 
 ## Main File
 `src/webparts/qmsPortalWebPart/QmsPortalWebPart.ts`
@@ -14,15 +13,15 @@ Last updated: 2026-04-26 (session4)
 | List | Key Fields |
 |------|------------|
 | QMS_DCOs | Id, Title, DCO_Title, DCO_Phase, DCO_Originator, DCO_Docs, DCO_DocumentIDs, DCO_CRLink, DCO_EffectiveDate, DCO_DocsLastUpdated |
-| QMS_DCOApprovals | Id, Appr_DCOID, Appr_Name, Appr_Email, Appr_Status, Appr_SignedDate, Appr_Role |
+| QMS_DCOApprovals | Id, Appr_DCOID, Appr_Name, **Sig_ApproverEmail** (NOT Appr_Email), Appr_Role, Appr_Type, Appr_Status, Appr_SignedDate, Appr_SigID, Sig_Hash, Sig_PrevHash, Sig_Timestamp_UTC, Sig_IPAddress, Sig_RevocationNote, Sig_DCOID, Sig_ApproverName, Sig_Role, Sig_Type, Sig_Status, Sig_SignedDate, Sig_SignatureID, Sig_BlockReason, Sig_Method |
 | QMS_Approvers | Id, Title, Appr_Name, Approver_Email, Appr_DocType, Appr_Active |
-| QMS_RoutingHistory | Id, Title, RH_DCOID, RH_EventType, RH_Stage, RH_Actor, RH_Note, RH_Timestamp |
-| QMS_Employees | Id, Title, Emp_FullName, Emp_Email, Emp_Dept, Emp_Status, Emp_PortalRole |
+| QMS_RoutingHistory | Id, Title, RH_DCOID, RH_EventType, RH_Stage, RH_Actor, RH_Note, RH_Reason, RH_Timestamp, AL_Hash, AL_PrevHash |
+| QMS_Employees | Id, Title, Emp_FullName, Emp_Email, Emp_Dept, Emp_Status, Emp_PortalRole, Emp_Roles, Emp_Title |
 | QMS_Config | Id, Title (key), Cfg_Value |
 | QMS_Documents | Id, Title, Doc_Title, Doc_Status, Doc_Category, Doc_RevisionLevel |
 | QMS_CRs | Id, Title, CR_Title, CR_Status, CR_Description |
-| QMS_TrainingMatrix | Id, TM_EmpID, TM_DocID, TM_Required |
-| QMS_TrainingCompletions | Id, TC_EmpID, TC_DocID, TC_CompletedDate, TC_Score, TC_Status |
+| QMS_TrainingMatrix | Id, TM_RoleID, TM_RoleName, TM_DocID, TM_DocTitle, TM_DocType, TM_Required, TM_CurrentRev, TM_EffectiveDate |
+| QMS_TrainingCompletions | Id, TC_EmpID, TC_DocID, TC_Rev, TC_Method, TC_SignedDate, TC_SigID, TC_Hash |
 
 ## Roles (Emp_PortalRole)
 - PM — full access (all tabs visible)

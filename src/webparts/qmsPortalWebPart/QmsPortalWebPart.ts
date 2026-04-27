@@ -817,7 +817,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         await Promise.all([
           this.spGet('QMS_DCOs', 'Id,Title,DCO_Phase,DCO_Title,DCO_CRLink,DCO_SubmittedDate,DCO_Originator,DCO_Docs,DCO_LateDays,DCO_TrainingGate,DCO_CA,DCO_ImplActivityRequired,DCO_ImplPlan,DCO_ImplNoSoonerThan,DCO_EffNoSoonerThan,DCO_EffDelayRequired,DCO_EffDelayReason,DCO_ImplOwner,DCO_ImplDescription,DCO_ImplRisks,DCO_ImplVerification,DCO_CancelReason,DCO_DocsLastUpdated,DCO_DocPurposes'),
           this.spGet('QMS_ChangeRequests', 'Id,Title,CR_Title,CR_Status,CR_Priority,CR_Originator,CR_LinkedDCOs,CR_Description,CR_CreatedDate'),
-          this.spGet('QMS_DCOApprovals', 'Id,Title,Appr_DCOID,Appr_Name,Appr_Email,Appr_Role,Appr_Type,Appr_Status,Appr_SignedDate,Appr_SigID'),
+          this.spGet('QMS_DCOApprovals', 'Id,Title,Appr_DCOID,Appr_Name,Sig_ApproverEmail,Appr_Role,Appr_Type,Appr_Status,Appr_SignedDate,Appr_SigID'),
           this.spGet('QMS_RoutingHistory', 'Id,Title,RH_DCOID,RH_EventType,RH_Stage,RH_Actor,RH_Note,RH_Reason,RH_Timestamp'),
           this.spGet('QMS_Records', 'Id,Title,Rec_Type,Rec_Title,Rec_Status,Rec_Originator,Rec_Reviewer,Rec_CreatedDate,Rec_SigID'),
           this.spGet('QMS_Employees', 'Id,Title,Emp_Email,Emp_Title,Emp_Dept,Emp_Roles,Emp_PortalRole,Emp_Status'),
@@ -1013,7 +1013,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const isOrig = (d.DCO_Originator || '').toLowerCase().includes(_myEmail9.toLowerCase().split('@')[0]);
       const isAppr = approvals.some((a: any) =>
         a.Appr_DCOID === d.Title &&
-        ((a.Appr_Email || '').toLowerCase() === _myEmail9.toLowerCase() ||
+        ((a.Sig_ApproverEmail || '').toLowerCase() === _myEmail9.toLowerCase() ||
          (a.Appr_Name || '').toLowerCase().includes(_myEmail9.toLowerCase().split('@')[0]))
       );
       return isOrig || isAppr || !_myEmail9; // if no email resolved, show all
@@ -2718,7 +2718,10 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const late = this._lateStatus(dco);
       const laneHtml = apprs.length ? apprs.filter((a: any) => a.Appr_Type !== 'Optional-Hidden' && a.Appr_Type !== 'Optional').map((a: any) => {
         const cls = a.Appr_Status === 'Signed' ? 'signed' : a.Appr_Status === 'Blocked' ? 'blocked' : 'waiting';
-        return `<div class="lane ${cls}"><div class="lane-name">${a.Appr_Name||a.Title}</div><div class="lane-role">${a.Appr_Role||''} · ${a.Appr_Type||''}</div><div class="lane-status">${a.Appr_Status === 'Signed' ? '✅ Signed' : a.Appr_Status === 'Blocked' ? '🚫 Blocked' : '⏳ Waiting'}</div>${a.Appr_SigID ? `<div class="lane-sig">SIG: ${a.Appr_SigID}</div>` : ''}</div>`;
+        const _safeApprName = (a.Appr_Name||a.Title||'').replace(/"/g,'&quot;');
+        const _safeApprEmail = (a.Sig_ApproverEmail||'').replace(/"/g,'&quot;');
+        const rmBlock = isDraft ? `<button class="btn-sec btn-sm appr-rm-btn" data-appr-id="${a.Id}" data-appr-name="${_safeApprName}" data-appr-email="${_safeApprEmail}" style="margin-top:6px;font-size:10px;color:var(--r);border-color:#e8c7c7;padding:2px 7px">✕ Remove</button><div id="appr-rm-reason-${a.Id}" style="display:none;margin-top:5px"><input class="finput" id="appr-rm-inp-${a.Id}" type="text" placeholder="Reason for removal (required)" style="font-size:11px;margin-bottom:4px;width:100%"><div style="display:flex;gap:4px;margin-top:2px"><button class="btn-pri btn-sm appr-rm-confirm" data-appr-id="${a.Id}" data-appr-name="${_safeApprName}" data-appr-email="${_safeApprEmail}" style="font-size:10px;background:var(--r);border-color:var(--r)">Confirm Remove</button><button class="btn-sec btn-sm appr-rm-cancel" data-appr-id="${a.Id}" style="font-size:10px">Cancel</button></div></div>` : '';
+        return `<div class="lane ${cls}" id="appr-lane-${a.Id}"><div class="lane-name">${a.Appr_Name||a.Title}</div><div class="lane-role">${a.Appr_Role||''} · ${a.Appr_Type||''}</div><div class="lane-status">${a.Appr_Status === 'Signed' ? '✅ Signed' : a.Appr_Status === 'Blocked' ? '🚫 Blocked' : '⏳ Waiting'}</div>${a.Appr_SigID ? `<div class="lane-sig">SIG: ${a.Appr_SigID}</div>` : ''}${rmBlock}</div>`;
       }).join('') : '<div style="color:var(--s5);font-size:12px;padding:8px">No approvers assigned to this DCO yet</div>';
       const phases = ['Draft','Submitted','In Review','Implemented','Awaiting Training','Effective'];
       const curIdx = phases.indexOf(dco.DCO_Phase || 'Draft');
@@ -3819,11 +3822,60 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             _base4 + "/_api/web/lists/getbytitle('QMS_Approvals')/items",
             SPHttpClient.configurations.v1,
             { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
-              body: JSON.stringify({ Title: dcoId + '-APPR-' + Date.now(), Appr_DCOID: dcoId, Appr_Name: _aName, Appr_Email: _aEmail, Appr_Role: _aRole, Appr_Type: 'Required', Appr_Status: 'Waiting' }) }
+              body: JSON.stringify({ Title: dcoId + '-APPR-' + Date.now(), Appr_DCOID: dcoId, Appr_Name: _aName, Sig_ApproverEmail: _aEmail, Appr_Role: _aRole, Appr_Type: 'Required', Appr_Status: 'Waiting' }) }
           );
           if (w.qpToast) w.qpToast('Approver added: ' + _aName);
           setTimeout(() => this._loadAll(), 800);
         });
+      }
+
+      // ── Approver remove (Draft only) ──────────────────────────────────────
+      if (isDraft) {
+        const _apprPaneRm = d.getElementById('mdco-pane-apprs-' + dcoId);
+        if (_apprPaneRm) {
+          _apprPaneRm.querySelectorAll('.appr-rm-btn').forEach((btn: Element) => {
+            btn.addEventListener('click', () => {
+              const _rid = (btn as HTMLElement).getAttribute('data-appr-id') || '';
+              const _rdiv = d.getElementById('appr-rm-reason-' + _rid);
+              if (_rdiv) _rdiv.style.display = _rdiv.style.display === 'none' ? '' : 'none';
+            });
+          });
+          _apprPaneRm.querySelectorAll('.appr-rm-cancel').forEach((btn: Element) => {
+            btn.addEventListener('click', () => {
+              const _rid = (btn as HTMLElement).getAttribute('data-appr-id') || '';
+              const _rdiv = d.getElementById('appr-rm-reason-' + _rid);
+              if (_rdiv) _rdiv.style.display = 'none';
+            });
+          });
+          _apprPaneRm.querySelectorAll('.appr-rm-confirm').forEach((btn: Element) => {
+            btn.addEventListener('click', async () => {
+              const _rmApprId  = (btn as HTMLElement).getAttribute('data-appr-id')    || '';
+              const _rmApprName  = (btn as HTMLElement).getAttribute('data-appr-name')  || '';
+              const _rmApprEmail = (btn as HTMLElement).getAttribute('data-appr-email') || '';
+              const _rmInp = d.getElementById('appr-rm-inp-' + _rmApprId) as HTMLInputElement;
+              const _rmReason = _rmInp?.value.trim() || '';
+              if (!_rmReason) { if (w.qpToast) w.qpToast('Reason for removal is required'); _rmInp?.focus(); return; }
+              (btn as HTMLButtonElement).disabled = true;
+              (btn as HTMLButtonElement).textContent = 'Removing…';
+              try {
+                await this.context.spHttpClient.post(
+                  this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getbytitle('QMS_DCOApprovals')/items(${_rmApprId})`,
+                  SPHttpClient.configurations.v1,
+                  { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'DELETE' }, body: '' }
+                );
+                await this._auditLog('ApproverRemoved', dcoId, JSON.stringify({ approverName: _rmApprName, approverEmail: _rmApprEmail, reason: _rmReason }));
+                this._data.approvals = (this._data.approvals || []).filter((a: any) => String(a.Id) !== String(_rmApprId));
+                if (w.qpToast) w.qpToast('Approver removed: ' + _rmApprName);
+                setTimeout(() => this._loadAll(), 800);
+              } catch(_rmE) {
+                console.error('ApproverRemoved failed', _rmE);
+                if (w.qpToast) w.qpToast('Remove failed — check console');
+                (btn as HTMLButtonElement).disabled = false;
+                (btn as HTMLButtonElement).textContent = 'Confirm Remove';
+              }
+            });
+          });
+        }
       }
 
       // ── Cancel button — only for CA or Originator, not in Draft/Effective ──
@@ -3959,7 +4011,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             })));
 
             const _existingApprs3 = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId);
-            const _existingEmails3 = new Set(_existingApprs3.map((a: any) => (a.Appr_Email || '').toLowerCase()));
+            const _existingEmails3 = new Set(_existingApprs3.map((a: any) => (a.Sig_ApproverEmail || '').toLowerCase()));
 
             const _matchingApprovers3 = (this._data.approvers || []).filter((a: any) =>
               a.Appr_Active !== false && _docTypesArr3.includes(a.Appr_DocType)
@@ -3994,7 +4046,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                       Title: `${dcoId}-${(_appr3.Approver_Email||'').split('@')[0].toUpperCase()}-AUTO`,
                       Appr_DCOID: dcoId,
                       Appr_Name: _appr3.Appr_Name || _appr3.Title,
-                      Appr_Email: _appr3.Approver_Email,
+                      Sig_ApproverEmail: _appr3.Approver_Email,
                       Appr_Role: _appr3.Appr_DocType + ' Approver',
                       Appr_Type: 'Required',
                       Appr_Status: 'Pending'
@@ -4030,7 +4082,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         } else if (phase === 'Submitted' || phase === 'In Review') {
           const _ue12 = this.context.pageContext.user.email || '';
           const _isAppr = apprs.some((a: any) =>
-            (a.Appr_Email||'').toLowerCase() === _ue12.toLowerCase() ||
+            (a.Sig_ApproverEmail||'').toLowerCase() === _ue12.toLowerCase() ||
             (a.Appr_Name||'').toLowerCase().includes(_ue12.toLowerCase().split('@')[0])
           );
           if (!_isAppr) {
