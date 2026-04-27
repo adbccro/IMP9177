@@ -822,7 +822,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           this.spGet('QMS_Records', 'Id,Title,Rec_Type,Rec_Title,Rec_Status,Rec_Originator,Rec_Reviewer,Rec_CreatedDate,Rec_SigID'),
           this.spGet('QMS_Employees', 'Id,Title,Emp_Email,Emp_Title,Emp_Dept,Emp_Roles,Emp_PortalRole,Emp_Status'),
           this.spGet('QMS_Roles', 'Id,Title,Role_Desc,Role_RequiredDocs'),
-          this.spGet('QMS_TrainingMatrix', 'Id,Title,TM_EmpID,TM_RoleID,TM_DocID,TM_Required'),
+          this.spGet('QMS_TrainingMatrix', 'Id,Title,TM_RoleID,TM_RoleName,TM_DocID,TM_DocTitle,TM_DocType,TM_Required'),
           this.spGet('QMS_TrainingCompletions', 'Id,Title,TC_EmpID,TC_DocID,TC_Rev,TC_Method,TC_SignedDate,TC_SigID'),
           this.spGet('QMS_Config', 'Id,Title,Cfg_Value', '', 20),
           this.spGet('QMS_Approvers', 'Id,Title,Appr_Name,Approver_Email,Appr_DocType,Appr_Active'),
@@ -3079,28 +3079,19 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                 (_tContent11 as HTMLElement).dataset.loaded = '1';
                 const _base11 = this.context.pageContext.web.absoluteUrl;
                 // Fetch all documents in this DCO
-                const _dcoDocIds11: string[] = ((dco.DCO_DocumentIDs || '').split(',').map((s: string) => s.trim()).filter(Boolean)) as string[];
+                const _dcoDocIds11: string[] = ((dco.DCO_DocumentIDs || dco.DCO_Docs || '').split(',').map((s: string) => s.trim()).filter(Boolean)) as string[];
                 if (_dcoDocIds11.length === 0) {
                   _tContent11.innerHTML = '<div style="color:var(--s5);font-size:12px">No documents associated with this DCO.</div>';
                   return;
                 }
                 // Build filter: TM_DocID in the DCO's documents
                 const _docFilter11 = _dcoDocIds11.map((id: string) => `TM_DocID eq '${id}'`).join(' or ');
-                Promise.all([
-                  this.context.spHttpClient.get(
-                    `${_base11}/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items?$select=Id,TM_EmpID,TM_DocID,TM_Required&$filter=${encodeURIComponent(_docFilter11)}&$top=500`,
-                    SPHttpClient.configurations.v1
-                  ).then((r: any) => r.json()),
-                  this.context.spHttpClient.get(
-                    `${_base11}/_api/web/lists/getbytitle('QMS_TrainingCompletions')/items?$select=Id,TC_EmpID,TC_DocID,TC_CompletedDate,TC_Score,TC_Status&$filter=${encodeURIComponent(_docFilter11)}&$top=500`,
+                this.context.spHttpClient.get(
+                    `${_base11}/_api/web/lists/getbytitle('QMS_TrainingMatrix')/items?$select=Id,TM_RoleID,TM_RoleName,TM_DocID,TM_DocTitle,TM_Required&$filter=${encodeURIComponent(_docFilter11)}&$top=500`,
                     SPHttpClient.configurations.v1
                   ).then((r: any) => r.json())
-                ]).then(([_tmRes11, _tcRes11]: [any, any]) => {
+                  .then((_tmRes11: any) => {
                   const _matrix11: any[] = _tmRes11?.value || [];
-                  const _completions11: any[] = _tcRes11?.value || [];
-                  // Build lookup: empId+docId → completion
-                  const _compMap11: Record<string, any> = {};
-                  _completions11.forEach((c: any) => { _compMap11[`${c.TC_EmpID}|${c.TC_DocID}`] = c; });
                   // Group by document
                   const _byDoc11: Record<string, any[]> = {};
                   _matrix11.forEach((row: any) => {
@@ -3114,38 +3105,24 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                   let _html11 = '';
                   Object.keys(_byDoc11).sort().forEach((docId11: string) => {
                     const _rows11 = _byDoc11[docId11];
-                    const _total11 = _rows11.length;
-                    const _done11 = _rows11.filter((r: any) => {
-                      const c = _compMap11[`${r.TM_EmpID}|${r.TM_DocID}`];
-                      return c && c.TC_Status === 'Complete';
-                    }).length;
-                    const _pct11 = _total11 > 0 ? Math.round((_done11 / _total11) * 100) : 0;
-                    const _docTitle11 = this._drmT?.[docId11] || docId11;
+                    const _req11 = _rows11.filter((r: any) => r.TM_Required).length;
+                    const _docTitle11 = _rows11[0]?.TM_DocTitle || this._drmT?.[docId11] || docId11;
                     _html11 += `<div style="margin-bottom:14px">
                       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                         <span style="font-weight:700;font-size:12px;color:var(--n)">${docId11}</span>
                         <span style="font-size:11px;color:var(--s5)">${_docTitle11 !== docId11 ? _docTitle11 : ''}</span>
-                        <span style="margin-left:auto;font-size:11px;font-weight:600;color:${_pct11===100?'var(--g)':'var(--a)'}">${_done11}/${_total11} complete (${_pct11}%)</span>
+                        <span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--b)">${_req11} role${_req11 !== 1 ? 's' : ''} required</span>
                       </div>
-                      <div style="background:var(--s2);border-radius:4px;height:6px;margin-bottom:8px"><div style="background:${_pct11===100?'var(--g)':'var(--b)'};height:6px;border-radius:4px;width:${_pct11}%"></div></div>
                       <table style="width:100%;border-collapse:collapse;font-size:11px">
                         <thead><tr style="color:var(--s5);border-bottom:1px solid var(--s2)">
-                          <th style="text-align:left;padding:3px 6px;font-weight:600">Employee</th>
-                          <th style="text-align:center;padding:3px 6px;font-weight:600">Status</th>
-                          <th style="text-align:center;padding:3px 6px;font-weight:600">Completed</th>
-                          <th style="text-align:center;padding:3px 6px;font-weight:600">Score</th>
+                          <th style="text-align:left;padding:3px 6px;font-weight:600">Role</th>
+                          <th style="text-align:center;padding:3px 6px;font-weight:600">Required</th>
                         </tr></thead>
                         <tbody>${_rows11.map((r: any) => {
-                          const _c11 = _compMap11[`${r.TM_EmpID}|${r.TM_DocID}`];
-                          const _status11 = _c11?.TC_Status || 'Pending';
-                          const _date11 = _c11?.TC_CompletedDate ? new Date(_c11.TC_CompletedDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-                          const _score11 = _c11?.TC_Score != null ? _c11.TC_Score + '%' : '—';
-                          const _sColor11 = _status11 === 'Complete' ? 'var(--g)' : _status11 === 'Failed' ? 'var(--r)' : 'var(--a)';
+                          const _isReq = r.TM_Required;
                           return `<tr style="border-bottom:1px solid var(--s1)">
-                            <td style="padding:4px 6px">${r.TM_EmpID}</td>
-                            <td style="padding:4px 6px;text-align:center"><span style="color:${_sColor11};font-weight:600">${_status11}</span></td>
-                            <td style="padding:4px 6px;text-align:center">${_date11}</td>
-                            <td style="padding:4px 6px;text-align:center">${_score11}</td>
+                            <td style="padding:4px 6px">${r.TM_RoleName || r.TM_RoleID}</td>
+                            <td style="padding:4px 6px;text-align:center"><span style="color:${_isReq ? 'var(--g)' : 'var(--s5)'};font-weight:600">${_isReq ? '✓ Required' : '—'}</span></td>
                           </tr>`;
                         }).join('')}</tbody>
                       </table>
