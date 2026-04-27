@@ -11,11 +11,9 @@ Last updated: 2026-04-26 (session4)
 **Fix:** In the `_rows11.map(...)` lambda, look up `this._data.employees.find((e:any) => e.Title === r.TM_EmpID)?.Emp_FullName || r.TM_EmpID`.
 
 ### ISSUE-002 — Training tab: requires DCO_DocumentIDs field populated
-**Status:** Open  
+**Status:** Resolved (session5)  
 **Priority:** Medium  
-**Location:** `openDCOInline` training tab lazy-load block  
-**Description:** The training filter uses `dco.DCO_DocumentIDs`. If only `DCO_Docs` is populated on a DCO item the training tab will show "No documents associated with this DCO." Needs fallback to `DCO_Docs` if `DCO_DocumentIDs` is empty.  
-**Fix:** `const _raw = dco.DCO_DocumentIDs || dco.DCO_Docs || '';`
+**Fix applied:** `dco.DCO_DocumentIDs || dco.DCO_Docs || ''` fallback added at line ~3082.
 
 ### ISSUE-003 — Duplicate Approver Assignments UI in Administration tab
 **Status:** Open  
@@ -44,6 +42,11 @@ Last updated: 2026-04-26 (session4)
 **Location:** `openDCOInline` — `_dlWrap.querySelectorAll("[data-dl-url]")` handler  
 **Description:** The DOCX/PDF download buttons in Effective DCOs still post directly to QMS_RoutingHistory via `spHttpClient.post` rather than going through `_auditLog()`. Inconsistent with the rest of the audit trail.  
 **Fix:** Replace the inline spHttpClient.post with `this._auditLog('download', dcoId, ...)`.
+
+### ISSUE-007 — Training matrix infinite spinner: TM_EmpID field does not exist
+**Status:** Resolved (session5)  
+**Priority:** High  
+**Fix applied:** `_loadAll()` QMS_TrainingMatrix `$select` corrected to `TM_RoleID,TM_RoleName,TM_DocID,TM_DocTitle,TM_DocType,TM_Required`. DCO modal training tab rewritten to use TM_RoleID/TM_RoleName; shows role-based requirement view (Role | Required) grouped by document.
 
 ## Resolved Issues
 
