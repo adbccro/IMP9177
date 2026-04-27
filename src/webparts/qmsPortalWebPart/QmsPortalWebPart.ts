@@ -3978,7 +3978,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               'FM-ALG':'FM-ALG_DRAFT_Allergen_Status_Record_TEMPLATE.docx',
               'FPS-001':'FPS-001_Lychee_VD3_Gummy_Spec_DRAFT.docx',
             };
-            const _vFIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-025','FM-027','FM-030','FM-ALG'];
+            const _vFIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-025','FM-027','FM-030','FM-ALG'];
             const _vQMIDS = ['QM-001'];
             const missing: string[] = [];
             const draftOnly: string[] = [];
