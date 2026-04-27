@@ -2750,10 +2750,10 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         'SOP-FS-003': 'Sanitation Controls',
         'SOP-FS-004': 'Allergen Controls',
         'SOP-PC-001': 'Pest Control Management',
-        'FM-004': 'Supplier Evaluation Form',
-        'FM-005': 'Ingredient Approval Form',
-        'FM-006': 'Material Receipt Log',
-        'FM-007': 'CoA Review Checklist',
+        'FM-004': 'Approved Supplier List',
+        'FM-005': 'Receiving Log',
+        'FM-006': 'Raw Material Specification Sheet',
+        'FM-007': 'Material Hold Label',
         'FM-008': 'Supplier CoA Requirements Checklist',
         'QM-001': 'Quality Manual'
       };
@@ -3929,13 +3929,34 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '📤 Submit for Approval';
           actionBtn.onclick = async () => {
+            console.log('[QP] Submit clicked — dcoId:', dcoId);
+            try {
             if (w.qpToast) w.qpToast('Validating documents before submission...');
             const base2 = this.context.pageContext.web.absoluteUrl;
             const user2 = this.context.pageContext.user.displayName || this.context.pageContext.user.email;
             const ts2 = new Date().toISOString();
-            const dcoItem2 = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
+            // Live-fetch DCO item to bust stale cache (avoids blank DCO_Docs if item was patched externally)
+            let dcoItem2: any = (this._data.dcos||[]).find((x: any) => x.Title === dcoId);
+            console.log('[QP] Cache lookup — Id:', dcoItem2?.Id, 'Title:', dcoItem2?.Title, 'DCO_Phase:', dcoItem2?.DCO_Phase, 'DCO_Docs:', dcoItem2?.DCO_Docs);
+            try {
+              const _liveR = await this.context.spHttpClient.get(
+                base2 + `/_api/web/lists/getbytitle('QMS_DCOs')/items?$filter=Title eq '${dcoId}'&$select=Id,Title,DCO_Phase,DCO_Docs,DCO_Title,DCO_Originator,DCO_SubmittedDate,DCO_DocsLastUpdated&$top=1`,
+                SPHttpClient.configurations.v1
+              );
+              if (_liveR.ok) {
+                const _liveJ = await _liveR.json();
+                const _live = (_liveJ.value || [])[0];
+                if (_live) {
+                  const _ci = (this._data.dcos||[]).findIndex((x: any) => x.Title === dcoId);
+                  if (_ci >= 0) Object.assign(this._data.dcos[_ci], _live);
+                  dcoItem2 = Object.assign({}, dcoItem2 || {}, _live);
+                  console.log('[QP] Live fetch OK — Id:', dcoItem2.Id, 'DCO_Phase:', dcoItem2.DCO_Phase, 'DCO_Docs:', dcoItem2.DCO_Docs);
+                }
+              } else { console.warn('[QP] Live fetch HTTP', _liveR.status); }
+            } catch(_ef) { console.warn('[QP] Live fetch error:', _ef); }
             // Validate all assigned documents exist in Published zone
             const _vDocs = (dcoItem2?.DCO_Docs || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+            console.log('[QP] _vDocs to validate:', JSON.stringify(_vDocs));
             const _vFM: Record<string,string> = {
               'QM-001':'QM-001_Quality_Manual_DRAFT_.docx',
               'SOP-QMS-001':'SOP-QMS-001_DRAFT_Management_Responsibility.docx','SOP-QMS-002':'SOP-QMS-002_DRAFT_Document_Control.docx',
@@ -3946,12 +3967,18 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               'SOP-FS-003':'SOP-FS-003_DRAFT_Facility_Sanitation_FINAL.docx','SOP-FS-004':'SOP-FS-004_DRAFT_Environmental_Monitoring_FINAL.docx',
               'SOP-PC-001':'SOP-PC-001_DRAFT_Pest_Sighting_Response.docx',
               'FM-001':'FM-001_Master_Document_Log_DRAFT_.docx','FM-002':'FM-002_Change_Request_Form_DRAFT_.docx',
-              'FM-003':'FM-003_Document_Change_Order_DRAFT_.docx','FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx',
+              'FM-003':'FM-003_Document_Change_Order_DRAFT_.docx',
+              'FM-004':'FM-004_DRAFT_Approved_Supplier_List_TEMPLATE.docx',
+              'FM-005':'FM-005_DRAFT_Receiving_Log_TEMPLATE.docx',
+              'FM-006':'FM-006_DRAFT_RawMaterial_Spec_Sheet_TEMPLATE.docx',
+              'FM-007':'FM-007_DRAFT_Material_Hold_Label_TEMPLATE.docx',
+              'FM-008':'FM-008_Supplier_CoA_Requirements_Checklist_DRAFT_.docx',
               'FM-025':'FM-025_RCD-FM-219_DRAFT_.docx','FM-027':'FM-027_QU_QS_Designation_Record_DRAFT_.docx',
               'FM-030':'FM-030_Finished_Product_Spec_Sheet_DRAFT_.docx',
+              'FM-ALG':'FM-ALG_DRAFT_Allergen_Status_Record_TEMPLATE.docx',
               'FPS-001':'FPS-001_Lychee_VD3_Gummy_Spec_DRAFT.docx',
             };
-            const _vFIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-008','FM-025','FM-027','FM-030'];
+            const _vFIDS = ['FM-001','FM-002','FM-003','FM-004','FM-005','FM-006','FM-007','FM-008','FM-025','FM-027','FM-030','FM-ALG'];
             const _vQMIDS = ['QM-001'];
             const missing: string[] = [];
             const draftOnly: string[] = [];
@@ -3983,7 +4010,9 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                 }
               } catch(e) { missing.push(_vId); }
             }
+            console.log('[QP] Validation result — missing:', JSON.stringify(missing), 'draftOnly:', JSON.stringify(draftOnly));
             if (missing.length > 0) {
+              console.warn('[QP] Submit blocked — missing files:', missing);
               if (w.qpToast) w.qpToast('Submit blocked — files not found anywhere: ' + missing.join(', '));
               return;
             }
@@ -4089,6 +4118,10 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               (d.getElementById('modal-dco-detail') as HTMLElement)?.classList.remove('open');
               this._loadAll();
             }, 1500);
+            } catch (_topErr: any) {
+              console.error('[QP] Submit handler uncaught error:', _topErr);
+              if (w.qpToast) w.qpToast('Submit error — check browser console (F12)');
+            }
           };
         } else if (phase === 'Submitted' || phase === 'In Review') {
           const _ue12 = this.context.pageContext.user.email || '';
