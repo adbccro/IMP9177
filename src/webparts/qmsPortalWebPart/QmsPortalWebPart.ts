@@ -315,7 +315,7 @@ const SHELL_DASHBOARD = `
     <div class="bucket-desc">DCOs awaiting your approval signature</div>
     <div class="bucket-items" id="db-bi3"><div style="padding:6px 0;font-size:11px;color:var(--s5)">Loading...</div></div>
   </div>
-  <div class="bucket" data-nav="docs">
+  <div class="bucket" data-nav="docrepo">
     <div class="bucket-icon">📄</div>
     <div class="bucket-count" id="db-bc4">—</div>
     <div class="bucket-label">Documents I Originated</div>
@@ -506,24 +506,48 @@ const SHELL_PUBLISH = `
   </div>
 </div>`;
 
-const SHELL_DOCREPO = `<div class="sec-hdr"><div class="sec-title">Document Repository Matrix</div><span id="drm-live" style="font-size:10px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-weight:700;margin-left:auto">Loading...</span></div><div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><select id="drm-tf" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All types</option><option value='SOP'>SOP</option><option value='FM'>FM</option><option value='QM'>QM</option></select><select id="drm-df" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All DCOs</option><option value='DCO-0001'>DCO-0001</option><option value='DCO-0002'>DCO-0002</option></select><input id="drm-qf" type="text" placeholder="Search..." style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;min-width:160px"></div><div id="drm-sbar" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"></div><div id="drm-loading" style="padding:24px 0;color:var(--s5);font-size:12px"><span class="spin"></span> Loading document matrix from SharePoint...</div><div id="drm-table-wrap" style="display:none"><div class="tcard"><table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px"><colgroup><col style="width:100px"><col style="width:140px"><col><col><col></colgroup><thead><tr><th>Doc ID</th><th>Title</th><th style="text-align:center;color:#1565c0;border-bottom:2px solid #1565c0">Drafts</th><th style="text-align:center;color:#e65100;border-bottom:2px solid #e65100">Published</th><th style="text-align:center;color:#2e7d32;border-bottom:2px solid #2e7d32">Official</th></tr></thead><tbody id="drm-tbody"></tbody></table></div></div><div id="drm-detail" style="display:none"></div>`;
+const SHELL_DOCREPO = `<div class="kpi-row" id="drm-kpi-row">
+  <div class="kpi"><div class="kpi-l">Total Docs</div><div class="kpi-v" id="drm-k1">—</div><div class="kpi-s">All zones</div></div>
+  <div class="kpi a"><div class="kpi-l">Drafts Only</div><div class="kpi-v a" id="drm-k2">—</div><div class="kpi-s">Not yet published</div></div>
+  <div class="kpi g"><div class="kpi-l">In Both Zones</div><div class="kpi-v g" id="drm-k3">—</div><div class="kpi-s">Draft + Published</div></div>
+  <div class="kpi r"><div class="kpi-l">DCO Blocked</div><div class="kpi-v r" id="drm-k4">—</div><div class="kpi-s">Locked on active DCO</div></div>
+</div>
+<div class="sec-hdr"><div class="sec-title">Document Repository Matrix</div><span id="drm-live" style="font-size:10px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-weight:700;margin-left:auto">Loading...</span></div><div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><select id="drm-tf" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All types</option><option value='SOP'>SOP</option><option value='FM'>FM</option><option value='QM'>QM</option></select><select id="drm-df" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All DCOs</option><option value='DCO-0001'>DCO-0001</option><option value='DCO-0002'>DCO-0002</option></select><input id="drm-qf" type="text" placeholder="Search..." style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;min-width:160px"></div><div id="drm-sbar" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"></div><div id="drm-loading" style="padding:24px 0;color:var(--s5);font-size:12px"><span class="spin"></span> Loading document matrix from SharePoint...</div><div id="drm-table-wrap" style="display:none"><div class="tcard"><table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px"><colgroup><col style="width:100px"><col style="width:140px"><col><col><col></colgroup><thead><tr><th>Doc ID</th><th>Title</th><th style="text-align:center;color:#1565c0;border-bottom:2px solid #1565c0">Drafts</th><th style="text-align:center;color:#e65100;border-bottom:2px solid #e65100">Published</th><th style="text-align:center;color:#2e7d32;border-bottom:2px solid #2e7d32">Official</th></tr></thead><tbody id="drm-tbody"></tbody></table></div></div><div id="drm-detail" style="display:none"></div>`;
 const SHELL_CONFIG = `
 <div class="sec-hdr"><div class="sec-title">System Configuration</div><button class="btn-pri" id="btn-save-config">💾 Save All Settings</button></div>
 <div class="cfg-grid" id="cfg-body"><div class="loading"><span class="spin"></span>Loading config...</div></div>`;
 
-const SHELL_APPROVERS = `
-<div class="sec-hdr">
-  <div class="sec-title">Approver Setup</div>
-  <button class="btn-pri" id="btn-new-approver">+ Add Approver</button>
+const SHELL_ADMINISTRATION = `
+<div class="sec-hdr"><div class="sec-title">Administration</div></div>
+<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid var(--s2)">
+  <button class="qp-tab on" data-admtab="employees" style="color:var(--s7);border-bottom-color:var(--b)">👤 Employees</button>
+  <button class="qp-tab" data-admtab="approvers" style="color:var(--s7)">👥 Approvers</button>
+  <button class="qp-tab" data-admtab="roles" style="color:var(--s7)">🛡 Roles &amp; Permissions</button>
 </div>
-<div class="tcard">
-  <table><thead><tr>
-    <th>Name</th><th>Role</th><th>Type</th><th>Scope</th><th>Signing Mode</th><th>Active</th><th>Actions</th>
-  </tr></thead>
-  <tbody id="appr-tbody"><tr><td colspan="7" class="loading"><span class="spin"></span>Loading...</td></tr></tbody></table>
+<div id="adm-tab-employees">
+  <div id="adm-emp-panel"><div class="loading"><span class="spin"></span>Loading employees...</div></div>
 </div>
-<div class="tcard" style="margin-top:16px" id="appr-assign-panel">
-  <div class="loading"><span class="spin"></span>Loading approver assignments…</div>
+<div id="adm-tab-approvers" style="display:none">
+  <div class="sec-hdr" style="margin-top:0">
+    <div class="sec-title">Approver Setup</div>
+    <button class="btn-pri" id="btn-new-approver-adm" onclick="window.open(window.location.origin+'/sites/IMP9177/Lists/QMS_Approvers/NewForm.aspx','_blank')">+ Add Approver</button>
+  </div>
+  <div class="tcard">
+    <table><thead><tr>
+      <th>Name</th><th>Role</th><th>Type</th><th>Scope</th><th>Signing Mode</th><th>Active</th><th>Actions</th>
+    </tr></thead>
+    <tbody id="adm-appr-tbody"><tr><td colspan="7" class="loading"><span class="spin"></span>Loading...</td></tr></tbody></table>
+  </div>
+  <div class="tcard" style="margin-top:16px" id="adm-appr-assign-panel">
+    <div class="loading"><span class="spin"></span>Loading approver assignments…</div>
+  </div>
+</div>
+<div id="adm-tab-roles" style="display:none">
+  <div id="adm-roles-content">
+    <div style="font-size:12px;color:var(--s5);margin-bottom:12px">Manage user portal roles. Only visible to <strong>Consulting</strong> department members.</div>
+    <div class="tcard"><table><thead><tr><th>Employee ID</th><th>Name / Email</th><th>Department</th><th>Portal Role</th><th>Actions</th></tr></thead>
+    <tbody id="adm-role-tbody"><tr><td colspan="5" class="loading"><span class="spin"></span>Loading...</td></tr></tbody></table></div>
+  </div>
 </div>`;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -575,35 +599,24 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <button class="qp-tab on" data-screen="dashboard">🏠 Dashboard</button>
   <button class="qp-tab" data-screen="dco">📋 Change Orders</button>
   <button class="qp-tab" data-screen="cr">🔄 Change Requests</button>
-  <button class="qp-tab" data-screen="docs">📄 Documents</button>
   <button class="qp-tab" data-screen="records">📁 Records</button>
   <button class="qp-tab" data-screen="training">🎓 Training</button>
   <button class="qp-tab" data-screen="publish">🚀 PM Publish</button>
-  <button class="qp-tab" data-screen="approvers">👥 Approvers</button>
-  <button class="qp-tab" data-screen="docrepo">&#128218; Doc Repository</button>
+  <button class="qp-tab" data-screen="docrepo">📄 Documents</button>
+  <button class="qp-tab" data-screen="administration">🏛 Administration</button>
   <button class="qp-tab" data-screen="config">⚙️ Config</button>
-  <button class="qp-tab" data-screen="admin" id="qp-tab-admin" style="display:none">🛡 Admin</button>
 </div>
 <div class="qp-alert" id="qp-alert"><span>⚠️</span><span id="qp-alert-txt"></span></div>
 <div class="qp-main">
   <div class="qp-screen on" id="sc-dashboard">${SHELL_DASHBOARD}</div>
   <div class="qp-screen" id="sc-dco">${SHELL_DCO}</div>
   <div class="qp-screen" id="sc-cr">${SHELL_CR}</div>
-  <div class="qp-screen" id="sc-docs">${SHELL_DOCS}</div>
   <div class="qp-screen" id="sc-records">${SHELL_RECORDS}</div>
   <div class="qp-screen" id="sc-training">${SHELL_TRAINING}</div>
   <div class="qp-screen" id="sc-publish">${SHELL_PUBLISH}</div>
-  <div class="qp-screen" id="sc-approvers">${SHELL_APPROVERS}</div>
   <div class="qp-screen" id="sc-docrepo">${SHELL_DOCREPO}</div>
+  <div class="qp-screen" id="sc-administration">${SHELL_ADMINISTRATION}</div>
   <div class="qp-screen" id="sc-config">${SHELL_CONFIG}</div>
-  <div class="qp-screen" id="sc-admin">
-    <div class="sec-hdr"><div class="sec-title">🛡 Admin — Portal Role Management</div></div>
-    <div id="admin-role-panel" style="margin-top:14px">
-      <div style="font-size:12px;color:var(--s5);margin-bottom:12px">Manage user portal roles. Only visible to <strong>Consulting</strong> department members.</div>
-      <div class="tcard"><table><thead><tr><th>Employee ID</th><th>Name / Email</th><th>Department</th><th>Portal Role</th><th>Actions</th></tr></thead>
-      <tbody id="admin-emp-tbody"><tr><td colspan="5" class="loading"><span class="spin"></span>Loading...</td></tr></tbody></table></div>
-    </div>
-  </div>
 </div>
 <footer>IMP9177 QMS Portal · ADB Consulting &amp; CRO Inc. · 21 CFR Part 111 / FSMA · Read-only view — data live from SharePoint</footer>
 <div class="toast" id="qp-toast"></div>
@@ -812,13 +825,11 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     this._renderDashboard();
     this._renderDCO();
     this._renderCR();
-    this._renderDocs();
     this._renderRecords();
     this._renderTraining();
     this._renderPublish();
-    this._renderApprovers();
+    this._renderAdministration();
     this._renderConfig();
-    this._renderAdmin();
     this._initDocRepo();
     this._checkAlerts();
   }
@@ -832,6 +843,28 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
   private _setTs(): void {
     const e = this._el('qp-ts');
     if (e) e.textContent = 'Refreshed ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ── 21 CFR Part 11 Audit Trail ──
+  private async _auditLog(eventType: string, relatedId: string, detail: string): Promise<void> {
+    try {
+      const base = this.context.pageContext.web.absoluteUrl;
+      const actor = this.context.pageContext.user.email || this.context.pageContext.user.displayName || 'Unknown';
+      await this.context.spHttpClient.post(
+        base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
+        SPHttpClient.configurations.v1,
+        { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+          body: JSON.stringify({
+            Title: (eventType + '-' + (relatedId || 'SYS') + '-' + Date.now()).substring(0, 255),
+            RH_DCOID: relatedId || null,
+            RH_EventType: eventType,
+            RH_Stage: 'System',
+            RH_Actor: actor,
+            RH_Note: detail,
+            RH_Timestamp: new Date().toISOString()
+          }) }
+      );
+    } catch(e) { console.error('Audit log failed:', eventType, e); }
   }
 
   private _pill(s: string): string {
@@ -945,7 +978,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     });
   }
 
-  // ── Admin tab (Task 9) ──
+  // ── Admin roles (now in Administration > Roles & Permissions sub-tab) ──
   private _renderAdmin(): void {
     const { employees = [] } = this._data;
     const userEmail = this.context.pageContext.user.email || '';
@@ -954,8 +987,11 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       (e.Title || '').toLowerCase().includes(userEmail.toLowerCase().split('@')[0])
     );
     const isConsulting = me && (me.Emp_Dept || '').toLowerCase() === 'consulting';
-    const tabEl = document?.getElementById('qp-tab-admin');
-    if (tabEl) tabEl.style.display = isConsulting ? '' : 'none';
+    const rolesContent = document?.getElementById('adm-roles-content');
+    if (rolesContent && !isConsulting) {
+      rolesContent.innerHTML = '<div style="padding:20px;font-size:12px;color:var(--s5);text-align:center">Role management is restricted to Consulting department members.</div>';
+      return;
+    }
     if (!isConsulting) return;
 
     const rows = employees.map((e: any) => {
@@ -975,7 +1011,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         <td><button class="btn-pri btn-sm admin-role-save" data-empid="${e.Id}" data-empname="${e.Title||''}">Save</button></td>
       </tr>`;
     }).join('');
-    this._html('admin-emp-tbody', rows || '<tr><td colspan="5" style="color:var(--s5);text-align:center;padding:20px">No employees found</td></tr>');
+    this._html('adm-role-tbody', rows || '<tr><td colspan="5" style="color:var(--s5);text-align:center;padding:20px">No employees found</td></tr>');
 
     // Wire save buttons
     const d = document;
@@ -993,11 +1029,144 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             body: JSON.stringify({ Emp_PortalRole: newRole }) }
         );
         const emp = employees.find((e: any) => String(e.Id) === String(empId));
+        const oldRole = emp?.Emp_PortalRole || '';
         if (emp) emp.Emp_PortalRole = newRole;
+        this._auditLog('PortalRoleChanged', empId, JSON.stringify({ employee: (btn as HTMLElement).getAttribute('data-empname'), oldRole, newRole }));
         const w = window as any;
         if (w.qpToast) w.qpToast('Role updated: ' + ((btn as HTMLElement).getAttribute('data-empname') || empId));
       });
     });
+  }
+
+  // ── Administration screen (Employees / Approvers / Roles sub-tabs) ──
+  private async _renderAdministration(): Promise<void> {
+    const base = this.context.pageContext.web.absoluteUrl;
+    const { employees: cachedEmps = [] } = this._data;
+    const activeEmps = cachedEmps.filter((e: any) => (e.Emp_Status || '').toLowerCase() !== 'inactive');
+
+    const empRows = activeEmps.map((e: any) => `
+      <div style="border:1px solid var(--s2);border-radius:7px;padding:10px 12px;margin-bottom:8px;background:var(--w)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--s7)">${e.Title || '—'}</div>
+            <div style="font-size:11px;color:var(--s5);margin-top:2px">${e.Emp_Title || '—'} · ${e.Emp_Email || '—'}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-sec btn-sm adm-emp-edit-btn" data-id="${e.Id}">Edit</button>
+            <button class="btn-sec btn-sm adm-emp-deact-btn" data-id="${e.Id}" data-name="${e.Title || ''}" style="color:var(--r)">Deactivate</button>
+          </div>
+        </div>
+        <div id="adm-emp-form-${e.Id}" style="display:none;margin-top:10px;border-top:1px solid var(--s2);padding-top:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><div class="fl">Title / Role</div><input class="finput" id="adm-emp-title-${e.Id}" value="${e.Emp_Title || ''}"></div>
+            <div><div class="fl">Email</div><input class="finput" id="adm-emp-email-${e.Id}" value="${e.Emp_Email || ''}"></div>
+          </div>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <button class="btn-sec btn-sm adm-emp-cancel-btn" data-id="${e.Id}">Cancel</button>
+            <button class="btn-pri btn-sm adm-emp-save-btn" data-id="${e.Id}">Save</button>
+          </div>
+        </div>
+      </div>`).join('');
+
+    this._html('adm-emp-panel', `
+      <div style="font-size:12px;font-weight:700;color:var(--n);margin-bottom:10px">👤 Employee Management</div>
+      <div>${empRows || '<div style="font-size:11px;color:var(--s5)">No active employees found.</div>'}</div>
+      <div id="adm-add-emp-area" style="display:none;border:1px solid var(--b);border-radius:7px;padding:12px;margin-top:8px;background:var(--b0)">
+        <div style="font-size:12px;font-weight:700;color:var(--n);margin-bottom:10px">Add Employee</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><div class="fl">Full Name</div><input class="finput" id="adm-new-emp-name" placeholder="Jane Smith"></div>
+          <div><div class="fl">Title / Role</div><input class="finput" id="adm-new-emp-title" placeholder="Quality Specialist"></div>
+          <div><div class="fl">Email</div><input class="finput" id="adm-new-emp-email" placeholder="jane@example.com"></div>
+          <div><div class="fl">Department</div><input class="finput" id="adm-new-emp-dept" placeholder="Quality"></div>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:flex-end">
+          <button class="btn-sec btn-sm" id="adm-add-emp-cancel">Cancel</button>
+          <button class="btn-pri btn-sm" id="adm-add-emp-save">Add Employee</button>
+        </div>
+      </div>
+      <button class="btn-sec btn-sm" id="adm-add-emp-btn" style="margin-top:8px">+ Add Employee</button>`);
+
+    const d = document;
+    const w = window as any;
+
+    d.querySelectorAll('.adm-emp-edit-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).getAttribute('data-id');
+        const form = d.getElementById('adm-emp-form-' + id);
+        if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+    d.querySelectorAll('.adm-emp-cancel-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).getAttribute('data-id');
+        const form = d.getElementById('adm-emp-form-' + id);
+        if (form) form.style.display = 'none';
+      });
+    });
+    d.querySelectorAll('.adm-emp-save-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).getAttribute('data-id');
+        const titleEl = d.getElementById('adm-emp-title-' + id) as HTMLInputElement;
+        const emailEl = d.getElementById('adm-emp-email-' + id) as HTMLInputElement;
+        if (!id) return;
+        try {
+          await this.context.spHttpClient.post(
+            `${base}/_api/web/lists/getbytitle('QMS_Employees')/items(${id})`,
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+              body: JSON.stringify({ Emp_Title: titleEl?.value || '', Emp_Email: emailEl?.value || '' }) }
+          );
+          this._auditLog('EmployeeUpdated', id, JSON.stringify({ empId: id }));
+          if (w.qpToast) w.qpToast('Employee updated');
+          this._renderAdministration();
+        } catch(e) { if (w.qpToast) w.qpToast('Update failed — check console'); console.error(e); }
+      });
+    });
+    d.querySelectorAll('.adm-emp-deact-btn').forEach((btn: Element) => {
+      btn.addEventListener('click', async () => {
+        const id   = (btn as HTMLElement).getAttribute('data-id');
+        const name = (btn as HTMLElement).getAttribute('data-name');
+        if (!id || !window.confirm(`Deactivate ${name}? They will no longer appear in approver selections.`)) return;
+        try {
+          await this.context.spHttpClient.post(
+            `${base}/_api/web/lists/getbytitle('QMS_Employees')/items(${id})`,
+            SPHttpClient.configurations.v1,
+            { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+              body: JSON.stringify({ Emp_Status: 'Inactive' }) }
+          );
+          this._auditLog('EmployeeDeactivated', id, JSON.stringify({ empId: id, name }));
+          if (w.qpToast) w.qpToast('Employee deactivated');
+          this._renderAdministration();
+        } catch(e) { if (w.qpToast) w.qpToast('Deactivate failed'); console.error(e); }
+      });
+    });
+    const addEmpBtn = d.getElementById('adm-add-emp-btn');
+    const addEmpArea = d.getElementById('adm-add-emp-area');
+    if (addEmpBtn && addEmpArea) addEmpBtn.addEventListener('click', () => { addEmpArea.style.display = 'block'; addEmpBtn.style.display = 'none'; });
+    const addEmpCancel = d.getElementById('adm-add-emp-cancel');
+    if (addEmpCancel && addEmpArea && addEmpBtn) addEmpCancel.addEventListener('click', () => { addEmpArea.style.display = 'none'; addEmpBtn.style.display = ''; });
+    const addEmpSave = d.getElementById('adm-add-emp-save');
+    if (addEmpSave) addEmpSave.addEventListener('click', async () => {
+      const name  = (d.getElementById('adm-new-emp-name')  as HTMLInputElement)?.value?.trim();
+      const title = (d.getElementById('adm-new-emp-title') as HTMLInputElement)?.value?.trim();
+      const email = (d.getElementById('adm-new-emp-email') as HTMLInputElement)?.value?.trim();
+      const dept  = (d.getElementById('adm-new-emp-dept')  as HTMLInputElement)?.value?.trim();
+      if (!name || !email) { if (w.qpToast) w.qpToast('Name and email are required'); return; }
+      try {
+        await this.context.spHttpClient.post(
+          `${base}/_api/web/lists/getbytitle('QMS_Employees')/items`,
+          SPHttpClient.configurations.v1,
+          { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
+            body: JSON.stringify({ Title: name, Emp_Title: title, Emp_Email: email, Emp_Dept: dept, Emp_Status: 'Active' }) }
+        );
+        this._auditLog('EmployeeAdded', '', JSON.stringify({ name, email }));
+        if (w.qpToast) w.qpToast('Employee added');
+        this._renderAdministration();
+      } catch(e) { if (w.qpToast) w.qpToast('Add failed — check console'); console.error(e); }
+    });
+
+    this._renderApprovers();
+    this._renderAdmin();
   }
 
   // ── DCO screen ──
@@ -1091,7 +1260,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
 
   // ── Training ──
   private _computePendingTraining(): any[] {
-    const { employees = [], matrix = [], completions = [], roles = [] } = this._data;
+    const { employees = [], matrix = [], completions = [], roles = [], dcos = [] } = this._data;
     const pending: any[] = [];
     const now = Date.now();
     const dueDays = parseInt(this._config.trainingDueDays) || 30;
@@ -1116,6 +1285,27 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         }
       });
     });
+
+    // Task 4: include docs from DCOs in Awaiting Training phase
+    dcos.filter((dco: any) => dco.DCO_Phase === 'Awaiting Training').forEach((dco: any) => {
+      const docIds = (dco.DCO_Docs || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+      docIds.forEach((docId: string) => {
+        const requiredRoleIds = matrix.filter((m: any) => m.TM_DocID === docId).map((m: any) => m.TM_RoleID);
+        if (!requiredRoleIds.length) return;
+        employees.forEach((emp: any) => {
+          const empRoles = (emp.Emp_Roles || '').split(',').map((r: string) => r.trim()).filter(Boolean);
+          if (!empRoles.some((r: string) => requiredRoleIds.includes(r))) return;
+          const completed = completions.find((c: any) => c.TC_EmpID === emp.Title && c.TC_DocID === docId);
+          if (completed) return;
+          if (pending.find((p: any) => p.empId === emp.Title && p.docId === docId)) return;
+          const dueDate = new Date(now + dueDays * 86400000);
+          const daysUntil = Math.floor((dueDate.getTime() - now) / 86400000);
+          const status = daysUntil < 0 ? 'Overdue' : daysUntil <= warnDays ? 'Due Soon' : 'Pending';
+          pending.push({ empId: emp.Title, empName: emp.Title, docId, empRoles: empRoles.join(', '), dueDate: dueDate.toISOString(), status, source: 'DCO:' + dco.Title });
+        });
+      });
+    });
+
     return pending;
   }
 
@@ -1441,7 +1631,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     }
   }
 
-  // ── Approvers ──
+  // ── Approvers (rendered inside Administration tab) ──
   private async _renderApprovers(): Promise<void> {
     const [rows, employees, approverAssignments] = await Promise.all([
       this.spGet('QMS_Approvers', 'Id,Title,Appr_Role,Appr_Type,Appr_Scope,Appr_SigningMode,Appr_Active'),
@@ -1457,10 +1647,10 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       <td>${a.Appr_Active ? '<span class="pill pg">Active</span>' : '<span class="pill pz">Inactive</span>'}</td>
       <td><button class="btn-sec btn-sm">Edit</button></td>
     </tr>`).join('');
-    this._html('appr-tbody', tableRows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s5)">No approvers configured</td></tr>');
+    this._html('adm-appr-tbody', tableRows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s5)">No approvers configured</td></tr>');
 
-    // ── Task 12: Approver Assignments panel ──────────────────────────────────
-    const _apprAssignEl = document.getElementById('appr-assign-panel');
+    // ── Approver Assignments panel ──────────────────────────────────────────
+    const _apprAssignEl = document.getElementById('adm-appr-assign-panel');
     if (!_apprAssignEl) return;
     const DOCTYPE_LABELS: Record<string, string> = { QM: 'Quality Manual', SOP: 'SOPs', FM: 'Forms', FPS: 'FPS' };
     const apprSections12 = ['QM', 'SOP', 'FM', 'FPS'].map((dt: string) => {
@@ -1513,14 +1703,16 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         const roleInp = document.getElementById('appr-role-' + dt12) as HTMLInputElement;
         const empOpt = empSel?.options[empSel.selectedIndex];
         const empName = empOpt?.text || ''; const empEmail = empOpt?.getAttribute('data-email') || '';
+        const empId12 = empSel?.value || '';
         const role12 = roleInp?.value.trim() || 'Approver';
         if (!empName) return;
         await this.context.spHttpClient.post(
           this.context.pageContext.web.absoluteUrl + "/_api/web/lists/getbytitle('QMS_Approvers')/items",
           SPHttpClient.configurations.v1,
           { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata'},
-            body: JSON.stringify({ Title: empName + '-' + dt12, Appr_Name: empName, Approver_Email: empEmail, Appr_Role: role12, Appr_DocType: dt12, Appr_Active: true }) }
+            body: JSON.stringify({ Title: empName + '-' + dt12, Appr_Name: empName, Approver_Email: empEmail, Appr_EmpID: empId12, Appr_Role: role12, Appr_DocType: dt12, Appr_Active: true }) }
         );
+        this._auditLog('ApproverAdded', empId12, JSON.stringify({ name: empName, email: empEmail, docType: dt12, role: role12 }));
         if ((window as any).qpToast) (window as any).qpToast('Approver added: ' + empName + ' for ' + dt12);
         this._renderApprovers();
       });
@@ -1528,12 +1720,14 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     _apprAssignEl.querySelectorAll('.cfg-appr-remove-btn').forEach((btn: Element) => {
       btn.addEventListener('click', async () => {
         const id12 = (btn as HTMLElement).getAttribute('data-id') || '';
+        const dt12b = (btn as HTMLElement).getAttribute('data-dt') || '';
         if (!id12) return;
         await this.context.spHttpClient.post(
           this.context.pageContext.web.absoluteUrl + "/_api/web/lists/getbytitle('QMS_Approvers')/items(" + id12 + ")",
           SPHttpClient.configurations.v1,
           { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'}, body: JSON.stringify({ Appr_Active: false }) }
         );
+        this._auditLog('ApproverRemoved', id12, JSON.stringify({ approverItemId: id12, docType: dt12b }));
         if ((window as any).qpToast) (window as any).qpToast('Approver removed');
         this._renderApprovers();
       });
@@ -1936,6 +2130,23 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         d.querySelectorAll('[data-trtab]').forEach((b: Element) => {
           (b as HTMLElement).style.borderBottomColor = 'transparent';
           (b as HTMLElement).classList.remove('on');
+        });
+        (el as HTMLElement).style.borderBottomColor = 'var(--b)';
+        el.classList.add('on');
+      });
+    });
+
+    // Administration sub-tabs — data-admtab
+    d.querySelectorAll('[data-admtab]').forEach((el: Element) => {
+      el.addEventListener('click', () => {
+        const tab = (el as HTMLElement).getAttribute('data-admtab');
+        ['employees','approvers','roles'].forEach(t => {
+          const panel = d.getElementById('adm-tab-' + t);
+          if (panel) panel.style.display = t === tab ? 'block' : 'none';
+        });
+        d.querySelectorAll('[data-admtab]').forEach((b: Element) => {
+          (b as HTMLElement).style.borderBottomColor = 'transparent';
+          b.classList.remove('on');
         });
         (el as HTMLElement).style.borderBottomColor = 'var(--b)';
         el.classList.add('on');
@@ -2954,20 +3165,23 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           const pjd = _docPJ[pjDocId] || { purpose: '', justification: '' };
           const pjName = docNameMap[pjDocId] || pjDocId;
           const pjRow = d.createElement('div');
-          pjRow.style.cssText = 'padding:10px 12px;border-bottom:1px solid var(--s1)';
+          pjRow.style.cssText = 'padding:6px 12px;border-bottom:1px solid var(--s1)';
           pjRow.innerHTML = isDraft
-            ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <div><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${pjDocId}</span> <span style="font-size:11px;color:var(--s5)">${pjName}</span></div>
-                <button class="btn-sec btn-sm pj-ai-btn" data-docid="${pjDocId}" style="font-size:10px">✨ AI Generate</button>
-               </div>
-               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                 <div><div class="fl" style="font-size:10px">Purpose</div><textarea class="ftxt pj-purpose" data-docid="${pjDocId}" rows="2" style="font-size:11px">${pjd.purpose || ''}</textarea></div>
-                 <div><div class="fl" style="font-size:10px">Justification</div><textarea class="ftxt pj-justification" data-docid="${pjDocId}" rows="2" style="font-size:11px">${pjd.justification || ''}</textarea></div>
+            ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap">
+                <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b);white-space:nowrap">${pjDocId}</span>
+                <input class="finput pj-purpose" data-docid="${pjDocId}" value="${(pjd.purpose || '').replace(/"/g,'&quot;')}" style="flex:1;min-width:100px;font-size:11px" placeholder="Purpose…">
+                <input class="finput pj-justification" data-docid="${pjDocId}" value="${(pjd.justification || '').replace(/"/g,'&quot;')}" style="flex:1;min-width:100px;font-size:11px" placeholder="Justification…">
+                <button class="btn-sec btn-sm pj-ai-btn" data-docid="${pjDocId}" style="font-size:10px;white-space:nowrap;flex-shrink:0">✨ AI</button>
                </div>`
-            : `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${pjDocId}</span><span style="font-size:11px;color:var(--s5)">${pjName}</span></div>
-               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                 <div><div class="fl" style="font-size:10px">Purpose</div><div style="font-size:11px;color:${pjd.purpose?'var(--s7)':'var(--s5)'};font-style:${pjd.purpose?'':'italic'}">${pjd.purpose || 'Not set'}</div></div>
-                 <div><div class="fl" style="font-size:10px">Justification</div><div style="font-size:11px;color:${pjd.justification?'var(--s7)':'var(--s5)'};font-style:${pjd.justification?'':'italic'}">${pjd.justification || 'Not set'}</div></div>
+            : `<div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap">
+                <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b);white-space:nowrap">${pjDocId}</span>
+                <span style="font-size:11px;color:var(--s5);white-space:nowrap">${pjName}</span>
+                <span style="font-size:11px;color:var(--s2)">|</span>
+                <span style="font-size:10px;color:var(--s5)">P:</span>
+                <span style="font-size:11px;color:${pjd.purpose?'var(--s7)':'var(--s5)'};font-style:${pjd.purpose?'':'italic'}">${pjd.purpose || 'Not set'}</span>
+                <span style="font-size:11px;color:var(--s2)">·</span>
+                <span style="font-size:10px;color:var(--s5)">J:</span>
+                <span style="font-size:11px;color:${pjd.justification?'var(--s7)':'var(--s5)'};font-style:${pjd.justification?'':'italic'}">${pjd.justification || 'Not set'}</span>
                </div>`;
           _pjWrap.appendChild(pjRow);
         });
@@ -3715,7 +3929,7 @@ pdf.save('DCO-0001_Completion_Report_'+new Date().toISOString().substring(0,10)+
   private _drmDco(id:string):string|null{if(['QM-001','SOP-QMS-001','SOP-QMS-002','SOP-QMS-003','SOP-PRD-108','SOP-PRD-432','SOP-FRS-549','FM-001','FM-002','FM-003','FM-027','FM-030'].includes(id))return'DCO-0001';if(id.startsWith('SOP-SUP-')||id.startsWith('SOP-FS-')||id.startsWith('SOP-PC-')||id.startsWith('FM-0')||id==='FM-ALG')return'DCO-0002';return null;}
   private _initDocRepo():void{const d=document;if(!d)return;const tab=d.querySelector('[data-screen="docrepo"]');if(tab&&!tab.getAttribute('data-wired')){tab.setAttribute('data-wired','1');tab.addEventListener('click',()=>{if(!this._drmLoaded){this._drmLoaded=true;this._loadDRM();}});}}
   private _loadDRM():void{const base=this.context.pageContext.web.absoluteUrl;const SP='https://adbccro.sharepoint.com/sites/IMP9177';const fetch1=(f:string):Promise<any[]>=>this.context.spHttpClient.get(`${base}/_api/web/GetFolderByServerRelativeUrl('${f}')/Files?$select=Name,ServerRelativeUrl,TimeLastModified,CheckOutType,CheckedOutByUser/Title,MajorVersion,MinorVersion&$expand=CheckedOutByUser`,SPHttpClient.configurations.v1).then((r:SPHttpClientResponse)=>r.ok?r.json():{value:[]}).then((d:any)=>(d.value||[]).filter((f:any)=>f.Name.toLowerCase().endsWith('.docx')&&!f.ServerRelativeUrl.toLowerCase().includes('/archive/'))).catch(()=>[]);Promise.all([Promise.all(['Shared Documents/QMS/Documents/Drafts','Shared Documents/QMS/Forms/Drafts'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a)),Promise.all(['Shared Documents/Published/QMS/Documents','Shared Documents/Published/QMS/Forms','Shared Documents/Published/QMS/Quality Manual'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a)),Promise.all(['Shared Documents/Official/QMS/Documents','Shared Documents/Official/QMS/Forms'].map(fetch1)).then((a:any[][])=>([] as any[]).concat(...a))]).then(([df,pf,of]:[any[],any[],any[]])=>{const map=new Map<string,any>();const add=(f:any,z:string)=>{const id=this._drmId(f.Name);if(!map.has(id))map.set(id,{id,title:this._drmT[id]||id,type:id.startsWith('QM-')?'QM':id.startsWith('SOP-')?'SOP':id.startsWith('FM-')?'FM':id.startsWith('FPS-')?'FPS':'DOC',group:this._drmGrp(id),zones:{drafts:null,published:null,official:null}});const doc=map.get(id);const maj=f.MajorVersion||1,min=f.MinorVersion||0;const dco=this._drmDco(id);doc.zones[z]={rev:this._drmRev(f.Name),ver:min===0?`${maj}.0`:`${maj}.${min}`,verType:min===0?'major':'minor',dco,dcoStatus:dco?(this._drmDS[dco]||'open'):'n/a',checkedOut:f.CheckOutType>0?(f.CheckedOutByUser?.Title||'Unknown'):null,file:f.Name,path:(f.ServerRelativeUrl||'').split('/').slice(4,-1).join('/')||z,modified:(f.TimeLastModified||'').substring(0,10),webUrl:`${SP}${f.ServerRelativeUrl}`};};df.forEach((f:any)=>add(f,'drafts'));pf.forEach((f:any)=>add(f,'published'));of.forEach((f:any)=>add(f,'official'));const GO=['Quality Manual','SOPs - QMS Core','SOPs - Supplier','SOPs - Food Safety','SOPs - Pest Control','SOPs - Production','FPS','Forms - Change Control','Forms - Supplier','Forms - Quality Unit','Forms - Allergen','Other'];this._drmDocs=[...map.values()].sort((a,b)=>{const ga=GO.indexOf(a.group),gb=GO.indexOf(b.group);return ga!==gb?ga-gb:a.id.localeCompare(b.id);});this._drmMount(this._drmDocs);}).catch(()=>{const l=this._el('drm-loading');if(l)l.innerHTML='<span style="color:var(--r)">Error loading — check permissions</span>';});}
-  private _drmMount(all:any[]):void{const d=document;if(!d)return;const loading=d.getElementById('drm-loading');const wrap=d.getElementById('drm-table-wrap');const live=d.getElementById('drm-live');if(loading)loading.style.display='none';if(wrap)wrap.style.display='';if(live)live.textContent='Live · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});let fil=[...all];let sel:string|null=null;const dcs=(s:string)=>({'blocked':'background:#fde8e8;color:#c62828','open':'background:#fff3e0;color:#e65100','signed':'background:#e8f5e9;color:#2e7d32','n/a':'background:var(--s1);color:var(--s5)'}[s]||'background:var(--s1);color:var(--s5)');const zc=(z:any):string=>{if(!z)return'<td style="border-left:1px solid var(--s1);background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--s1) 5px,var(--s1) 5.5px);opacity:.4"></td>';const vi=z.verType==='major'?'&#9679;':'&#9675;';const vc=z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)';const co=z.checkedOut?`<div style="font-size:9px;color:#e65100">&#9679; ${z.checkedOut}</div>`:'<div style="font-size:9px;color:#2e7d32">&#9675; Checked in</div>';return`<td style="padding:6px 8px;border-left:1px solid var(--s1);vertical-align:top"><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">${z.rev==='DRAFT'?'DRAFT':'Rev '+z.rev}</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${vc}">${vi} ${z.ver}</span>${z.dco?`<span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco}</span>`:''}</div>${co}<span style="font-size:9px;color:var(--s5)">${z.modified}</span><span style="font-size:9px;color:var(--s5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="${z.path}">${z.path}</span></div></td>`;};const rSum=()=>{const sb=d.getElementById('drm-sbar');if(!sb)return;const t=fil.length,b=fil.filter((x:any)=>x.zones.drafts&&x.zones.published).length,do2=fil.filter((x:any)=>x.zones.drafts&&!x.zones.published).length,bl=fil.filter((x:any)=>['drafts','published','official'].some((k:string)=>x.zones[k]&&x.zones[k].dcoStatus==='blocked')).length;sb.innerHTML=`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${t}</strong> docs</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${b}</strong> in both</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${do2}</strong> drafts only</span>${bl?`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid #ef9a9a;background:var(--r1);color:var(--r)"><strong>${bl}</strong> DCO blocked</span>`:''}`;};const rTbl=()=>{const tb=d.getElementById('drm-tbody');if(!tb)return;const grps=[...new Set(fil.map((x:any)=>x.group))];let h='';grps.forEach((g:any)=>{h+=`<tr><td colspan="5" style="padding:4px 9px 3px;font-size:10px;font-weight:700;color:var(--b);background:var(--s0);border-top:1px solid var(--s2);text-transform:uppercase;letter-spacing:.4px">${g}</td></tr>`;fil.filter((x:any)=>x.group===g).forEach((doc:any)=>{h+=`<tr style="border-bottom:1px solid var(--s1);cursor:pointer" class="${sel===doc.id?'':''}\" data-drmid="${doc.id}"><td style="padding:7px 9px"><div style="font-size:11px;font-weight:700;font-family:var(--mono);color:var(--b);white-space:nowrap">${doc.id}</div><span style="font-size:9px;padding:1px 4px;border-radius:2px;background:var(--b1);color:#1565c0;font-weight:700">${doc.type}</span></td><td style="padding:7px 9px;font-size:11px;color:var(--s5)">${doc.title}</td>${zc(doc.zones.drafts)}${zc(doc.zones.published)}${zc(doc.zones.official)}</tr>`;});});tb.innerHTML=h;tb.querySelectorAll('tr[data-drmid]').forEach((row:Element)=>{(row as HTMLElement).addEventListener('mouseenter',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='var(--b0)';});(row as HTMLElement).addEventListener('mouseleave',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='';});row.addEventListener('click',()=>{const id=(row as HTMLElement).dataset['drmid']!;sel=sel===id?null:id;if(sel)showD(id);else hideD();rTbl();});});};const showD=(id:string)=>{const panel=d.getElementById('drm-detail');if(!panel)return;const doc=all.find((x:any)=>x.id===id);if(!doc)return;panel.style.display='';const zh:Record<string,string>={'drafts':'color:#1565c0','published':'color:#e65100','official':'color:#2e7d32'};const zonesH=['drafts','published','official'].map((zk:string)=>{const z=doc.zones[zk];const zn={'drafts':'Drafts','published':'Published','official':'Official'}[zk]!;if(!z)return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;${zh[zk]}">${zn}</div><div style="font-size:11px;color:var(--s5);font-style:italic">Not present</div></div>`;return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--s2);${zh[zk]}">${zn}</div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Revision</span><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">${z.rev==='DRAFT'?'DRAFT':'Rev '+z.rev}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Version</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)'}">${z.verType==='major'?'&#9679;':'&#9675;'} ${z.ver}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">DCO</span><span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco||'none'} · ${z.dcoStatus}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Checkout</span><span style="font-size:10px;color:${z.checkedOut?'#e65100':'#2e7d32'}">${z.checkedOut?'&#9888; '+z.checkedOut:'&#10003; Checked in'}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px;align-items:flex-start"><span style="color:var(--s5);min-width:58px;font-size:10px">File</span><span style="font-size:10px;font-family:var(--mono);word-break:break-all;color:var(--s7)">${z.file}</span></div><a href="${z.webUrl}" target="_blank" style="display:inline-block;margin-top:5px;font-size:10px;color:var(--b);text-decoration:none;padding:2px 7px;border:1px solid var(--s2);border-radius:4px;background:var(--w)">Open in SharePoint &#8599;</a></div>`;}).join('');panel.innerHTML=`<div style="padding:8px 14px;background:var(--s0);border-bottom:1px solid var(--s2);display:flex;align-items:center;gap:10px;border-radius:8px 8px 0 0"><span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--n)">${doc.id}</span><span style="font-size:12px;color:var(--s5);flex:1">${doc.title}</span><button id="drm-x" style="cursor:pointer;color:var(--s5);font-size:16px;padding:0 4px;border:none;background:transparent;font-weight:700">&#x2715;</button></div><div style="padding:10px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${zonesH}</div>`;const xb=d.getElementById('drm-x');if(xb)xb.addEventListener('click',()=>{sel=null;hideD();rTbl();});};const hideD=()=>{const p=d.getElementById('drm-detail');if(p){p.style.display='none';p.innerHTML='';}};const filt=()=>{const tf=(d.getElementById('drm-tf') as HTMLSelectElement)?.value||'all';const df2=(d.getElementById('drm-df') as HTMLSelectElement)?.value||'all';const qf=((d.getElementById('drm-qf') as HTMLInputElement)?.value||'').toLowerCase();fil=all.filter((doc:any)=>{const allZ=['drafts','published','official'].map((k:string)=>doc.zones[k]).filter(Boolean);const mt=tf==='all'||doc.type===tf;const mq=!qf||doc.id.toLowerCase().includes(qf)||doc.title.toLowerCase().includes(qf);const md=df2==='all'||(df2==='none'&&allZ.every((z:any)=>!z.dco))||(df2!=='none'&&allZ.some((z:any)=>z.dco===df2));return mt&&mq&&md;});sel=null;hideD();rSum();rTbl();};['drm-tf','drm-df'].forEach((id:string)=>{const el=d.getElementById(id);if(el)el.addEventListener('change',filt);});const qi=d.getElementById('drm-qf');if(qi)qi.addEventListener('input',filt);rSum();rTbl();}
+  private _drmMount(all:any[]):void{const d=document;if(!d)return;const loading=d.getElementById('drm-loading');const wrap=d.getElementById('drm-table-wrap');const live=d.getElementById('drm-live');if(loading)loading.style.display='none';if(wrap)wrap.style.display='';if(live)live.textContent='Live · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});let fil=[...all];let sel:string|null=null;const dcs=(s:string)=>({'blocked':'background:#fde8e8;color:#c62828','open':'background:#fff3e0;color:#e65100','signed':'background:#e8f5e9;color:#2e7d32','n/a':'background:var(--s1);color:var(--s5)'}[s]||'background:var(--s1);color:var(--s5)');const zc=(z:any):string=>{if(!z)return'<td style="border-left:1px solid var(--s1);background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--s1) 5px,var(--s1) 5.5px);opacity:.4"></td>';const vi=z.verType==='major'?'&#9679;':'&#9675;';const vc=z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)';const co=z.checkedOut?`<div style="font-size:9px;color:#e65100">&#9679; ${z.checkedOut}</div>`:'<div style="font-size:9px;color:#2e7d32">&#9675; Checked in</div>';return`<td style="padding:6px 8px;border-left:1px solid var(--s1);vertical-align:top"><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">${z.rev==='DRAFT'?'DRAFT':'Rev '+z.rev}</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${vc}">${vi} ${z.ver}</span>${z.dco?`<span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco}</span>`:''}</div>${co}<span style="font-size:9px;color:var(--s5)">${z.modified}</span><span style="font-size:9px;color:var(--s5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="${z.path}">${z.path}</span></div></td>`;};const rSum=()=>{const sb=d.getElementById('drm-sbar');if(!sb)return;const t=fil.length,b=fil.filter((x:any)=>x.zones.drafts&&x.zones.published).length,do2=fil.filter((x:any)=>x.zones.drafts&&!x.zones.published).length,bl=fil.filter((x:any)=>['drafts','published','official'].some((k:string)=>x.zones[k]&&x.zones[k].dcoStatus==='blocked')).length;sb.innerHTML=`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${t}</strong> docs</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${b}</strong> in both</span><span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--s2);background:var(--s0);color:var(--s5)"><strong style="color:var(--n)">${do2}</strong> drafts only</span>${bl?`<span style="font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid #ef9a9a;background:var(--r1);color:var(--r)"><strong>${bl}</strong> DCO blocked</span>`:''}`;const k1=d.getElementById('drm-k1');if(k1)k1.textContent=String(t);const k2=d.getElementById('drm-k2');if(k2)k2.textContent=String(do2);const k3=d.getElementById('drm-k3');if(k3)k3.textContent=String(b);const k4=d.getElementById('drm-k4');if(k4)k4.textContent=String(bl);};const rTbl=()=>{const tb=d.getElementById('drm-tbody');if(!tb)return;const grps=[...new Set(fil.map((x:any)=>x.group))];let h='';grps.forEach((g:any)=>{h+=`<tr><td colspan="5" style="padding:4px 9px 3px;font-size:10px;font-weight:700;color:var(--b);background:var(--s0);border-top:1px solid var(--s2);text-transform:uppercase;letter-spacing:.4px">${g}</td></tr>`;fil.filter((x:any)=>x.group===g).forEach((doc:any)=>{h+=`<tr style="border-bottom:1px solid var(--s1);cursor:pointer" class="${sel===doc.id?'':''}\" data-drmid="${doc.id}"><td style="padding:7px 9px"><div style="font-size:11px;font-weight:700;font-family:var(--mono);color:var(--b);white-space:nowrap">${doc.id}</div><span style="font-size:9px;padding:1px 4px;border-radius:2px;background:var(--b1);color:#1565c0;font-weight:700">${doc.type}</span></td><td style="padding:7px 9px;font-size:11px;color:var(--s5)">${doc.title}</td>${zc(doc.zones.drafts)}${zc(doc.zones.published)}${zc(doc.zones.official)}</tr>`;});});tb.innerHTML=h;tb.querySelectorAll('tr[data-drmid]').forEach((row:Element)=>{(row as HTMLElement).addEventListener('mouseenter',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='var(--b0)';});(row as HTMLElement).addEventListener('mouseleave',()=>{if(sel!==((row as HTMLElement).dataset['drmid']!))(row as HTMLElement).style.background='';});row.addEventListener('click',()=>{const id=(row as HTMLElement).dataset['drmid']!;sel=sel===id?null:id;if(sel)showD(id);else hideD();rTbl();});});};const showD=(id:string)=>{const panel=d.getElementById('drm-detail');if(!panel)return;const doc=all.find((x:any)=>x.id===id);if(!doc)return;panel.style.display='';const zh:Record<string,string>={'drafts':'color:#1565c0','published':'color:#e65100','official':'color:#2e7d32'};const zonesH=['drafts','published','official'].map((zk:string)=>{const z=doc.zones[zk];const zn={'drafts':'Drafts','published':'Published','official':'Official'}[zk]!;if(!z)return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;${zh[zk]}">${zn}</div><div style="font-size:11px;color:var(--s5);font-style:italic">Not present</div></div>`;return`<div style="border:1px solid var(--s2);border-radius:6px;padding:10px"><div style="font-size:11px;font-weight:700;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--s2);${zh[zk]}">${zn}</div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Revision</span><span style="font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:2px;background:var(--b1);color:#1565c0">${z.rev==='DRAFT'?'DRAFT':'Rev '+z.rev}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Version</span><span style="font-size:10px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${z.verType==='major'?'color:#2e7d32;font-weight:700':'color:var(--s5)'}">${z.verType==='major'?'&#9679;':'&#9675;'} ${z.ver}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">DCO</span><span style="font-size:9px;font-family:var(--mono);padding:1px 4px;border-radius:2px;${dcs(z.dcoStatus)}">${z.dco||'none'} · ${z.dcoStatus}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px"><span style="color:var(--s5);min-width:58px;font-size:10px">Checkout</span><span style="font-size:10px;color:${z.checkedOut?'#e65100':'#2e7d32'}">${z.checkedOut?'&#9888; '+z.checkedOut:'&#10003; Checked in'}</span></div><div style="font-size:11px;margin-bottom:4px;display:flex;gap:5px;align-items:flex-start"><span style="color:var(--s5);min-width:58px;font-size:10px">File</span><span style="font-size:10px;font-family:var(--mono);word-break:break-all;color:var(--s7)">${z.file}</span></div><a href="${z.webUrl}" target="_blank" style="display:inline-block;margin-top:5px;font-size:10px;color:var(--b);text-decoration:none;padding:2px 7px;border:1px solid var(--s2);border-radius:4px;background:var(--w)">Open in SharePoint &#8599;</a></div>`;}).join('');panel.innerHTML=`<div style="padding:8px 14px;background:var(--s0);border-bottom:1px solid var(--s2);display:flex;align-items:center;gap:10px;border-radius:8px 8px 0 0"><span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--n)">${doc.id}</span><span style="font-size:12px;color:var(--s5);flex:1">${doc.title}</span><button id="drm-x" style="cursor:pointer;color:var(--s5);font-size:16px;padding:0 4px;border:none;background:transparent;font-weight:700">&#x2715;</button></div><div style="padding:10px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${zonesH}</div>`;const xb=d.getElementById('drm-x');if(xb)xb.addEventListener('click',()=>{sel=null;hideD();rTbl();});};const hideD=()=>{const p=d.getElementById('drm-detail');if(p){p.style.display='none';p.innerHTML='';}};const filt=()=>{const tf=(d.getElementById('drm-tf') as HTMLSelectElement)?.value||'all';const df2=(d.getElementById('drm-df') as HTMLSelectElement)?.value||'all';const qf=((d.getElementById('drm-qf') as HTMLInputElement)?.value||'').toLowerCase();fil=all.filter((doc:any)=>{const allZ=['drafts','published','official'].map((k:string)=>doc.zones[k]).filter(Boolean);const mt=tf==='all'||doc.type===tf;const mq=!qf||doc.id.toLowerCase().includes(qf)||doc.title.toLowerCase().includes(qf);const md=df2==='all'||(df2==='none'&&allZ.every((z:any)=>!z.dco))||(df2!=='none'&&allZ.some((z:any)=>z.dco===df2));return mt&&mq&&md;});sel=null;hideD();rSum();rTbl();};['drm-tf','drm-df'].forEach((id:string)=>{const el=d.getElementById(id);if(el)el.addEventListener('change',filt);});const qi=d.getElementById('drm-qf');if(qi)qi.addEventListener('input',filt);rSum();rTbl();}
   private async _executeMarkEffective(dcoId: string): Promise<void> {
     const w = window as any;
     const base = this.context.pageContext.web.absoluteUrl;
