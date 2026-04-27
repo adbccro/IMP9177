@@ -1893,6 +1893,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
               body: JSON.stringify({ Emp_Title: titleEl?.value || '', Emp_Email: emailEl?.value || '' }) }
           );
+          this._auditLog('EmployeeUpdated', id, JSON.stringify({ empId: id, title: titleEl?.value, email: emailEl?.value }));
           if (w.qpToast) w.qpToast('Employee updated');
           this._renderConfig();
         } catch(e) { if (w.qpToast) w.qpToast('Update failed — check console'); console.error(e); }
@@ -1912,6 +1913,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
               body: JSON.stringify({ Emp_Status: 'Inactive' }) }
           );
+          this._auditLog('EmployeeDeactivated', id, JSON.stringify({ empId: id, name }));
           if (w.qpToast) w.qpToast('Employee deactivated');
           this._renderConfig();
         } catch(e) { if (w.qpToast) w.qpToast('Deactivate failed'); console.error(e); }
@@ -1940,6 +1942,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
             body: JSON.stringify({ Title: name, Emp_Title: title, Emp_Email: email, Emp_Dept: dept, Emp_Status: 'Active' }) }
         );
+        this._auditLog('EmployeeAdded', '', JSON.stringify({ name, email, dept }));
         if (w.qpToast) w.qpToast('Employee added');
         this._renderConfig();
       } catch(e) { if (w.qpToast) w.qpToast('Add failed — check console'); console.error(e); }
@@ -1983,6 +1986,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
               body: JSON.stringify({ Title: empName + '-' + dt, Appr_Name: empName, Approver_Email: empEmail, Appr_DocType: dt, Appr_EmpID: empId, Appr_Role: role, Appr_Active: true }) }
           );
+          this._auditLog('ApproverAdded', empId, JSON.stringify({ name: empName, email: empEmail, docType: dt, role }));
           if (w.qpToast) w.qpToast('Approver added');
           this._renderConfig();
         } catch(e) { if (w.qpToast) w.qpToast('Add approver failed'); console.error(e); }
@@ -2001,6 +2005,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             { headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
               body: JSON.stringify({ Appr_Active: false }) }
           );
+          this._auditLog('ApproverRemoved', id, JSON.stringify({ approverItemId: id }));
           if (w.qpToast) w.qpToast('Approver removed');
           this._renderConfig();
         } catch(e) { if (w.qpToast) w.qpToast('Remove failed'); console.error(e); }
@@ -2189,6 +2194,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         }
         this._config[key] = val;
       }
+      this._auditLog('ConfigSaved', 'SYS', JSON.stringify(_cfgSaves));
       if (w.qpToast) w.qpToast('Configuration saved');
     });
 
@@ -2238,6 +2244,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           _trainSignBtn.disabled = true;
           _trainSignBtn.style.opacity = '0.4';
           _trainSignBtn.style.cursor = 'not-allowed';
+          this._auditLog('TrainingCompleted', _tDocId, JSON.stringify({ employee: _tEmpId, docId: _tDocId, sigId: _tSigId, signedDate: _tDate }));
           if (w.qpToast) w.qpToast('Training record signed for ' + _tDocId + ' — Sig ID: ' + _tSigId);
           setTimeout(() => this._loadAll(), 800);
         } catch(e) { if (w.qpToast) w.qpToast('Failed to record training'); }
