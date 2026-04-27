@@ -3604,37 +3604,24 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         const _roles5 = this._data.roles || [];
         const _tr5Wrap = d.createElement('div');
         _tr5Wrap.style.cssText = 'margin-top:14px;border:1px solid var(--s2);border-radius:7px;overflow:hidden';
-        _tr5Wrap.innerHTML = `<div style="padding:8px 12px;background:var(--s0);border-bottom:1px solid var(--s2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s5)">Training Role Assignments — Per Document</div><div id="tr5-load-${dcoId}" style="padding:10px 12px;font-size:11px;color:var(--s5)">Loading matrix...</div>`;
+        _tr5Wrap.innerHTML = '<div style="padding:8px 12px;background:var(--s0);border-bottom:1px solid var(--s2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s5)">Training Role Assignments — Per Document</div><div style="padding:10px 12px;font-size:11px;color:var(--s5)">Loading role assignments…</div>';
         docsPaneEl.appendChild(_tr5Wrap);
-        (async () => {
-          const _freshMatrix: any[] = await this.spGet('QMS_TrainingMatrix', 'Id,TM_DocID,TM_RoleID,TM_Required').catch(() => []);
-          const _matrix5: any[] = _freshMatrix.length > 0 ? _freshMatrix : (this._data.matrix || []);
-          const _tr5LoadEl = d.getElementById('tr5-load-' + dcoId);
-          if (_tr5LoadEl) _tr5LoadEl.remove();
-          displayDocs.forEach((trDocId: string) => {
-            const matrixRoles = new Set(_matrix5.filter((m: any) => m.TM_DocID === trDocId && m.TM_Required).map((m: any) => m.TM_RoleID));
-            const trDocRow = d.createElement('div');
-            trDocRow.style.cssText = 'padding:10px 12px;border-bottom:1px solid var(--s1)';
+        this.spGet('QMS_TrainingMatrix', 'Id,TM_DocID,TM_RoleID,TM_Required').then((_matrix5: any[]) => {
+          const rowsHtml = displayDocs.map((trDocId: string) => {
+            const _req5 = new Set(_matrix5.filter((m: any) => m.TM_DocID === trDocId && m.TM_Required === true).map((m: any) => String(m.TM_RoleID)));
             const roleChecks = _roles5.map((role: any) => {
-              const checked = matrixRoles.has(role.Title) ? 'checked' : '';
-              return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-right:12px"><input type="checkbox" class="tr5-role-chk" data-docid="${trDocId}" data-roleid="${role.Title}" ${checked} style="cursor:pointer"> ${role.Title}</label>`;
+              const isChecked = _req5.has(String(role.Title));
+              return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-right:12px"><input type="checkbox" class="tr5-role-chk" data-docid="${trDocId}" data-roleid="${role.Title}"${isChecked ? ' checked' : ''} style="cursor:pointer"> ${role.Title}</label>`;
             }).join('');
-            trDocRow.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${trDocId}</span><span style="font-size:11px;color:var(--s5)">${docNameMap[trDocId] || trDocId}</span></div>
-              <div style="display:flex;flex-wrap:wrap;gap:4px">${roleChecks || '<span style="font-size:11px;color:var(--s5)">No roles defined</span>'}</div>`;
-            _tr5Wrap.appendChild(trDocRow);
-          });
-          const _tr5Footer = d.createElement('div');
-          _tr5Footer.style.cssText = 'padding:8px 12px;display:flex;align-items:center;gap:8px;background:var(--s0)';
-          _tr5Footer.innerHTML = `<span id="tr5-changed-${dcoId}" style="font-size:11px;color:var(--a);font-weight:600;display:none">⚠ Training matrix changed — save to apply</span><button id="tr5-save-${dcoId}" class="btn-pri btn-sm" style="margin-left:auto">💾 Save Training Roles</button>`;
-          _tr5Wrap.appendChild(_tr5Footer);
-          // Track changes
+            return `<div style="padding:10px 12px;border-bottom:1px solid var(--s1)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${trDocId}</span><span style="font-size:11px;color:var(--s5)">${docNameMap[trDocId] || trDocId}</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">${roleChecks || '<span style="font-size:11px;color:var(--s5)">No roles defined</span>'}</div></div>`;
+          }).join('');
+          _tr5Wrap.innerHTML = `<div style="padding:8px 12px;background:var(--s0);border-bottom:1px solid var(--s2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s5)">Training Role Assignments — Per Document</div>${rowsHtml}<div style="padding:8px 12px;display:flex;align-items:center;gap:8px;background:var(--s0)"><span id="tr5-changed-${dcoId}" style="font-size:11px;color:var(--a);font-weight:600;display:none">⚠ Training matrix changed — save to apply</span><button id="tr5-save-${dcoId}" class="btn-pri btn-sm" style="margin-left:auto">💾 Save Training Roles</button></div>`;
           _tr5Wrap.querySelectorAll('.tr5-role-chk').forEach((chk: Element) => {
             chk.addEventListener('change', () => {
-              const changed5 = d.getElementById('tr5-changed-' + dcoId);
-              if (changed5) changed5.style.display = '';
+              const _ch5 = d.getElementById('tr5-changed-' + dcoId);
+              if (_ch5) _ch5.style.display = '';
             });
           });
-          // Save training roles
           const _tr5SaveBtn = d.getElementById('tr5-save-' + dcoId);
           if (_tr5SaveBtn) {
             _tr5SaveBtn.addEventListener('click', async () => {
@@ -3645,7 +3632,6 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                 const _checked5 = Array.from(_tr5Wrap.querySelectorAll('.tr5-role-chk[data-docid="' + trDocId5 + '"]:checked')).map((c: Element) => (c as HTMLInputElement).getAttribute('data-roleid') || '');
                 const _unchecked5 = Array.from(_tr5Wrap.querySelectorAll('.tr5-role-chk[data-docid="' + trDocId5 + '"]:not(:checked)')).map((c: Element) => (c as HTMLInputElement).getAttribute('data-roleid') || '');
                 _proposed5[trDocId5] = _checked5.filter(Boolean);
-                // Checked roles: create new row or enable existing disabled row
                 for (const roleId5 of _checked5) {
                   const existing5 = _matrix5.find((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
                   if (!existing5) {
@@ -3664,7 +3650,6 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                     ).catch(() => {});
                   }
                 }
-                // Unchecked roles: soft-disable (MERGE TM_Required=false, do not DELETE)
                 for (const roleId5 of _unchecked5) {
                   const existing5 = _matrix5.find((m: any) => m.TM_DocID === trDocId5 && m.TM_RoleID === roleId5);
                   if (existing5?.Id && existing5.TM_Required) {
@@ -3677,20 +3662,19 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
                   }
                 }
               }
-              // Write proposed training changes to DCO record
               await this.context.spHttpClient.post(
                 _base5 + "/_api/web/lists/getbytitle('QMS_DCOs')/items(" + dco.Id + ")",
                 SPHttpClient.configurations.v1,
                 { headers: {'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','IF-MATCH':'*','X-HTTP-Method':'MERGE'},
                   body: JSON.stringify({ DCO_ProposedTrainingChanges: JSON.stringify(_proposed5) }) }
               ).catch(() => {});
-              const changed5 = d.getElementById('tr5-changed-' + dcoId);
-              if (changed5) changed5.style.display = 'none';
+              const _ch5done = d.getElementById('tr5-changed-' + dcoId);
+              if (_ch5done) _ch5done.style.display = 'none';
               if (w.qpToast) w.qpToast('Training role assignments saved');
               setTimeout(() => this._loadAll(), 800);
             });
           }
-        })();
+        });
       }
 
       // Sync gate state after DOM is fully assembled
