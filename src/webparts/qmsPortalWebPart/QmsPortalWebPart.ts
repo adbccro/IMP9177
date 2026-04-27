@@ -2251,6 +2251,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       if (sc) sc.classList.add('on');
       const tab = d.querySelector(`[data-screen="${screen}"]`);
       if (tab) tab.classList.add('on');
+      if (screen === 'docrepo' && !this._drmLoaded) { this._drmLoaded = true; this._loadDRM(); }
     };
 
     // Nav tabs
@@ -4177,6 +4178,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       if (sc) sc.classList.add('on');
       const tab = d.querySelector(`[data-screen="${screen}"]`);
       if (tab) tab.classList.add('on');
+      if (screen === 'docrepo' && !this._drmLoaded) { this._drmLoaded = true; this._loadDRM(); }
     });
 
     reg('Refresh', () => { this._loadAll(); });
