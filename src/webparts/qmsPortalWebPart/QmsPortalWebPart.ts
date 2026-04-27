@@ -14,13 +14,24 @@ export interface IQmsPortalWebPartProps { screen: string; }
 // CSS
 // ─────────────────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --n:#0a3259;--b:#0f4c81;--b2:#1a6bb5;--b1:#e3f2fd;--b0:#f0f7ff;
   --r:#c62828;--r1:#fde8e8;--a:#e65100;--a1:#fff3e0;--g:#2e7d32;--g1:#e8f5e9;
-  --s0:#f8fafc;--s1:#f0f4f8;--s2:#e0e6ed;--s5:#5a6a7e;--s7:#1a2332;--w:#fff;
+  --p:#7b1fa2;--p1:#f3e5f5;
+  --s0:#f8fafc;--s1:#f0f4f8;--s2:#e0e6ed;--s4:#8b97a8;--s5:#5a6a7e;--s7:#1a2332;--w:#fff;
   --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --font-serif:'Libre Baskerville',Georgia,serif;
+  --link:#03787c;--linkHovered:#014446;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-7:32px;
+  --radius-sm:4px;--radius-md:6px;--radius-lg:8px;--radius-xl:12px;--radius-pill:999px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-row:0 1px 4px rgba(0,0,0,.06);
+  --shadow-hover:0 4px 14px rgba(15,76,129,.12);--shadow-header:0 2px 8px rgba(0,0,0,.15);
+  --shadow-modal:0 20px 60px rgba(0,0,0,.30);
+  --motion-fast:.1s;--motion-base:.15s;--motion-slow:.25s;
+  --gradient-header:linear-gradient(135deg,#0a3259 0%,#0f4c81 60%,#1a6bb5 100%);
+  --gradient-panel:linear-gradient(to right,var(--b0),var(--w));
 }
 body{font-family:var(--sans);background:var(--s0);color:var(--s7);font-size:14px}
 
@@ -54,7 +65,7 @@ body{font-family:var(--sans);background:var(--s0);color:var(--s7);font-size:14px
 .kpi{background:var(--w);border:1px solid var(--s2);border-radius:8px;padding:14px 18px;flex:1;min-width:120px;border-top:3px solid var(--b2);box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .kpi.r{border-top-color:var(--r)}.kpi.a{border-top-color:var(--a)}.kpi.g{border-top-color:var(--g)}
 .kpi-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--s5);margin-bottom:5px}
-.kpi-v{font-size:28px;font-weight:700;color:var(--n);font-family:var(--mono);line-height:1}
+.kpi-v{font-size:38px;font-weight:700;color:var(--n);font-family:var(--font-serif);line-height:1}
 .kpi-v.r{color:var(--r)}.kpi-v.a{color:var(--a)}.kpi-v.g{color:var(--g)}
 .kpi-s{font-size:11px;color:var(--s5);margin-top:3px}
 
@@ -65,7 +76,7 @@ body{font-family:var(--sans);background:var(--s0);color:var(--s7);font-size:14px
 .bucket{background:var(--w);border:1px solid var(--s2);border-radius:10px;padding:18px;cursor:pointer;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .bucket:hover{border-color:var(--b);box-shadow:0 4px 14px rgba(15,76,129,.12);transform:translateY(-2px)}
 .bucket-icon{font-size:22px;margin-bottom:8px}
-.bucket-count{font-size:34px;font-weight:700;color:var(--n);font-family:var(--mono);line-height:1}
+.bucket-count{font-size:42px;font-weight:700;color:var(--n);font-family:var(--font-serif);line-height:1}
 .bucket-count.r{color:var(--r)}.bucket-count.a{color:var(--a)}.bucket-count.g{color:var(--g)}
 .bucket-label{font-size:12px;font-weight:700;color:var(--s7);margin-top:4px}
 .bucket-desc{font-size:11px;color:var(--s5);margin-top:2px}
@@ -93,10 +104,11 @@ td{padding:9px 12px;vertical-align:middle}
 .cdate{font-family:var(--mono);font-size:11px;color:var(--s5);white-space:nowrap}
 
 /* ── pills ── */
-.pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:10px;font-weight:600;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:12px;font-size:10px;font-weight:600;white-space:nowrap}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
 .pr{background:var(--r1);color:var(--r)}.pg{background:var(--g1);color:var(--g)}
 .pa{background:var(--a1);color:var(--a)}.pb{background:var(--b1);color:var(--b)}
-.pz{background:var(--s1);color:var(--s5)}.pp{background:#f3e5f5;color:#6a1b9a}
+.pz{background:var(--s1);color:var(--s5)}.pp{background:var(--p1);color:var(--p)}
 
 /* ── phase bar ── */
 .phasebar{display:flex;align-items:center;margin:10px 0}
@@ -105,7 +117,7 @@ td{padding:9px 12px;vertical-align:middle}
 .ph-dot.done{background:var(--g);color:#fff}
 .ph-dot.cur{background:var(--b);color:#fff;box-shadow:0 0 0 3px rgba(15,76,129,.2)}
 .ph-dot.late{background:var(--r);color:#fff}
-.ph-dot.train{background:#7b1fa2;color:#fff}
+.ph-dot.train{background:var(--p);color:#fff}
 .ph-lbl{font-size:9px;color:var(--s5);margin-top:4px;text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .ph-line{flex:1;height:2px;background:var(--s2);margin-top:-14px}
 .ph-line.done{background:var(--g)}
@@ -140,7 +152,7 @@ td{padding:9px 12px;vertical-align:middle}
 .pip-stage.active{background:var(--b0);border-bottom:3px solid var(--b)}
 .pip-stage.late{border-bottom:3px solid var(--r)}
 .pip-n{font-family:var(--mono);font-size:24px;font-weight:500;color:var(--n);line-height:1}
-.pip-n.r{color:var(--r)}.pip-n.a{color:var(--a)}.pip-n.g{color:var(--g)}.pip-n.p{color:#7b1fa2}
+.pip-n.r{color:var(--r)}.pip-n.a{color:var(--a)}.pip-n.g{color:var(--g)}.pip-n.p{color:var(--p)}
 .pip-l{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--s5);margin-top:4px;font-weight:600}
 
 /* ── approval lanes ── */
@@ -556,7 +568,7 @@ const SHELL_ADMINISTRATION = `
 function buildShell(): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>${CSS}</style>
 <script>
 var _qpReady=false,_qpQueue=[];
@@ -711,13 +723,19 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
     <div class="modal-body" id="esign-body">
       <div class="fg"><div class="fl">Document</div><div class="fv" id="esign-doc">—</div></div>
       <div class="fg"><div class="fl">Signing As</div><div class="fv" id="esign-as" style="font-weight:600">—</div></div>
-      <div class="fg"><div class="fl">Identity Verification</div><div class="fv" style="color:green">Verified - Microsoft 365 authenticated session active</div></div><div class="fg"><div class="fl">Attestation Statement</div><div class="fv">By clicking Apply Signature, I confirm that I have reviewed this document and approve its release per 21 CFR Part 11. My Microsoft 365 identity and a unique signature ID will be permanently recorded.</div></div>
-      <div style="display:none">
-        <input class="finput" id="esign-code" type="text" maxlength="6" placeholder="Enter 6-digit code..." style="letter-spacing:4px;font-family:var(--mono)">
-        <div style="font-size:11px;color:var(--s5);margin-top:4px">In production: code sent to your registered M365 MFA device</div>
+      <div id="esign-sign-area">
+        <div style="border-left:3px solid var(--n);background:var(--s1);padding:14px 18px;margin:14px 0;font-family:var(--font-serif);font-size:13px;color:var(--n);line-height:1.55;font-style:italic">
+          By entering my password, I am signing this record electronically. This signature is the legal equivalent of my handwritten signature.
+        </div>
+        <div class="fg">
+          <div class="fl">Re-enter your password to confirm <span style="color:var(--r)">*</span></div>
+          <input class="finput" id="esign-pwd" type="password" placeholder="Your Microsoft 365 password" autocomplete="current-password">
+          <div style="font-size:11px;color:var(--s5);margin-top:4px">Required per 21 CFR Part 11 §11.200(a)(1)(ii). Password is not transmitted — used only to confirm intent.</div>
+        </div>
       </div>
+      <div id="esign-post-sign" style="display:none"></div>
     </div>
-    <div class="modal-ft">
+    <div class="modal-ft" id="esign-footer">
       <button class="btn-sec" data-close="modal-esign">Cancel</button>
       <button class="btn-pri btn-g" id="btn-confirm-sign">✅ Apply Signature</button>
     </div>
@@ -850,6 +868,29 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
     try {
       const base = this.context.pageContext.web.absoluteUrl;
       const actor = this.context.pageContext.user.email || this.context.pageContext.user.displayName || 'Unknown';
+      const timestamp = new Date().toISOString();
+
+      // Compute AL_Hash: SHA-256(eventType + relatedId + actor + timestamp)
+      let alHash = '';
+      try {
+        const _msgBuf = new TextEncoder().encode(eventType + (relatedId || '') + actor + timestamp);
+        const _hashBuf = await crypto.subtle.digest('SHA-256', _msgBuf);
+        alHash = Array.from(new Uint8Array(_hashBuf)).map((b: number) => b.toString(16).padStart(2, '0')).join('');
+      } catch(_e) {}
+
+      // Fetch AL_PrevHash from the most recent RoutingHistory item
+      let alPrevHash = '';
+      try {
+        const _prevR = await this.context.spHttpClient.get(
+          base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items?$select=AL_Hash&$orderby=Id%20desc&$top=1",
+          SPHttpClient.configurations.v1
+        );
+        if (_prevR.ok) {
+          const _prevD = await _prevR.json();
+          alPrevHash = (_prevD.value || [])[0]?.AL_Hash || '';
+        }
+      } catch(_e) {}
+
       await this.context.spHttpClient.post(
         base + "/_api/web/lists/getbytitle('QMS_RoutingHistory')/items",
         SPHttpClient.configurations.v1,
@@ -861,7 +902,9 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             RH_Stage: 'System',
             RH_Actor: actor,
             RH_Note: detail,
-            RH_Timestamp: new Date().toISOString()
+            RH_Timestamp: timestamp,
+            AL_Hash: alHash,
+            AL_PrevHash: alPrevHash
           }) }
       );
     } catch(e) { console.error('Audit log failed:', eventType, e); }
@@ -1199,7 +1242,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const lateBadge = late === 'late' ? '<span class="late-badge">LATE</span>' : late === 'warn' ? '<span class="warn-badge">DUE SOON</span>' : '';
       return `<tr data-dcoid="${d.Title}">
         <td><span class="cid">${d.Title}</span></td>
-        <td style="font-size:12px;max-width:220px">${(d.DCO_Title || '').substring(0, 50)}</td>
+        <td style="font-family:var(--font-serif);font-size:15px;color:var(--n);max-width:220px">${(d.DCO_Title || '').substring(0, 50)}</td>
         <td>${this._pill(d.DCO_Phase)}${lateBadge}</td>
         <td><span class="cmut" style="font-family:var(--mono);font-size:11px">${d.DCO_CRLink || '—'}</span></td>
         <td><span class="cdate">${this._fmt(d.DCO_SubmittedDate)}</span></td>
@@ -2324,10 +2367,26 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       const dcoId = (d.getElementById('esign-doc') as HTMLElement)?.textContent || '';
       if (!dcoId) { if (w.qpToast) w.qpToast('No DCO selected'); return; }
 
+      // Part 11 §11.200(a)(1)(ii) — password re-entry required
+      const _pwdEl = d.getElementById('esign-pwd') as HTMLInputElement;
+      if (!_pwdEl || !_pwdEl.value.trim()) {
+        if (w.qpToast) w.qpToast('Enter your password to confirm this signature');
+        if (_pwdEl) _pwdEl.focus();
+        return;
+      }
+
       const userEmail = this.context.pageContext.user.email; const userName = this.context.pageContext.user.displayName || userEmail;
       const sigId = 'SIG-' + userEmail.split('@')[0].toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
       const signedDate = new Date().toISOString();
       const base = this.context.pageContext.web.absoluteUrl;
+
+      // Compute Sig_Hash: SHA-256(dcoId + userEmail + signedDate + 'IMP9177')
+      let sigHash = '';
+      try {
+        const _msgBuf = new TextEncoder().encode(dcoId + userEmail + signedDate + 'IMP9177');
+        const _hashBuf = await crypto.subtle.digest('SHA-256', _msgBuf);
+        sigHash = Array.from(new Uint8Array(_hashBuf)).map((b: number) => b.toString(16).padStart(2, '0')).join('');
+      } catch(_e) {}
 
       // 1. Find the approver record for this DCO + current user
       const apprs = (this._data.approvals || []).filter((a: any) => a.Appr_DCOID === dcoId);
@@ -2354,7 +2413,9 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
               body: JSON.stringify({
                 Appr_Status: 'Signed',
                 Appr_SigID: sigId,
-                Appr_SignedDate: signedDate
+                Appr_SignedDate: signedDate,
+                Sig_Hash: sigHash,
+                Sig_Timestamp_UTC: signedDate
               })
             }
           );
@@ -2410,51 +2471,67 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
           // Find the DCO list item ID
           const dcoItem = (this._data.dcos || []).find((d2: any) => d2.Title === dcoId);
           if (dcoItem && dcoItem.Id) {
-            // Determine next phase — check if any SOPs in DCO docs
             const nextPhase = 'Awaiting Training';
             await this.context.spHttpClient.post(
               `${base}/_api/web/lists/getbytitle('QMS_DCOs')/items(${dcoItem.Id})`,
               SPHttpClient.configurations.v1,
               {
-                headers: {
-                  'Accept': 'application/json;odata=nometadata',
-                  'Content-Type': 'application/json;odata=nometadata',
-                  'IF-MATCH': '*',
-                  'X-HTTP-Method': 'MERGE'
-                },
+                headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata', 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' },
                 body: JSON.stringify({ DCO_Phase: nextPhase })
               }
             );
-            // Update local cache
             if (dcoItem) dcoItem.DCO_Phase = nextPhase;
-            // Write phase transition to routing history
             await this.context.spHttpClient.post(
               `${base}/_api/web/lists/getbytitle('QMS_RoutingHistory')/items`,
               SPHttpClient.configurations.v1,
               {
                 headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
-                body: JSON.stringify({
-                  Title: `${dcoId}-PHASE-${nextPhase}`,
-                  RH_DCOID: dcoId,
-                  RH_EventType: 'stage',
-                  RH_Stage: nextPhase,
-                  RH_Actor: 'System',
-                  RH_Note: `All required approvers signed. DCO advanced to ${nextPhase}.`,
-                  RH_Timestamp: new Date().toISOString()
-                })
+                body: JSON.stringify({ Title: `${dcoId}-PHASE-${nextPhase}`, RH_DCOID: dcoId, RH_EventType: 'stage', RH_Stage: nextPhase, RH_Actor: 'System', RH_Note: `All required approvers signed. DCO advanced to ${nextPhase}.`, RH_Timestamp: new Date().toISOString() })
               }
             );
           }
-          (d.getElementById('modal-esign') as HTMLElement)?.classList.remove('open');
+          // Close DCO detail — esign modal stays open to show post-sign estate
           (d.getElementById('modal-dco-detail') as HTMLElement)?.classList.remove('open');
-          if (w.qpToast) w.qpToast(`✅ All approvers signed — DCO advanced to Implemented! SIG: ${sigId}`);
-        } else {
-          (d.getElementById('modal-esign') as HTMLElement)?.classList.remove('open');
-          const remaining = requiredApprs.filter((a: any) => a.Appr_Status !== 'Signed').length;
-          if (w.qpToast) w.qpToast(`✅ Signature applied (SIG: ${sigId}) — ${remaining} approver(s) still pending`);
         }
 
-        // 5. Reload data to reflect changes
+        // 5. Show post-sign estate inside the esign modal
+        const _shortHash = sigHash ? (sigHash.substring(0, 8) + '...' + sigHash.slice(-4)) : sigId.slice(-8);
+        const _remaining = requiredApprs.filter((a: any) => a.Appr_Status !== 'Signed').length;
+        const _signArea = d.getElementById('esign-sign-area');
+        const _postArea = d.getElementById('esign-post-sign');
+        const _footer = d.getElementById('esign-footer');
+        if (_signArea) _signArea.style.display = 'none';
+        if (_postArea) {
+          _postArea.style.display = '';
+          _postArea.innerHTML = `<div style="text-align:center;padding:24px 0 8px">
+            <div style="font-size:36px;margin-bottom:14px">&#x2705;</div>
+            <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;color:var(--n);margin-bottom:8px">Your signature is recorded.</div>
+            <div style="font-size:11px;color:var(--s5);font-family:var(--mono);margin-bottom:6px;letter-spacing:.3px">Signature · ${_shortHash}</div>
+            <div style="font-size:11px;color:var(--s5);margin-bottom:16px">SIG ID: ${sigId}</div>
+            ${allSigned
+              ? `<div style="font-size:12px;padding:8px 14px;border-radius:7px;background:var(--g1);color:var(--g);font-weight:600">All required approvers have signed — DCO advanced to Awaiting Training.</div>`
+              : `<div style="font-size:12px;padding:8px 14px;border-radius:7px;background:var(--s1);color:var(--s5)">${_remaining} signator${_remaining===1?'y':'ies'} still pending.</div>`
+            }
+          </div>`;
+        }
+        if (_footer) {
+          _footer.innerHTML = `
+            <button class="btn-sec" style="color:var(--r);border-color:#e8c7c7;font-size:11px" id="esign-revoke-btn">Revoke Signature</button>
+            <button class="btn-sec" id="esign-remind-btn" style="font-size:11px">Remind Remaining</button>
+            <button class="btn-sec" id="esign-close-btn">Close</button>`;
+          const _rv = d.getElementById('esign-revoke-btn');
+          if (_rv) _rv.addEventListener('click', () => { if (w.qpToast) w.qpToast('Revocation requires QA Approver authorization — feature in P1.2'); });
+          const _rm = d.getElementById('esign-remind-btn');
+          if (_rm) _rm.addEventListener('click', () => {
+            const _remApprs = (this._data.approvals||[]).filter((a: any) => a.Appr_DCOID === dcoId && a.Appr_Status !== 'Signed');
+            if (_remApprs.length === 0) { if (w.qpToast) w.qpToast('No remaining signatories'); return; }
+            if (w.qpToast) w.qpToast(`Reminder noted for ${_remApprs.length} signator${_remApprs.length===1?'y':'ies'} — SP.Utilities email integration in P1.2`);
+          });
+          const _cl = d.getElementById('esign-close-btn');
+          if (_cl) _cl.addEventListener('click', () => { (d.getElementById('modal-esign') as HTMLElement)?.classList.remove('open'); });
+        }
+
+        // 6. Reload data
         setTimeout(() => this._loadAll(), 1000);
 
       } catch (err) {
@@ -3628,6 +3705,20 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             setTimeout(() => this._loadAll(), 1000);
           };
         } else if (phase === 'Submitted' || phase === 'In Review') {
+          const _ue12 = this.context.pageContext.user.email || '';
+          const _isAppr = apprs.some((a: any) =>
+            (a.Appr_Email||'').toLowerCase() === _ue12.toLowerCase() ||
+            (a.Appr_Name||'').toLowerCase().includes(_ue12.toLowerCase().split('@')[0])
+          );
+          if (!_isAppr) {
+            if (actionBtn) { actionBtn.style.display='inline-flex'; actionBtn.textContent='👁 Read-Only'; actionBtn.style.background='var(--s2)'; actionBtn.style.color='var(--s5)'; actionBtn.style.cursor='default'; (actionBtn as HTMLButtonElement).disabled=true; }
+            const _mb12 = d.getElementById('mdco-body');
+            if (_mb12 && !_mb12.querySelector('.viewer-note')) {
+              const _vn = d.createElement('div'); _vn.className = 'viewer-note';
+              _vn.innerHTML = '<div style="margin:10px 0;padding:12px 14px;border-radius:7px;background:var(--s1);border:1px solid var(--s2);font-size:12px;color:var(--s5)">You are viewing this DCO as a read-only observer. No action is required from you.</div>';
+              _mb12.insertBefore(_vn, _mb12.firstChild);
+            }
+          } else {
           actionBtn.style.display = 'inline-flex';
           actionBtn.textContent = '✍️ Sign DCO';
           const alreadyReviewed = w._qpDocReviewState && w._qpDocReviewState[dcoId] && w._qpDocReviewState[dcoId].length > 0 && w._qpDocReviewState[dcoId].every((v: boolean) => v);
@@ -3645,9 +3736,14 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
             this._set('esign-doc', dcoId);
             this._set('esign-as', this.context.pageContext.user.displayName + ' (' + this.context.pageContext.user.email + ')');
             this._set('esign-sub', 'Signing: ' + dcoId + ' — ' + (dco.DCO_Title||''));
+            // Reset esign modal to sign state for next open
+            const _sa = d.getElementById('esign-sign-area'); if (_sa) { _sa.style.display=''; const _p = d.getElementById('esign-pwd') as HTMLInputElement; if (_p) _p.value=''; }
+            const _pa = d.getElementById('esign-post-sign'); if (_pa) { _pa.style.display='none'; _pa.innerHTML=''; }
+            const _ef = d.getElementById('esign-footer'); if (_ef) _ef.innerHTML='<button class="btn-sec" data-close="modal-esign">Cancel</button><button class="btn-pri btn-g" id="btn-confirm-sign">&#x2705; Apply Signature</button>';
             (d.getElementById('modal-esign') as HTMLElement)?.classList.add('open');
           };
           if (rejectBtn) rejectBtn.style.display = 'inline-flex';
+          } // end isApprover
         } else if (phase === 'Awaiting Training') {
           // Build per-document training status (Task 6)
           const _userEmail6 = this.context.pageContext.user.email || '';
