@@ -3607,11 +3607,13 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
         _tr5Wrap.innerHTML = '<div style="padding:8px 12px;background:var(--s0);border-bottom:1px solid var(--s2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s5)">Training Role Assignments — Per Document</div><div style="padding:10px 12px;font-size:11px;color:var(--s5)">Loading role assignments…</div>';
         docsPaneEl.appendChild(_tr5Wrap);
         this.spGet('QMS_TrainingMatrix', 'Id,TM_DocID,TM_RoleID,TM_Required').then((_matrix5: any[]) => {
+          console.log('matrix rows for QM-001:', _matrix5.filter((r: any) => r.TM_DocID === 'QM-001'));
+          console.log('roles:', _roles5);
           const rowsHtml = displayDocs.map((trDocId: string) => {
             const _req5 = new Set(_matrix5.filter((m: any) => m.TM_DocID === trDocId && m.TM_Required === true).map((m: any) => String(m.TM_RoleID)));
             const roleChecks = _roles5.map((role: any) => {
-              const isChecked = _req5.has(String(role.Title));
-              return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-right:12px"><input type="checkbox" class="tr5-role-chk" data-docid="${trDocId}" data-roleid="${role.Title}"${isChecked ? ' checked' : ''} style="cursor:pointer"> ${role.Title}</label>`;
+              const isChecked = _req5.has(String(role.Id));
+              return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-right:12px"><input type="checkbox" class="tr5-role-chk" data-docid="${trDocId}" data-roleid="${role.Id}"${isChecked ? ' checked' : ''} style="cursor:pointer"> ${role.Title}</label>`;
             }).join('');
             return `<div style="padding:10px 12px;border-bottom:1px solid var(--s1)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--b)">${trDocId}</span><span style="font-size:11px;color:var(--s5)">${docNameMap[trDocId] || trDocId}</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">${roleChecks || '<span style="font-size:11px;color:var(--s5)">No roles defined</span>'}</div></div>`;
           }).join('');
