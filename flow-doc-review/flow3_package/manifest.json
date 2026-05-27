@@ -1,0 +1,21 @@
+{
+  "schema": "1.0",
+  "details": {
+    "displayName": "IMP9177 — Approval Gate Endpoint",
+    "description": "HTTP gate endpoint: GET op=status returns doc-open status; POST approve/reject verifies all docs opened then patches DCO.",
+    "createdTime": "2026-04-27T00:00:00Z",
+    "packageTelemetryId": "imp9177-flow3-approval-gate"
+  },
+  "resources": {
+    "flow3": {
+      "type": "Microsoft.Flow/flows",
+      "details": {
+        "displayName": "IMP9177 — Approval Gate Endpoint",
+        "description": "HTTP trigger gate for DCO document review compliance"
+      },
+      "configurableBy": "User",
+      "hierarchy": "Root",
+      "dependsOn": []
+    }
+  }
+}

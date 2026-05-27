@@ -1,0 +1,271 @@
+# Flow 1: IMP9177 — UAL FileAccessed Listener
+# Export this definition into Power Automate via Import > from JSON
+# Or build manually following these steps exactly.
+#
+# PREREQUISITE: AAD app ba48ac81-6f23-43bd-9797-ec2866071102 must have
+# ActivityFeed.Read (Application) permission granted by admin.
+# Do this in Azure Portal BEFORE creating this Flow.
+
+FLOW_NAME: "IMP9177 — UAL FileAccessed Listener"
+DESCRIPTION: >
+  Polls the Office 365 Management Activity API every 5 minutes.
+  Filters for FileAccessed events on IMP9177 SharePoint site.
+  Writes DocumentOpened events to QMS_RoutingHistory with hash chain.
+
+# ── Trigger ──────────────────────────────────────────────────────────────────
+TRIGGER:
+  type: Recurrence
+  interval: 5
+  frequency: Minute
+
+# ── Variables ────────────────────────────────────────────────────────────────
+VARIABLES:
+  - name: tenantId
+    type: string
+    value: "729fb621-9df9-4895-9c2a-e0526a1a5912"
+
+  - name: siteUrl
+    type: string
+    value: "https://adbccro.sharepoint.com/sites/IMP9177"
+
+  - name: publishedPath
+    type: string
+    value: "/sites/IMP9177/Shared Documents/Published/QMS"
+
+  - name: lastProcessed
+    type: string
+    value: ""
+    # Loaded from QMS_Config in step 1
+
+# ── Step 1: Load last-processed timestamp from QMS_Config ────────────────────
+STEP_01:
+  name: "Get last processed timestamp"
+  type: "SharePoint — Get items"
+  site: "@{variables('siteUrl')}"
+  list: QMS_Config
+  filter: "Title eq 'ual_last_processed'"
+  top: 1
+  output_as: configRow
+
+STEP_02:
+  name: "Set lastProcessed variable"
+  type: "Set variable"
+  variable: lastProcessed
+  value: >
+    @{if(empty(outputs('Get_last_processed_timestamp')?['body/value']),
+       formatDateTime(addMinutes(utcNow(), -10), 'yyyy-MM-ddTHH:mm:ssZ'),
+       first(outputs('Get_last_processed_timestamp')?['body/value'])?['Cfg_Value'])}
+
+# ── Step 2: Subscribe to / keep alive the Audit.SharePoint subscription ──────
+STEP_03:
+  name: "Start UAL subscription (idempotent)"
+  type: "HTTP"
+  method: POST
+  uri: >
+    https://manage.office.com/api/v1.0/@{variables('tenantId')}/activity/feed/subscriptions/start?contentType=Audit.SharePoint
+  authentication:
+    type: ActiveDirectoryOAuth
+    tenant: "@{variables('tenantId')}"
+    audience: "https://manage.office.com"
+    clientId: "ba48ac81-6f23-43bd-9797-ec2866071102"
+    # Use client credentials (app-only). Store client secret in Key Vault
+    # or as an encrypted Flow parameter — do NOT hardcode here.
+    secret: "@{parameters('ual_client_secret')}"
+  # 200 = new subscription, 400 with AF20024 = already subscribed — both OK
+  runAfter: {}
+
+# ── Step 3: List available content ───────────────────────────────────────────
+STEP_04:
+  name: "List available audit content"
+  type: "HTTP"
+  method: GET
+  uri: >
+    https://manage.office.com/api/v1.0/@{variables('tenantId')}/activity/feed/subscriptions/content
+    ?contentType=Audit.SharePoint
+    &startTime=@{variables('lastProcessed')}
+    &endTime=@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:ssZ')}
+  authentication:
+    type: ActiveDirectoryOAuth
+    tenant: "@{variables('tenantId')}"
+    audience: "https://manage.office.com"
+    clientId: "ba48ac81-6f23-43bd-9797-ec2866071102"
+    secret: "@{parameters('ual_client_secret')}"
+  output_as: contentList
+
+# ── Step 4: For each content blob ────────────────────────────────────────────
+STEP_05:
+  name: "Apply to each content blob"
+  type: "Apply to each"
+  input: "@{body('List_available_audit_content')}"
+  concurrency: 1
+  steps:
+
+    STEP_05a:
+      name: "Fetch audit blob"
+      type: "HTTP"
+      method: GET
+      uri: "@{items('Apply_to_each_content_blob')?['contentUri']}"
+      authentication:
+        type: ActiveDirectoryOAuth
+        tenant: "@{variables('tenantId')}"
+        audience: "https://manage.office.com"
+        clientId: "ba48ac81-6f23-43bd-9797-ec2866071102"
+        secret: "@{parameters('ual_client_secret')}"
+      output_as: auditBlob
+
+    STEP_05b:
+      name: "Apply to each audit record"
+      type: "Apply to each"
+      input: "@{body('Fetch_audit_blob')}"
+      steps:
+
+        STEP_05b_condition:
+          name: "Is IMP9177 FileAccessed in Published?"
+          type: "Condition"
+          expression: >
+            @{and(
+              equals(items('Apply_to_each_audit_record')?['Operation'], 'FileAccessed'),
+              contains(items('Apply_to_each_audit_record')?['ObjectId'],
+                       '/sites/IMP9177/'),
+              contains(items('Apply_to_each_audit_record')?['ObjectId'],
+                       '/Published/QMS/')
+            )}
+          if_true:
+
+            STEP_05b_i:
+              name: "Extract file info"
+              type: "Compose"
+              inputs:
+                actorEmail: "@{items('Apply_to_each_audit_record')?['UserId']}"
+                objectId: "@{items('Apply_to_each_audit_record')?['ObjectId']}"
+                eventTime: "@{items('Apply_to_each_audit_record')?['CreationTime']}"
+                # Derive docId: take filename, strip extension, strip revision suffix
+                # e.g. "QM-001_Quality_Manual_Rev_B_DRAFT.docx" → "QM-001"
+                docId: >
+                  @{first(split(
+                    last(split(items('Apply_to_each_audit_record')?['ObjectId'], '/')),
+                    '_'
+                  ))}
+
+            STEP_05b_ii:
+              name: "Find matching DCO approver"
+              type: "SharePoint — Get items"
+              site: "@{variables('siteUrl')}"
+              list: QMS_DCOApprovals
+              filter: >
+                Sig_ApproverEmail eq '@{outputs('Extract_file_info')?['actorEmail']}'
+                and Appr_Status eq 'Pending'
+              top: 10
+              output_as: matchingApprovals
+
+            STEP_05b_iii:
+              name: "Apply to each matching approval"
+              type: "Apply to each"
+              input: "@{body('Find_matching_DCO_approver')?['value']}"
+              steps:
+
+                STEP_05b_iii_A:
+                  name: "Check for duplicate DocumentOpened"
+                  type: "SharePoint — Get items"
+                  site: "@{variables('siteUrl')}"
+                  list: QMS_RoutingHistory
+                  filter: >
+                    AL_EventType eq 'DocumentOpened'
+                    and AL_DCOID eq '@{items('Apply_to_each_matching_approval')?['Appr_DCOID']}'
+                    and AL_DocID eq '@{outputs('Extract_file_info')?['docId']}'
+                    and AL_Actor eq '@{outputs('Extract_file_info')?['actorEmail']}'
+                  top: 1
+                  output_as: existingEvent
+
+                STEP_05b_iii_B:
+                  name: "Skip if already logged"
+                  type: "Condition"
+                  expression: >
+                    @{empty(body('Check_for_duplicate_DocumentOpened')?['value'])}
+                  if_true:
+
+                    STEP_05b_iii_B_i:
+                      name: "Get last hash for chain"
+                      type: "SharePoint — Get items"
+                      site: "@{variables('siteUrl')}"
+                      list: QMS_RoutingHistory
+                      filter: >
+                        AL_DCOID eq '@{items('Apply_to_each_matching_approval')?['Appr_DCOID']}'
+                      orderby: "Id desc"
+                      top: 1
+                      output_as: lastHashRow
+
+                    STEP_05b_iii_B_ii:
+                      name: "Build hash input"
+                      type: "Compose"
+                      inputs: >
+                        @{concat(
+                          'DocumentOpened',
+                          items('Apply_to_each_matching_approval')?['Appr_DCOID'],
+                          outputs('Extract_file_info')?['docId'],
+                          outputs('Extract_file_info')?['actorEmail'],
+                          outputs('Extract_file_info')?['eventTime']
+                        )}
+
+                    STEP_05b_iii_B_iii:
+                      name: "Write DocumentOpened to QMS_RoutingHistory"
+                      type: "SharePoint — Create item"
+                      site: "@{variables('siteUrl')}"
+                      list: QMS_RoutingHistory
+                      fields:
+                        Title: >
+                          @{concat('DocumentOpened-',
+                            items('Apply_to_each_matching_approval')?['Appr_DCOID'],
+                            '-', outputs('Extract_file_info')?['docId'])}
+                        AL_EventType: "DocumentOpened"
+                        AL_DCOID: "@{items('Apply_to_each_matching_approval')?['Appr_DCOID']}"
+                        AL_DocID: "@{outputs('Extract_file_info')?['docId']}"
+                        AL_Actor: "@{outputs('Extract_file_info')?['actorEmail']}"
+                        AL_Timestamp: "@{outputs('Extract_file_info')?['eventTime']}"
+                        AL_Source: "UAL_FileAccessed"
+                        AL_Note: >
+                          @{concat('File: ',
+                            last(split(outputs('Extract_file_info')?['objectId'], '/')))}
+                        AL_PrevHash: >
+                          @{if(empty(body('Get_last_hash_for_chain')?['value']),
+                             'GENESIS',
+                             first(body('Get_last_hash_for_chain')?['value'])?['AL_Hash'])}
+                        AL_Hash: >
+                          @{base64(
+                            encodeURIComponent(outputs('Build_hash_input'))
+                          )}
+                        # Note: Power Automate has no native SHA256. Use base64 of
+                        # the concatenated input as a deterministic chain token.
+                        # For true SHA256, call an Azure Function or the Flow HTTP
+                        # action against a lightweight hashing endpoint.
+
+# ── Step 6: Update last-processed timestamp ───────────────────────────────────
+STEP_06:
+  name: "Update ual_last_processed in QMS_Config"
+  type: "Condition — does config row exist?"
+  expression: >
+    @{not(empty(body('Get_last_processed_timestamp')?['value']))}
+  if_true:
+    type: "SharePoint — Update item"
+    site: "@{variables('siteUrl')}"
+    list: QMS_Config
+    id: "@{first(body('Get_last_processed_timestamp')?['value'])?['ID']}"
+    fields:
+      Cfg_Value: "@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:ssZ')}"
+  if_false:
+    type: "SharePoint — Create item"
+    site: "@{variables('siteUrl')}"
+    list: QMS_Config
+    fields:
+      Title: "ual_last_processed"
+      Cfg_Value: "@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:ssZ')}"
+
+# ── Flow parameters (set in Flow → Edit → Parameters) ────────────────────────
+PARAMETERS:
+  ual_client_secret:
+    type: securestring
+    description: >
+      Client secret for AAD app ba48ac81-6f23-43bd-9797-ec2866071102.
+      Used for Office 365 Management API auth (app-only).
+      Get from Azure Portal → App registrations → Certificates & secrets.
+      Create a new client secret if none exists.

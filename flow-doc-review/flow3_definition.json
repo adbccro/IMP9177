@@ -1,0 +1,375 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "$connections": { "defaultValue": {}, "type": "Object" }
+  },
+  "triggers": {
+    "manual": {
+      "type": "Request",
+      "kind": "Http",
+      "inputs": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "dcoId":          { "type": "string" },
+            "approverEmail":  { "type": "string" },
+            "action":         { "type": "string" },
+            "reason":         { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "actions": {
+
+    "Route_by_operation": {
+      "type": "If",
+      "expression": {
+        "and": [{ "equals": ["@triggerOutputs()?['queries']?['op']", "status"] }]
+      },
+      "runAfter": {},
+
+      "actions": {
+
+        "GS_Get_DCO": {
+          "type": "ApiConnection",
+          "inputs": {
+            "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+            "method": "get",
+            "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_DCOs'))}/items",
+            "queries": {
+              "$filter": "Title eq '@{triggerOutputs()?['queries']?['dcoId']}'",
+              "$top": 1,
+              "$select": "Title,DCO_Title,DCO_Docs,DCO_Originator,ID"
+            }
+          },
+          "runAfter": {}
+        },
+
+        "GS_Parse_DocIds": {
+          "type": "Compose",
+          "inputs": "@split(replace(first(body('GS_Get_DCO')?['value'])?['DCO_Docs'],' ',''),',')",
+          "runAfter": { "GS_Get_DCO": ["Succeeded"] }
+        },
+
+        "GS_Get_OpenedEvents": {
+          "type": "ApiConnection",
+          "inputs": {
+            "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+            "method": "get",
+            "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_RoutingHistory'))}/items",
+            "queries": {
+              "$filter": "AL_EventType eq 'DocumentOpened' and AL_DCOID eq '@{triggerOutputs()?['queries']?['dcoId']}' and AL_Actor eq '@{triggerOutputs()?['queries']?['approverEmail']}'",
+              "$top": 100
+            }
+          },
+          "runAfter": { "GS_Parse_DocIds": ["Succeeded"] }
+        },
+
+        "GS_Return_Status": {
+          "type": "Response",
+          "inputs": {
+            "statusCode": 200,
+            "headers": { "Content-Type": "application/json" },
+            "body": {
+              "dcoId":           "@{triggerOutputs()?['queries']?['dcoId']}",
+              "dcoTitle":        "@{first(body('GS_Get_DCO')?['value'])?['DCO_Title']}",
+              "totalDocs":       "@{length(outputs('GS_Parse_DocIds'))}",
+              "openedDocs":      "@{length(body('GS_Get_OpenedEvents')?['value'])}",
+              "gateOpen":        "@{greaterOrEquals(length(body('GS_Get_OpenedEvents')?['value']),length(outputs('GS_Parse_DocIds')))}",
+              "remainingCount":  "@{sub(length(outputs('GS_Parse_DocIds')),length(body('GS_Get_OpenedEvents')?['value']))}",
+              "progressColor":   "@{if(greaterOrEquals(length(body('GS_Get_OpenedEvents')?['value']),length(outputs('GS_Parse_DocIds'))),'Good','Warning')}",
+              "progressMessage": "@{if(greaterOrEquals(length(body('GS_Get_OpenedEvents')?['value']),length(outputs('GS_Parse_DocIds'))),'All documents reviewed','Open remaining documents before approving')}",
+              "approverEmail":   "@{triggerOutputs()?['queries']?['approverEmail']}"
+            }
+          },
+          "runAfter": { "GS_Get_OpenedEvents": ["Succeeded"] },
+          "kind": "Http"
+        }
+
+      },
+
+      "else": {
+
+        "actions": {
+
+          "AP_Parse_Body": {
+            "type": "ParseJson",
+            "inputs": {
+              "content": "@triggerBody()",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dcoId":         { "type": "string" },
+                  "approverEmail": { "type": "string" },
+                  "action":        { "type": "string" },
+                  "reason":        { "type": "string" }
+                }
+              }
+            },
+            "runAfter": {}
+          },
+
+          "AP_Get_OpenedEvents": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+              "method": "get",
+              "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_RoutingHistory'))}/items",
+              "queries": {
+                "$filter": "AL_EventType eq 'DocumentOpened' and AL_DCOID eq '@{body('AP_Parse_Body')?['dcoId']}' and AL_Actor eq '@{body('AP_Parse_Body')?['approverEmail']}'",
+                "$top": 100
+              }
+            },
+            "runAfter": { "AP_Parse_Body": ["Succeeded"] }
+          },
+
+          "AP_Get_DCO": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+              "method": "get",
+              "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_DCOs'))}/items",
+              "queries": {
+                "$filter": "Title eq '@{body('AP_Parse_Body')?['dcoId']}'",
+                "$top": 1,
+                "$select": "Title,DCO_Title,DCO_Docs,DCO_Originator,ID"
+              }
+            },
+            "runAfter": { "AP_Parse_Body": ["Succeeded"] }
+          },
+
+          "AP_Parse_DocIds": {
+            "type": "Compose",
+            "inputs": "@split(replace(first(body('AP_Get_DCO')?['value'])?['DCO_Docs'],' ',''),',')",
+            "runAfter": { "AP_Get_DCO": ["Succeeded"] }
+          },
+
+          "AP_Gate_Check": {
+            "type": "If",
+            "expression": {
+              "and": [{
+                "greaterOrEquals": [
+                  "@length(body('AP_Get_OpenedEvents')?['value'])",
+                  "@length(outputs('AP_Parse_DocIds'))"
+                ]
+              }]
+            },
+            "runAfter": {
+              "AP_Get_OpenedEvents": ["Succeeded"],
+              "AP_Parse_DocIds": ["Succeeded"]
+            },
+
+            "actions": {
+
+              "AP_Approve_Or_Reject": {
+                "type": "If",
+                "expression": {
+                  "and": [{ "equals": ["@body('AP_Parse_Body')?['action']", "approve"] }]
+                },
+                "runAfter": {},
+
+                "actions": {
+
+                  "AP_Update_DCO_Approved": {
+                    "type": "ApiConnection",
+                    "inputs": {
+                      "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+                      "method": "patch",
+                      "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_DCOs'))}/items/@{first(body('AP_Get_DCO')?['value'])?['ID']}",
+                      "body": { "DCO_Phase": "Approved" }
+                    },
+                    "runAfter": {}
+                  },
+
+                  "AP_Get_ApprovalRow": {
+                    "type": "ApiConnection",
+                    "inputs": {
+                      "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+                      "method": "get",
+                      "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_DCOApprovals'))}/items",
+                      "queries": {
+                        "$filter": "Appr_DCOID eq '@{body('AP_Parse_Body')?['dcoId']}' and Sig_ApproverEmail eq '@{body('AP_Parse_Body')?['approverEmail']}'",
+                        "$top": 1
+                      }
+                    },
+                    "runAfter": { "AP_Update_DCO_Approved": ["Succeeded"] }
+                  },
+
+                  "AP_Update_ApprovalRow": {
+                    "type": "ApiConnection",
+                    "inputs": {
+                      "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+                      "method": "patch",
+                      "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_DCOApprovals'))}/items/@{first(body('AP_Get_ApprovalRow')?['value'])?['ID']}",
+                      "body": {
+                        "Appr_Status": "Approved",
+                        "Appr_SignedDate": "@{utcNow()}"
+                      }
+                    },
+                    "runAfter": { "AP_Get_ApprovalRow": ["Succeeded"] }
+                  },
+
+                  "AP_Write_DCOApproved": {
+                    "type": "ApiConnection",
+                    "inputs": {
+                      "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+                      "method": "post",
+                      "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_RoutingHistory'))}/items",
+                      "body": {
+                        "Title":        "DCOApproved-@{body('AP_Parse_Body')?['dcoId']}",
+                        "AL_EventType": "DCOApproved",
+                        "AL_DCOID":     "@{body('AP_Parse_Body')?['dcoId']}",
+                        "AL_Actor":     "@{body('AP_Parse_Body')?['approverEmail']}",
+                        "AL_Note":      "Approved via Adaptive Card email — all documents reviewed and logged",
+                        "AL_Timestamp": "@{utcNow()}",
+                        "AL_Source":    "AdaptiveCard_ActionExecute"
+                      }
+                    },
+                    "runAfter": { "AP_Update_ApprovalRow": ["Succeeded"] }
+                  },
+
+                  "AP_Respond_Approved": {
+                    "type": "Response",
+                    "inputs": {
+                      "statusCode": 200,
+                      "headers": { "Content-Type": "application/json" },
+                      "body": {
+                        "success": true,
+                        "message": "DCO approved successfully",
+                        "dcoId": "@{body('AP_Parse_Body')?['dcoId']}"
+                      }
+                    },
+                    "runAfter": { "AP_Write_DCOApproved": ["Succeeded"] },
+                    "kind": "Http"
+                  }
+
+                },
+
+                "else": {
+
+                  "actions": {
+
+                    "AP_Check_Reason": {
+                      "type": "If",
+                      "expression": {
+                        "and": [{ "not": { "equals": ["@body('AP_Parse_Body')?['reason']", ""] } }]
+                      },
+                      "runAfter": {},
+
+                      "actions": {
+
+                        "AP_Update_DCO_Rejected": {
+                          "type": "ApiConnection",
+                          "inputs": {
+                            "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+                            "method": "patch",
+                            "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_DCOs'))}/items/@{first(body('AP_Get_DCO')?['value'])?['ID']}",
+                            "body": { "DCO_Phase": "Rejected" }
+                          },
+                          "runAfter": {}
+                        },
+
+                        "AP_Write_DCORejected": {
+                          "type": "ApiConnection",
+                          "inputs": {
+                            "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+                            "method": "post",
+                            "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://adbccro.sharepoint.com/sites/IMP9177'))}/tables/@{encodeURIComponent(encodeURIComponent('QMS_RoutingHistory'))}/items",
+                            "body": {
+                              "Title":        "DCORejected-@{body('AP_Parse_Body')?['dcoId']}",
+                              "AL_EventType": "DCORejected",
+                              "AL_DCOID":     "@{body('AP_Parse_Body')?['dcoId']}",
+                              "AL_Actor":     "@{body('AP_Parse_Body')?['approverEmail']}",
+                              "AL_Note":      "@{body('AP_Parse_Body')?['reason']}",
+                              "AL_Timestamp": "@{utcNow()}",
+                              "AL_Source":    "AdaptiveCard_ActionExecute"
+                            }
+                          },
+                          "runAfter": { "AP_Update_DCO_Rejected": ["Succeeded"] }
+                        },
+
+                        "AP_Email_Originator_Rejected": {
+                          "type": "ApiConnection",
+                          "inputs": {
+                            "host": { "connection": { "name": "@parameters('$connections')['office365']['connectionId']" } },
+                            "method": "post",
+                            "path": "/v2/Mail",
+                            "body": {
+                              "To":          "@{first(body('AP_Get_DCO')?['value'])?['DCO_Originator']}",
+                              "Subject":     "[IMP9177] @{body('AP_Parse_Body')?['dcoId']} — Rejected",
+                              "Body":        "<p>DCO <strong>@{body('AP_Parse_Body')?['dcoId']}</strong> has been rejected.</p><p><strong>Reason:</strong> @{body('AP_Parse_Body')?['reason']}</p><p><strong>Rejected by:</strong> @{body('AP_Parse_Body')?['approverEmail']}</p><p>Please revise and resubmit.</p>",
+                              "Importance":  "Normal"
+                            }
+                          },
+                          "runAfter": { "AP_Write_DCORejected": ["Succeeded"] }
+                        },
+
+                        "AP_Respond_Rejected": {
+                          "type": "Response",
+                          "inputs": {
+                            "statusCode": 200,
+                            "headers": { "Content-Type": "application/json" },
+                            "body": {
+                              "success": true,
+                              "message": "DCO rejected",
+                              "dcoId": "@{body('AP_Parse_Body')?['dcoId']}"
+                            }
+                          },
+                          "runAfter": { "AP_Email_Originator_Rejected": ["Succeeded"] },
+                          "kind": "Http"
+                        }
+
+                      },
+
+                      "else": {
+                        "actions": {
+                          "AP_Respond_No_Reason": {
+                            "type": "Response",
+                            "inputs": {
+                              "statusCode": 400,
+                              "headers": { "Content-Type": "application/json" },
+                              "body": { "error": "Rejection reason is required" }
+                            },
+                            "runAfter": {},
+                            "kind": "Http"
+                          }
+                        }
+                      }
+
+                    }
+                  }
+                }
+              }
+
+            },
+
+            "else": {
+              "actions": {
+                "AP_Respond_Gate_Blocked": {
+                  "type": "Response",
+                  "inputs": {
+                    "statusCode": 400,
+                    "headers": { "Content-Type": "application/json" },
+                    "body": {
+                      "error":    "Not all documents reviewed",
+                      "opened":   "@{length(body('AP_Get_OpenedEvents')?['value'])}",
+                      "required": "@{length(outputs('AP_Parse_DocIds'))}"
+                    }
+                  },
+                  "runAfter": {},
+                  "kind": "Http"
+                }
+              }
+            }
+
+          }
+        }
+      }
+    }
+
+  },
+
+  "outputs": {}
+}

@@ -1,0 +1,466 @@
+# ============================================================================
+# Flow 2: IMP9177 — DCO Review Notification Email
+# ============================================================================
+
+FLOW_NAME: "IMP9177 — DCO Review Notification"
+DESCRIPTION: >
+  Triggered when DCO_Phase changes to Submitted.
+  Sends an Adaptive Card email to all Required approvers listing every
+  document in the DCO with direct SharePoint links and a live gate check.
+
+TRIGGER:
+  type: "SharePoint — When an item is created or modified"
+  site: "https://adbccro.sharepoint.com/sites/IMP9177"
+  list: QMS_DCOs
+  # Note: Add condition gate to prevent double-sends (see STEP_01)
+
+STEP_01:
+  name: "Check if Submitted"
+  type: Condition
+  expression: "@{equals(triggerBody()?['DCO_Phase'], 'Submitted')}"
+  if_false: TERMINATE
+
+STEP_02:
+  name: "Check if review email already sent"
+  type: "SharePoint — Get items"
+  site: "https://adbccro.sharepoint.com/sites/IMP9177"
+  list: QMS_RoutingHistory
+  filter: >
+    AL_EventType eq 'ReviewEmailSent'
+    and AL_DCOID eq '@{triggerBody()?['Title']}'
+  top: 1
+  output_as: alreadySent
+
+STEP_03:
+  name: "Skip if already sent"
+  type: Condition
+  expression: "@{empty(body('Check_if_review_email_already_sent')?['value'])}"
+  if_false: TERMINATE
+
+STEP_04:
+  name: "Get Required approvers"
+  type: "SharePoint — Get items"
+  site: "https://adbccro.sharepoint.com/sites/IMP9177"
+  list: QMS_DCOApprovals
+  filter: >
+    Appr_DCOID eq '@{triggerBody()?['Title']}'
+    and Appr_Type eq 'Required'
+  output_as: requiredApprovers
+
+STEP_05:
+  name: "Parse DCO_Docs into array"
+  type: Compose
+  inputs: >
+    @{split(replace(triggerBody()?['DCO_Docs'], ' ', ''), ',')}
+  output_as: docIds
+  # DCO_Docs is comma-separated: "QM-001,SOP-QMS-001,SOP-QMS-002,..."
+
+STEP_06:
+  name: "Resolve SharePoint URLs for each document"
+  type: "Apply to each"
+  input: "@{outputs('Parse_DCO_Docs_into_array')}"
+  concurrency: 5
+  steps:
+    STEP_06a:
+      name: "Search Published folder for doc"
+      type: "SharePoint — Get files (properties only)"
+      site: "https://adbccro.sharepoint.com/sites/IMP9177"
+      library: "Shared Documents"
+      folder: "Published/QMS"
+      filter: "startswith(FileLeafRef, '@{items('Resolve_SP_URLs')}')"
+      top: 1
+      output_as: matchedFile
+
+    STEP_06b:
+      name: "Build doc record"
+      type: Compose
+      inputs:
+        docId: "@{items('Resolve_SP_URLs')}"
+        docName: >
+          @{if(empty(body('Search_Published_folder_for_doc')?['value']),
+             items('Resolve_SP_URLs'),
+             first(body('Search_Published_folder_for_doc')?['value'])?['FileLeafRef'])}
+        spUrl: >
+          @{if(empty(body('Search_Published_folder_for_doc')?['value']),
+             concat('https://adbccro.sharepoint.com/sites/IMP9177/Shared%20Documents/Published/QMS/Documents/', items('Resolve_SP_URLs')),
+             first(body('Search_Published_folder_for_doc')?['value'])?['{Link}'])}
+        docType: >
+          @{if(startsWith(items('Resolve_SP_URLs'), 'QM'), 'Quality Manual',
+             if(startsWith(items('Resolve_SP_URLs'), 'SOP'), 'Standard Operating Procedure',
+             if(startsWith(items('Resolve_SP_URLs'), 'FM'), 'Form',
+             if(startsWith(items('Resolve_SP_URLs'), 'FPS'), 'Finished Product Spec',
+             'Document'))))}
+        opened: false
+        openedAt: null
+
+  output_as: resolvedDocs
+
+STEP_07:
+  name: "Calculate due date (+5 business days)"
+  type: Compose
+  inputs: >
+    @{addDays(utcNow(), 7)}
+  # Simplified — adjust for business days if needed
+
+STEP_08:
+  name: "Build Adaptive Card for each approver"
+  type: "Apply to each"
+  input: "@{body('Get_Required_approvers')?['value']}"
+  steps:
+
+    STEP_08a:
+      name: "Build card data"
+      type: Compose
+      inputs:
+        dcoId: "@{triggerBody()?['Title']}"
+        dcoTitle: "@{triggerBody()?['DCO_Title']}"
+        originator: "@{triggerBody()?['DCO_Originator']}"
+        dueDate: "@{formatDateTime(outputs('Calculate_due_date'), 'MMM dd, yyyy')}"
+        approverEmail: "@{items('Build_Adaptive_Card_for_each_approver')?['Sig_ApproverEmail']}"
+        totalCount: "@{length(outputs('Parse_DCO_Docs_into_array'))}"
+        openedCount: 0
+        remainingCount: "@{length(outputs('Parse_DCO_Docs_into_array'))}"
+        gateOpen: false
+        progressColor: "Warning"
+        progressMessage: "Open each document before approval unlocks"
+        statusBadge: "Pending review"
+        statusColor: "Warning"
+        docs: "@{outputs('resolvedDocs')}"
+
+    STEP_08b:
+      name: "Send Adaptive Card email"
+      type: "Office 365 Outlook — Send an email (V2)"
+      to: "@{items('Build_Adaptive_Card_for_each_approver')?['Sig_ApproverEmail']}"
+      subject: >
+        [IMP9177] @{triggerBody()?['Title']} — Document review required
+      importance: High
+      body: >
+        <html><body>
+        <p>You have a document change order pending your review and approval.</p>
+        <p>Please open and review all documents listed in the attached card,
+        then use the Approve or Reject button in the card to record your decision.</p>
+        <p>This approval is subject to 21 CFR Part 11 — your document access
+        is logged automatically when you open each file.</p>
+        </body></html>
+      # Adaptive Card attachment — set via the "Attachments" field:
+      attachments:
+        - name: "review-card.json"
+          contentType: "application/vnd.microsoft.card.adaptive"
+          contentBytes: >
+            @{base64(string(outputs('Build_card_data')))}
+        # Note: In Power Automate's Outlook connector, Adaptive Cards in email
+        # are sent via the body with content-type "application/adaptivecard+json"
+        # Use the "Send email with Adaptive Card" action if available in your
+        # connector version, OR inject the card JSON into the HTML body with:
+        # <script type="application/adaptivecard+json">{ card JSON here }</script>
+        # OWA and modern Outlook render this natively.
+
+STEP_09:
+  name: "Write ReviewEmailSent to QMS_RoutingHistory"
+  type: "SharePoint — Create item"
+  site: "https://adbccro.sharepoint.com/sites/IMP9177"
+  list: QMS_RoutingHistory
+  fields:
+    Title: "ReviewEmailSent-@{triggerBody()?['Title']}"
+    AL_EventType: "ReviewEmailSent"
+    AL_DCOID: "@{triggerBody()?['Title']}"
+    AL_Actor: "System"
+    AL_Note: >
+      Review email sent to @{length(body('Get_Required_approvers')?['value'])} approver(s)
+    AL_Timestamp: "@{utcNow()}"
+
+# ============================================================================
+# Flow 3: IMP9177 — Approval Gate HTTP Endpoint
+# ============================================================================
+
+FLOW_NAME: "IMP9177 — Approval Gate Endpoint"
+DESCRIPTION: >
+  HTTP trigger with two operations:
+    GET  ?op=status&dcoId=X&approverEmail=Y  → returns gate status JSON
+    POST body: {dcoId, approverEmail, action, reason}  → approve or reject
+
+TRIGGER:
+  type: "When an HTTP request is received"
+  # Copy the generated URL into the Adaptive Card refresh.action URL
+  # and the Action.Execute action URL
+
+STEP_01:
+  name: "Parse operation"
+  type: Condition
+  expression: "@{equals(triggerOutputs()?['queries']?['op'], 'status')}"
+  if_true:  "→ Gate Status branch"
+  if_false: "→ Approve/Reject branch"
+
+# ── Gate Status branch (GET /gate-status) ────────────────────────────────────
+GATE_STATUS_BRANCH:
+
+  GS_01:
+    name: "Get DCO details"
+    type: "SharePoint — Get items"
+    site: "https://adbccro.sharepoint.com/sites/IMP9177"
+    list: QMS_DCOs
+    filter: "Title eq '@{triggerOutputs()?['queries']?['dcoId']}'"
+    top: 1
+    output_as: dcoRecord
+
+  GS_02:
+    name: "Parse doc list"
+    type: Compose
+    inputs: >
+      @{split(replace(
+        first(body('Get_DCO_details')?['value'])?['DCO_Docs'], ' ', ''
+      ), ',')}
+    output_as: docIds
+
+  GS_03:
+    name: "Get DocumentOpened events for this approver"
+    type: "SharePoint — Get items"
+    site: "https://adbccro.sharepoint.com/sites/IMP9177"
+    list: QMS_RoutingHistory
+    filter: >
+      AL_EventType eq 'DocumentOpened'
+      and AL_DCOID eq '@{triggerOutputs()?['queries']?['dcoId']}'
+      and AL_Actor eq '@{triggerOutputs()?['queries']?['approverEmail']}'
+    top: 100
+    output_as: openedEvents
+
+  GS_04:
+    name: "Build opened doc IDs set"
+    type: Compose
+    inputs: >
+      @{body('Get_DocumentOpened_events_for_this_approver')?['value']}
+    output_as: openedDocIds
+    # Extract AL_DocID from each event to form the opened set
+
+  GS_05:
+    name: "Build doc status array"
+    type: "Apply to each"
+    input: "@{outputs('Parse_doc_list')}"
+    steps:
+      GS_05a:
+        name: "Check if doc opened"
+        type: Compose
+        inputs:
+          docId: "@{items('Build_doc_status_array')}"
+          opened: >
+            @{contains(
+              string(body('Get_DocumentOpened_events_for_this_approver')?['value']),
+              items('Build_doc_status_array')
+            )}
+          openedAt: >
+            @{if(contains(
+              string(body('Get_DocumentOpened_events_for_this_approver')?['value']),
+              items('Build_doc_status_array')),
+              'Reviewed',
+              null
+            )}
+    output_as: docStatuses
+
+  GS_06:
+    name: "Compute gate"
+    type: Compose
+    inputs:
+      openedCount: >
+        @{length(body('Get_DocumentOpened_events_for_this_approver')?['value'])}
+      totalCount: "@{length(outputs('Parse_doc_list'))}"
+      gateOpen: >
+        @{greaterOrEquals(
+          length(body('Get_DocumentOpened_events_for_this_approver')?['value']),
+          length(outputs('Parse_doc_list'))
+        )}
+
+  GS_07:
+    name: "Return gate status"
+    type: "Response"
+    statusCode: 200
+    headers:
+      Content-Type: "application/json"
+    body: >
+      @{json(concat('{',
+        '"dcoId":"', triggerOutputs()?['queries']?['dcoId'], '",',
+        '"dcoTitle":"', first(body('Get_DCO_details')?['value'])?['DCO_Title'], '",',
+        '"totalDocs":', string(outputs('Compute_gate')?['totalCount']), ',',
+        '"openedDocs":', string(outputs('Compute_gate')?['openedCount']), ',',
+        '"gateOpen":', string(outputs('Compute_gate')?['gateOpen']), ',',
+        '"remainingCount":', string(sub(
+          outputs('Compute_gate')?['totalCount'],
+          outputs('Compute_gate')?['openedCount']
+        )), ',',
+        '"progressColor":', if(outputs('Compute_gate')?['gateOpen'], '"Good"', '"Warning"'), ',',
+        '"progressMessage":', if(outputs('Compute_gate')?['gateOpen'],
+          '"All documents reviewed"',
+          '"Open remaining documents before approving"'),
+        '"}'
+      ))}
+
+# ── Approve/Reject branch (POST body) ────────────────────────────────────────
+APPROVE_BRANCH:
+
+  AP_01:
+    name: "Parse request body"
+    type: "Parse JSON"
+    content: "@{triggerBody()}"
+    schema:
+      type: object
+      properties:
+        dcoId: { type: string }
+        approverEmail: { type: string }
+        action: { type: string }
+        reason: { type: string }
+
+  AP_02:
+    name: "Server-side gate check"
+    type: "SharePoint — Get items"
+    site: "https://adbccro.sharepoint.com/sites/IMP9177"
+    list: QMS_RoutingHistory
+    filter: >
+      AL_EventType eq 'DocumentOpened'
+      and AL_DCOID eq '@{body('Parse_request_body')?['dcoId']}'
+      and AL_Actor eq '@{body('Parse_request_body')?['approverEmail']}'
+    top: 100
+    output_as: openedEvents
+
+  AP_03:
+    name: "Get DCO doc count"
+    type: "SharePoint — Get items"
+    site: "https://adbccro.sharepoint.com/sites/IMP9177"
+    list: QMS_DCOs
+    filter: "Title eq '@{body('Parse_request_body')?['dcoId']}'"
+    top: 1
+    output_as: dcoRecord
+
+  AP_04:
+    name: "Gate satisfied?"
+    type: Condition
+    expression: >
+      @{greaterOrEquals(
+        length(body('Server_side_gate_check')?['value']),
+        length(split(
+          replace(first(body('Get_DCO_doc_count')?['value'])?['DCO_Docs'], ' ', ''),
+          ','
+        ))
+      )}
+    if_false:
+      AP_04_REJECT:
+        name: "Return gate not satisfied"
+        type: Response
+        statusCode: 400
+        body:
+          error: "Not all documents reviewed"
+          opened: "@{length(body('Server_side_gate_check')?['value'])}"
+          required: >
+            @{length(split(
+              replace(first(body('Get_DCO_doc_count')?['value'])?['DCO_Docs'], ' ', ''),
+              ','
+            ))}
+        TERMINATE: true
+
+  AP_05:
+    name: "Approve or reject?"
+    type: Condition
+    expression: "@{equals(body('Parse_request_body')?['action'], 'approve')}"
+
+    if_true:  # APPROVE
+      AP_05a:
+        name: "PATCH DCO_Phase to Approved"
+        type: "SharePoint — Update item"
+        site: "https://adbccro.sharepoint.com/sites/IMP9177"
+        list: QMS_DCOs
+        id: "@{first(body('Get_DCO_doc_count')?['value'])?['ID']}"
+        fields:
+          DCO_Phase: "Approved"
+
+      AP_05b:
+        name: "PATCH DCOApproval row to Approved"
+        type: "SharePoint — Get items"
+        site: "https://adbccro.sharepoint.com/sites/IMP9177"
+        list: QMS_DCOApprovals
+        filter: >
+          Appr_DCOID eq '@{body('Parse_request_body')?['dcoId']}'
+          and Sig_ApproverEmail eq '@{body('Parse_request_body')?['approverEmail']}'
+        top: 1
+        output_as: approvalRow
+        # Then update:
+        type: "SharePoint — Update item"
+        id: "@{first(body('...')?['value'])?['ID']}"
+        fields:
+          Appr_Status: "Approved"
+          Appr_SignedDate: "@{utcNow()}"
+
+      AP_05c:
+        name: "Write DCOApproved to QMS_RoutingHistory"
+        type: "SharePoint — Create item"
+        site: "https://adbccro.sharepoint.com/sites/IMP9177"
+        list: QMS_RoutingHistory
+        fields:
+          Title: "DCOApproved-@{body('Parse_request_body')?['dcoId']}"
+          AL_EventType: "DCOApproved"
+          AL_DCOID: "@{body('Parse_request_body')?['dcoId']}"
+          AL_Actor: "@{body('Parse_request_body')?['approverEmail']}"
+          AL_Note: "Approved via Adaptive Card email — all documents reviewed and logged"
+          AL_Timestamp: "@{utcNow()}"
+          AL_Source: "AdaptiveCard_ActionExecute"
+
+      AP_05d:
+        name: "Return success"
+        type: Response
+        statusCode: 200
+        body:
+          success: true
+          message: "DCO approved successfully"
+          dcoId: "@{body('Parse_request_body')?['dcoId']}"
+
+    if_false:  # REJECT
+      AP_05e:
+        name: "Require rejection reason"
+        type: Condition
+        expression: >
+          @{not(empty(body('Parse_request_body')?['reason']))}
+        if_false:
+          type: Response
+          statusCode: 400
+          body: { error: "Rejection reason is required" }
+          TERMINATE: true
+
+      AP_05f:
+        name: "PATCH DCO_Phase to Rejected"
+        type: "SharePoint — Update item"
+        site: "https://adbccro.sharepoint.com/sites/IMP9177"
+        list: QMS_DCOs
+        id: "@{first(body('Get_DCO_doc_count')?['value'])?['ID']}"
+        fields:
+          DCO_Phase: "Rejected"
+
+      AP_05g:
+        name: "Write DCORejected to QMS_RoutingHistory"
+        type: "SharePoint — Create item"
+        site: "https://adbccro.sharepoint.com/sites/IMP9177"
+        list: QMS_RoutingHistory
+        fields:
+          Title: "DCORejected-@{body('Parse_request_body')?['dcoId']}"
+          AL_EventType: "DCORejected"
+          AL_DCOID: "@{body('Parse_request_body')?['dcoId']}"
+          AL_Actor: "@{body('Parse_request_body')?['approverEmail']}"
+          AL_Note: "@{body('Parse_request_body')?['reason']}"
+          AL_Timestamp: "@{utcNow()}"
+
+      AP_05h:
+        name: "Send rejection notification to originator"
+        type: "Office 365 Outlook — Send an email (V2)"
+        to: "@{first(body('Get_DCO_doc_count')?['value'])?['DCO_Originator']}"
+        subject: >
+          [IMP9177] @{body('Parse_request_body')?['dcoId']} — Rejected
+        body: >
+          <p>DCO @{body('Parse_request_body')?['dcoId']} has been rejected.</p>
+          <p><strong>Reason:</strong> @{body('Parse_request_body')?['reason']}</p>
+          <p><strong>Rejected by:</strong> @{body('Parse_request_body')?['approverEmail']}</p>
+          <p>Please revise the DCO and resubmit.</p>
+
+      AP_05i:
+        name: "Return rejection success"
+        type: Response
+        statusCode: 200
+        body:
+          success: true
+          message: "DCO rejected"
+          dcoId: "@{body('Parse_request_body')?['dcoId']}"

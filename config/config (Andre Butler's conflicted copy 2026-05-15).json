@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "imp-9177-dashboard-web-part": {
+      "components": [{
+        "entrypoint": "./lib/webparts/imp9177Dashboard/Imp9177DashboardWebPart.js",
+        "manifest": "./src/webparts/imp9177Dashboard/Imp9177DashboardWebPart.manifest.json"
+      }]
+    },
+    "mrs-forms-web-part": {
+      "components": [{
+        "entrypoint": "./lib/webparts/mrsFormsWebPart/MrsFormsWebPart.js",
+        "manifest": "./src/webparts/mrsFormsWebPart/MrsFormsWebPart.manifest.json"
+      }]
+    },
+    "sup-forms-web-part": {
+      "components": [{
+        "entrypoint": "./lib/webparts/supFormsWebPart/SupFormsWebPart.js",
+        "manifest": "./src/webparts/supFormsWebPart/SupFormsWebPart.manifest.json"
+      }]
+    },
+    "raid-forms-web-part": {
+      "components": [{
+        "entrypoint": "./lib/webparts/raidFormsWebPart/RaidFormsWebPart.js",
+        "manifest": "./src/webparts/raidFormsWebPart/RaidFormsWebPart.manifest.json"
+      }]
+    },
+    "pm-forms-web-part": {
+      "components": [{
+        "entrypoint": "./lib/webparts/pmFormsWebPart/PmFormsWebPart.js",
+        "manifest": "./src/webparts/pmFormsWebPart/PmFormsWebPart.manifest.json"
+      }]
+    },
+    "qms-portal-web-part": {
+      "components": [{
+        "entrypoint": "./lib/webparts/qmsPortalWebPart/QmsPortalWebPart.js",
+        "manifest": "./src/webparts/qmsPortalWebPart/QmsPortalWebPart.manifest.json"
+      }]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "Imp9177DashboardWebPartStrings": "lib/webparts/imp9177Dashboard/loc/{locale}.js"
+  }
+}

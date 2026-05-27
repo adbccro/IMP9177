@@ -534,6 +534,9 @@ const SHELL_DOCREPO = `<div class="kpi-row" id="drm-kpi-row">
   <div class="kpi r"><div class="kpi-l">DCO Blocked</div><div class="kpi-v r" id="drm-k4">—</div><div class="kpi-s">Locked on active DCO</div></div>
 </div>
 <div class="sec-hdr"><div class="sec-title">Document Repository Matrix</div><span id="drm-live" style="font-size:10px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-weight:700;margin-left:auto">Loading...</span></div><div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><select id="drm-tf" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All types</option><option value='SOP'>SOP</option><option value='FM'>FM</option><option value='QM'>QM</option></select><select id="drm-df" style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;background:var(--w)"><option value='all'>All DCOs</option><option value='DCO-0001'>DCO-0001</option><option value='DCO-0002'>DCO-0002</option></select><input id="drm-qf" type="text" placeholder="Search..." style="font-size:12px;padding:4px 8px;border:1px solid var(--s2);border-radius:6px;height:28px;min-width:160px"></div><div id="drm-sbar" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"></div><div id="drm-loading" style="padding:24px 0;color:var(--s5);font-size:12px"><span class="spin"></span> Loading document matrix from SharePoint...</div><div id="drm-table-wrap" style="display:none"><div class="tcard"><table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px"><colgroup><col style="width:100px"><col style="width:140px"><col><col><col></colgroup><thead><tr><th>Doc ID</th><th>Title</th><th style="text-align:center;color:#1565c0;border-bottom:2px solid #1565c0">Drafts</th><th style="text-align:center;color:#e65100;border-bottom:2px solid #e65100">Published</th><th style="text-align:center;color:#2e7d32;border-bottom:2px solid #2e7d32">Official</th></tr></thead><tbody id="drm-tbody"></tbody></table></div></div><div id="drm-detail" style="display:none"></div>`;
+const SHELL_DHR = `<div class="sec-hdr"><div class="sec-title">Device History Records — Batch Process Flow</div></div>
+<iframe src="https://adbccro.sharepoint.com/sites/IMP9177/_layouts/15/WopiFrame.aspx?sourcedoc=%2Fsites%2FIMP9177%2FShared%20Documents%2FPublished%2FQMS%2FDocuments%2FFLW-IMP9177-001_Batch_Process_Flow.html&action=view" style="width:100%;height:calc(100vh - 100px);border:none" title="FLW-IMP9177-001 Batch Process Flow"></iframe>`;
+
 const SHELL_CONFIG = `
 <div class="sec-hdr"><div class="sec-title">System Configuration</div><button class="btn-pri" id="btn-save-config">💾 Save All Settings</button></div>
 <div class="cfg-grid" id="cfg-body"><div class="loading"><span class="spin"></span>Loading config...</div></div>`;
@@ -621,6 +624,7 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <button class="qp-tab" data-screen="dco">📋 Change Orders</button>
   <button class="qp-tab" data-screen="cr">🔄 Change Requests</button>
   <button class="qp-tab" data-screen="records">📁 Records</button>
+  <button class="qp-tab" data-screen="dhr">📋 DHR</button>
   <button class="qp-tab" data-screen="training">🎓 Training</button>
   <button class="qp-tab" data-screen="publish">🚀 PM Publish</button>
   <button class="qp-tab" data-screen="docrepo">📄 Documents</button>
@@ -634,6 +638,7 @@ function qpOpenNewApprover(){_qpStub('OpenNewApprover',[]);}
   <div class="qp-screen" id="sc-dco">${SHELL_DCO}</div>
   <div class="qp-screen" id="sc-cr">${SHELL_CR}</div>
   <div class="qp-screen" id="sc-records">${SHELL_RECORDS}</div>
+  <div class="qp-screen" id="sc-dhr">${SHELL_DHR}</div>
   <div class="qp-screen" id="sc-training">${SHELL_TRAINING}</div>
   <div class="qp-screen" id="sc-publish">${SHELL_PUBLISH}</div>
   <div class="qp-screen" id="sc-docrepo">${SHELL_DOCREPO}</div>
