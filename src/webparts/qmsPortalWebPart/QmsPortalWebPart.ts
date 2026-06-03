@@ -539,6 +539,7 @@ const SHELL_PRD = `<div class="sec-hdr"><div class="sec-title">Production Record
   <button class="prd-tab on" data-prdtab="prd-001" style="font-size:12px;font-weight:600;padding:6px 16px;border-radius:18px;border:none;cursor:pointer;background:#fff;color:#1E3A5F;font-family:var(--sans)">PRD-001 · Batch Process Flow</button>
   <button class="prd-tab" data-prdtab="prd-002" style="font-size:12px;font-weight:600;padding:6px 16px;border-radius:18px;border:none;cursor:pointer;background:transparent;color:#fff;font-family:var(--sans)">PRD-002 · In Process Controls Flow</button>
   <button class="prd-tab" data-prdtab="prd-003" style="font-size:12px;font-weight:600;padding:6px 16px;border-radius:18px;border:none;cursor:pointer;background:transparent;color:#fff;font-family:var(--sans)">PRD-003 · Equipment Calibration Flow</button>
+  <button class="prd-tab" data-prdtab="prd-004" style="font-size:12px;font-weight:600;padding:6px 16px;border-radius:18px;border:none;cursor:pointer;background:transparent;color:#fff;font-family:var(--sans)">PRD-004 · Label Control Flow</button>
 </div>
 <div id="prd-loading" style="padding:24px 0;color:var(--s5);font-size:12px"><span class="spin"></span> Loading...</div>
 <iframe id="prd-iframe" style="width:100%;height:calc(100vh - 100px);border:none;display:none" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>`;
@@ -1779,6 +1780,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       'prd-001': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-001_Batch_Process_Flow.html',
       'prd-002': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-002_In_Process_Controls_Flow.html',
       'prd-003': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-003_Equipment_Calibration_Flow.html',
+      'prd-004': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-004_Label_Control_Flow.html',
     };
     const rel = files[docId] || files['prd-001'];
     const d = document;
