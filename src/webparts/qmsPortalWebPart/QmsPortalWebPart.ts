@@ -1780,7 +1780,7 @@ export default class QmsPortalWebPart extends BaseClientSideWebPart<IQmsPortalWe
       'prd-001': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-001_Batch_Process_Flow.html',
       'prd-002': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-002_In_Process_Controls_Flow.html',
       'prd-003': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-003_Equipment_Calibration_Flow.html',
-      'prd-004': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-004_Label_Control_Flow.html',
+      'prd-004': '/sites/IMP9177/Shared Documents/Published/QMS/Documents/FLW-IMP9177-004_Label_Control_Packaging_Flow.html',
     };
     const rel = files[docId] || files['prd-001'];
     const d = document;
